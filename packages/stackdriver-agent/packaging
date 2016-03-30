@@ -3,6 +3,49 @@
 set -e # exit immediately if a simple command exits with a non-zero status
 set -u # report the usage of uninitialized variables
 
+# Copy common utilities
+cp -a common/* ${BOSH_INSTALL_TARGET}
+
+# Install libtool
+tar xzfv ${BOSH_COMPILE_TARGET}/libtool/libtool-2.4.2.tar.gz
+mkdir -p ${BOSH_INSTALL_TARGET}/libtool
+pushd ${BOSH_COMPILE_TARGET}/libtool-2.4.2
+  ./configure --prefix=${BOSH_INSTALL_TARGET}/libtool
+  make
+  make install
+popd
+
+# Install Python
+tar xzvf ${BOSH_COMPILE_TARGET}/python/Python-2.7.11.tgz
+mkdir -p ${BOSH_INSTALL_TARGET}/python
+pushd ${BOSH_COMPILE_TARGET}/Python-2.7.11
+  ./configure --prefix=${BOSH_INSTALL_TARGET}/python
+  make
+  make install
+popd
+
+mkdir -p ${BOSH_INSTALL_TARGET}/python/lib/python2.7/site-packages
+export PYTHONPATH=${BOSH_INSTALL_TARGET}/python/lib/python2.7/site-packages:${PYTHONPATH:-}
+
+# Install Python setuptools
+tar xzvf ${BOSH_COMPILE_TARGET}/python/setuptools-20.4.tar.gz
+pushd ${BOSH_COMPILE_TARGET}/setuptools-20.4
+  ${BOSH_INSTALL_TARGET}/python/bin/python setup.py install --prefix=${BOSH_INSTALL_TARGET}/python
+popd
+
+# Install Python netifaces
+tar xzvf ${BOSH_COMPILE_TARGET}/python/netifaces-0.10.4.tar.gz
+pushd ${BOSH_COMPILE_TARGET}/netifaces-0.10.4
+  ${BOSH_INSTALL_TARGET}/python/bin/python setup.py install --prefix=${BOSH_INSTALL_TARGET}/python
+popd
+
+# Install Python psutil
+tar xzvf ${BOSH_COMPILE_TARGET}/python/psutil-1.2.1.tar.gz
+pushd ${BOSH_COMPILE_TARGET}/psutil-1.2.1
+  ${BOSH_INSTALL_TARGET}/python/bin/python setup.py install --prefix=${BOSH_INSTALL_TARGET}/python
+popd
+
+# Copy StackDriver agents
 tar xzvf ${BOSH_COMPILE_TARGET}/stackdriver-agent/stackdriver-agent-5.5.0-269.tgz
 tar xzvf ${BOSH_COMPILE_TARGET}/stackdriver-agent/stackdriver-extractor-92-1.tgz
 cp -a ${BOSH_COMPILE_TARGET}/stackdriver/* ${BOSH_INSTALL_TARGET}

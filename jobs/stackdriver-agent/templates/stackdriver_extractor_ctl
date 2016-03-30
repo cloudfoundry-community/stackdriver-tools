@@ -8,7 +8,7 @@ LOG_DIR=/var/vcap/sys/log/stackdriver_agent
 
 PIDFILE=${RUN_DIR}/stackdriver_extractor.pid
 
-source /var/vcap/packages/common/utils.sh
+source /var/vcap/packages/stackdriver-agent/utils.sh
 
 case $1 in
 
@@ -33,8 +33,8 @@ case $1 in
     CONFIG_FILE=/var/vcap/jobs/stackdriver_agent/config/extractor.conf
     sed -e "s/^host_id=.*/host_id=${GCE_INSTANCE_ID}/; s/^apikey=.*/apikey=${STACKDRIVER_API_KEY}/" ${CONFIG_TMPL} >> ${CONFIG_FILE}
 
-    export PYTHONPATH=/var/vcap/packages/python/lib/python2.7/site-packages:${PYTHONPATH:-}
-    exec /var/vcap/packages/python/bin/python /var/vcap/packages/stackdriver-agent/extractor/bin/extractd.py \
+    export PYTHONPATH=/var/vcap/packages/stackdriver-agent/python/lib/python2.7/site-packages:${PYTHONPATH:-}
+    exec /var/vcap/packages/stackdriver-agent/python/bin/python /var/vcap/packages/stackdriver-agent/extractor/bin/extractd.py \
       -c /var/vcap/jobs/stackdriver_agent/config/extractor.conf \
       -P ${PIDFILE} \
       start \

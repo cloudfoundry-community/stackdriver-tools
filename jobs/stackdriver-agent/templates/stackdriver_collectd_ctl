@@ -8,7 +8,7 @@ LOG_DIR=/var/vcap/sys/log/stackdriver_agent
 
 PIDFILE=${RUN_DIR}/stackdriver_collectd.pid
 
-source /var/vcap/packages/common/utils.sh
+source /var/vcap/packages/stackdriver-agent/utils.sh
 
 case $1 in
 
@@ -33,7 +33,7 @@ case $1 in
     CONFIG_FILE=/var/vcap/jobs/stackdriver_agent/config/collectd.conf
     sed -e "s/{GCE_INSTANCE_ID}/${GCE_INSTANCE_ID}/; s/{STACKDRIVER_API_KEY}/${STACKDRIVER_API_KEY}/" ${CONFIG_TMPL} >> ${CONFIG_FILE}
 
-    export LD_LIBRARY_PATH=/var/vcap/packages/libtool/lib
+    export LD_LIBRARY_PATH=/var/vcap/packages/stackdriver-agent/libtool/lib
     exec /var/vcap/packages/stackdriver-agent/collectd/sbin/stackdriver-collectd \
       -C /var/vcap/jobs/stackdriver_agent/config/collectd.conf \
       -P ${PIDFILE} \

@@ -9,7 +9,7 @@ STORE_DIR=/var/vcap/store/firehose_to_fluentd
 
 PIDFILE=${RUN_DIR}/firehose_to_fluentd.pid
 
-source /var/vcap/packages/common/utils.sh
+source /var/vcap/packages/firehose-to-fluentd/utils.sh
 
 case $1 in
 

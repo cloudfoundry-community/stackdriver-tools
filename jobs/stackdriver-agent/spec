@@ -2,9 +2,6 @@
 name: stackdriver_agent
 
 packages:
-  - common
-  - libtool
-  - python
   - stackdriver-agent
 
 templates:

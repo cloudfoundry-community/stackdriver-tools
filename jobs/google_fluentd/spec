@@ -2,9 +2,7 @@
 name: google_fluentd
 
 packages:
-  - common
   - google-fluentd
-  - ruby
 
 templates:
   google_fluentd_ctl: bin/google_fluentd_ctl

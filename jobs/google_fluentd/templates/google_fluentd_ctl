@@ -8,7 +8,7 @@ LOG_DIR=/var/vcap/sys/log/google_fluentd
 
 PIDFILE=${RUN_DIR}/google_fluentd.pid
 
-source /var/vcap/packages/common/utils.sh
+source /var/vcap/packages/google-fluentd/utils.sh
 
 case $1 in
 
@@ -17,7 +17,7 @@ case $1 in
 
     mkdir -p ${RUN_DIR} ${LOG_DIR}
 
-    export PATH=/var/vcap/packages/ruby/bin:${PATH}
+    export PATH=/var/vcap/packages/google-fluentd/bin:${PATH}
 
     exec /var/vcap/packages/google-fluentd/bin/fluentd \
       --config /var/vcap/jobs/google_fluentd/config/google_fluentd.conf \

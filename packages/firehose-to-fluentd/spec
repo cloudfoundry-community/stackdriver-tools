@@ -3,4 +3,5 @@ name: firehose-to-fluentd
 dependencies:
   - golang
 files:
+  - common/utils.sh
   - firehose-to-fluentd/**/*

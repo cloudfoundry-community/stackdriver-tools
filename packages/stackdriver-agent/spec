@@ -1,5 +1,11 @@
 ---
 name: stackdriver-agent
 files:
+  - common/utils.sh
+  - libtool/libtool-2.4.2.tar.gz
+  - python/Python-2.7.11.tgz
+  - python/setuptools-20.4.tar.gz
+  - python/netifaces-0.10.4.tar.gz
+  - python/psutil-1.2.1.tar.gz
   - stackdriver-agent/stackdriver-agent-5.5.0-269.tgz
   - stackdriver-agent/stackdriver-extractor-92-1.tgz

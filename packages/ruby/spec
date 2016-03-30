@@ -1,7 +1,0 @@
----
-name: ruby
-files:
-  - ruby/bundler-1.10.6.gem
-  - ruby/ruby-2.3.0.tar.gz
-  - ruby/rubygems-2.6.2.tgz
-  - ruby/yaml-0.1.6.tar.gz

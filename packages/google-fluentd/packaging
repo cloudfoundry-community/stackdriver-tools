@@ -3,7 +3,38 @@
 set -e # exit immediately if a simple command exits with a non-zero status
 set -u # report the usage of uninitialized variables
 
+# Copy common utilities
+cp -a common/* ${BOSH_INSTALL_TARGET}
+
+# Install Yaml
+tar xzfv ${BOSH_COMPILE_TARGET}/ruby/yaml-0.1.6.tar.gz
+pushd ${BOSH_COMPILE_TARGET}/yaml-0.1.6
+  ./configure --prefix=${BOSH_INSTALL_TARGET}
+  make
+  make install
+  ldconfig
+popd
+
+# Install Ruby
+tar xzfv ${BOSH_COMPILE_TARGET}/ruby/ruby-2.3.0.tar.gz
+pushd ${BOSH_COMPILE_TARGET}/ruby-2.3.0
+  LDFLAGS="-Wl,-rpath -Wl,${BOSH_INSTALL_TARGET}" ./configure --prefix=${BOSH_INSTALL_TARGET} --disable-install-doc --with-opt-dir=${BOSH_INSTALL_TARGET}
+  make
+  make install
+popd
+
+# Install Rubygemts
+tar xzfv ${BOSH_COMPILE_TARGET}/ruby/rubygems-2.6.2.tgz
+pushd ${BOSH_COMPILE_TARGET}/rubygems-2.6.2
+  ${BOSH_INSTALL_TARGET}/bin/ruby setup.rb
+popd
+
+# Install Bundler
+${BOSH_INSTALL_TARGET}/bin/gem install ${BOSH_COMPILE_TARGET}/ruby/bundler-1.10.6.gem --no-ri --no-rdoc
+
+# Copy Google Fluentd
 cp -a ${BOSH_COMPILE_TARGET}/google-fluentd/* ${BOSH_INSTALL_TARGET}/
 
+# Install Google Fluentd
 cd ${BOSH_INSTALL_TARGET}
-/var/vcap/packages/ruby/bin/bundle install --local --deployment --binstubs --without development test
+${BOSH_INSTALL_TARGET}/bin/bundle install --local --deployment --binstubs --without development test
