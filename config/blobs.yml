@@ -31,3 +31,19 @@ stackdriver-agent/stackdriver-extractor-92-1.tgz:
   object_id: f1608168-98e8-407a-a2d7-7b79cbd9908b
   sha: 3ac6f0bf3a8067fc478931f13a35d4f7de0d8800
   size: 11023
+python/netifaces-0.10.4.tar.gz:
+  object_id: d4b7d301-60b0-4e2e-a515-074d296199d9
+  sha: c3fcd491a89c2994815053e853b005e7fc27c79a
+  size: 22969
+python/Python-2.7.11.tgz:
+  object_id: b2676f74-87a8-4708-bd78-e478705b3b33
+  sha: 62a0b1b703d42999cc4aa9ee3c55eb7efe35802a
+  size: 16856409
+python/setuptools-20.4.tar.gz:
+  object_id: 3d76e562-5b43-4828-9194-532b30726ec1
+  sha: b9ffbf5e29765c4a786c7242be1b03bfe08ad1c0
+  size: 675976
+python/psutil-1.2.1.tar.gz:
+  object_id: 65957b56-b096-4a79-8354-504a76abd69a
+  sha: c8c1842bf1c63b9068ac25a37f7aae11fcecd57f
+  size: 167397

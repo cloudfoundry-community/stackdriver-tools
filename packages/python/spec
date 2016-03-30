@@ -1,0 +1,7 @@
+---
+name: python
+files:
+  - python/Python-2.7.11.tgz
+  - python/setuptools-20.4.tar.gz
+  - python/netifaces-0.10.4.tar.gz
+  - python/psutil-1.2.1.tar.gz
