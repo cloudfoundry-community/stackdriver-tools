@@ -1,0 +1,44 @@
+---
+packages:
+- name: firehose-to-fluentd
+  version: 62db81b770c0674195fd3ff1c90b5d006139c648
+  fingerprint: 62db81b770c0674195fd3ff1c90b5d006139c648
+  sha1: 994b0c847f32a9f88a830f8f9d48488f1e51a9a0
+  dependencies:
+  - golang
+- name: golang
+  version: f0d4ca0c9444f213e95d7dd3f67770ab05d77f20
+  fingerprint: f0d4ca0c9444f213e95d7dd3f67770ab05d77f20
+  sha1: a66eb4e5811028eebb7efd514f82270263677a71
+  dependencies: []
+- name: google-fluentd
+  version: aa43374cf048c2c9c58d3c346da5bab02cbbc20d
+  fingerprint: aa43374cf048c2c9c58d3c346da5bab02cbbc20d
+  sha1: aa77b1d5d3d050404791861abc1f5c26c9f3770a
+  dependencies: []
+- name: stackdriver-agent
+  version: 02e4c5724a037624c276d6bf1aca03a360498588
+  fingerprint: 02e4c5724a037624c276d6bf1aca03a360498588
+  sha1: 784667a579fd9116d68da89800ac76c1508f739b
+  dependencies: []
+jobs:
+- name: firehose_to_fluentd
+  version: ae58bc3237467a06d61cfd2ee7d793ee2d7273f7
+  fingerprint: ae58bc3237467a06d61cfd2ee7d793ee2d7273f7
+  sha1: b27dabbf079338d1f9cfe00cf0a6e8cad49d09a0
+- name: google_fluentd
+  version: d4c33a74698c35e5d9cacdf2a6a468c9277dc10e
+  fingerprint: d4c33a74698c35e5d9cacdf2a6a468c9277dc10e
+  sha1: 9bee2b1cb3b8adca3459d148eff7799855b814ec
+- name: stackdriver_agent
+  version: a04b2786f1ef2a05a1d53e8d45db5a6f20eb3884
+  fingerprint: a04b2786f1ef2a05a1d53e8d45db5a6f20eb3884
+  sha1: 3aecb4c4e3fd19d66af940e210a4759ee8ac7aa9
+license:
+  version: 99711acad6032fe4c7f657779849ad9400497bf5
+  fingerprint: 99711acad6032fe4c7f657779849ad9400497bf5
+  sha1: ff255784413eaed77e9ed455386b9feacf887bdd
+commit_hash: 2ac82e60
+uncommitted_changes: true
+name: gcp-tools
+version: '1'
