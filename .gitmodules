@@ -1,0 +1,3 @@
+[submodule "src/firehose-to-fluentd"]
+	path = src/firehose-to-fluentd
+	url = https://github.com/shinji62/firehose-to-fluentd.git

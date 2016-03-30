@@ -1,0 +1,49 @@
+#!/bin/bash
+
+set -e # exit immediately if a simple command exits with a non-zero status
+set -u # report the usage of uninitialized variables
+
+RUN_DIR=/var/vcap/sys/run/firehose_to_fluentd
+LOG_DIR=/var/vcap/sys/log/firehose_to_fluentd
+STORE_DIR=/var/vcap/store/firehose_to_fluentd
+
+PIDFILE=${RUN_DIR}/firehose_to_fluentd.pid
+
+source /var/vcap/packages/common/utils.sh
+
+case $1 in
+
+  start)
+    pid_guard ${PIDFILE} "firehose_to_fluentd"
+
+    mkdir -p ${RUN_DIR} ${LOG_DIR} ${STORE_DIR}
+    echo $$ > ${PIDFILE}
+
+    exec /var/vcap/packages/firehose-to-fluentd/bin/firehose-to-fluentd \
+      --api-endpoint=<%= p('firehose_to_fluentd.cf.api_url') %> \
+      --user=<%= p('firehose_to_fluentd.cf.admin_username') %> \
+      --password=<%= p('firehose_to_fluentd.cf.admin_password') %> \
+      <% if p('firehose_to_fluentd.cf.skip_ssl_validation') %> \
+      --skip-ssl-validation \
+      <% end %> \
+      --doppler-endpoint=<%= p('firehose_to_fluentd.cf.doppler_url', '') %> \
+      --subscription-id=<%= p('firehose_to_fluentd.cf.subscription_id') %> \
+      --events=<%= p('firehose_to_fluentd.cf.events') %> \
+      --cc-pull-time=<%= p('firehose_to_fluentd.cf.cc_pull_time') %> \
+      --fluentd-server=<%= p('firehose_to_fluentd.fluentd.address') %>:<%= p('firehose_to_fluentd.fluentd.port') %> \
+      --boltdb-path="${STORE_DIR}/firehose_to_fluentd.db" \
+      <% if p('firehose_to_fluentd.debug') %> \
+      --debug \
+      <% end %> \
+      >>  ${LOG_DIR}/firehose_to_fluentd.stdout.log \
+      2>> ${LOG_DIR}/firehose_to_fluentd.stderr.log
+    ;;
+
+  stop)
+    kill_and_wait ${PIDFILE}
+    ;;
+
+  *)
+    echo "Usage: firehose_to_fluentd_ctl {start|stop}" ;;
+
+esac

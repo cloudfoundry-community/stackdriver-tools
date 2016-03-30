@@ -1,0 +1,9 @@
+#!/bin/bash
+
+set -e # exit immediately if a simple command exits with a non-zero status
+set -u # report the usage of uninitialized variables
+
+cp -a ${BOSH_COMPILE_TARGET}/google-fluentd/* ${BOSH_INSTALL_TARGET}/
+
+cd ${BOSH_INSTALL_TARGET}
+/var/vcap/packages/ruby/bin/bundle install --local --deployment --binstubs --without development test

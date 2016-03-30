@@ -1,0 +1,51 @@
+#!/bin/bash
+
+set -e # exit immediately if a simple command exits with a non-zero status
+set -u # report the usage of uninitialized variables
+
+RUN_DIR=/var/vcap/sys/run/stackdriver_agent
+LOG_DIR=/var/vcap/sys/log/stackdriver_agent
+
+PIDFILE=${RUN_DIR}/stackdriver_collectd.pid
+
+source /var/vcap/packages/common/utils.sh
+
+case $1 in
+
+  start)
+    pid_guard ${PIDFILE} "stackdriver_collectd"
+
+    mkdir -p ${RUN_DIR} ${LOG_DIR}
+
+    GCE_INSTANCE_ID=`curl --silent -f -H "Metadata-Flavor: Google" http://169.254.169.254/computeMetadata/v1/instance/id 2>/dev/null`
+    if [ -z "$GCE_INSTANCE_ID" ]; then
+      echo "Unable to discover GCE Instance ID" >&2
+      return 1
+    fi
+
+    STACKDRIVER_API_KEY=`curl --silent -f -H "Metadata-Flavor: Google" http://169.254.169.254/computeMetadata/v1/project/attributes/stackdriver-agent-key 2>/dev/null`
+    if test -z "$STACKDRIVER_API_KEY" ; then
+      echo "Unable to discover StackDriver API KEY" >&2
+      return 1
+    fi
+
+    CONFIG_TMPL=/var/vcap/jobs/stackdriver_agent/config/collectd.conf.tmpl
+    CONFIG_FILE=/var/vcap/jobs/stackdriver_agent/config/collectd.conf
+    sed -e "s/{GCE_INSTANCE_ID}/${GCE_INSTANCE_ID}/; s/{STACKDRIVER_API_KEY}/${STACKDRIVER_API_KEY}/" ${CONFIG_TMPL} >> ${CONFIG_FILE}
+
+    export LD_LIBRARY_PATH=/var/vcap/packages/libtool/lib
+    exec /var/vcap/packages/stackdriver-agent/collectd/sbin/stackdriver-collectd \
+      -C /var/vcap/jobs/stackdriver_agent/config/collectd.conf \
+      -P ${PIDFILE} \
+      >>  ${LOG_DIR}/stackdriver_collectd.stdout.log \
+      2>> ${LOG_DIR}/stackdriver_collectd.stderr.log
+    ;;
+
+  stop)
+    kill_and_wait ${PIDFILE}
+    ;;
+
+  *)
+    echo "Usage: stackdriver_collectd_ctl {start|stop}" ;;
+
+esac

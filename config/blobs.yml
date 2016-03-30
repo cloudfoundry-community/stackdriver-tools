@@ -1,0 +1,33 @@
+---
+golang/go1.6.linux-amd64.tar.gz:
+  object_id: 31e2aa40-56be-44e6-a01d-a2ee5f25337b
+  sha: 01a6a28dbe31a53103b600979bbbbd63a8104456
+  size: 84799480
+ruby/bundler-1.10.6.gem:
+  object_id: fed164c4-df81-4e9b-89e2-2f1f3d2fb87d
+  sha: 55a37fccd1c0cb5542d468e35d3be46dd0667f73
+  size: 251392
+ruby/ruby-2.3.0.tar.gz:
+  object_id: a85650d1-5429-4e28-af88-0074dd7581cb
+  sha: 2dfcf7f33bda4078efca30ae28cb89cd0e36ddc4
+  size: 17648682
+ruby/rubygems-2.6.2.tgz:
+  object_id: 3a22fc58-dce2-430e-ab28-9f2d4be98e2b
+  sha: 5960628b1f90f4a05ed69c0ad59c59cb10b79e5f
+  size: 478660
+ruby/yaml-0.1.6.tar.gz:
+  object_id: 12a6045c-c545-4398-b02c-9361694c0352
+  sha: f3d404e11bec3c4efcddfd14c42d46f1aabe0b5d
+  size: 503012
+libtool/libtool-2.4.2.tar.gz:
+  object_id: 2e2677e4-06fd-4a5a-b2d1-45c3c2984867
+  sha: 22b71a8b5ce3ad86e1094e7285981cae10e6ff88
+  size: 2632347
+stackdriver-agent/stackdriver-agent-5.5.0-269.tgz:
+  object_id: d2996cdd-99db-4664-9743-5ed73b441132
+  sha: 05e302e8b1aacae8bbd3cc8109fb038bdffa8faf
+  size: 537741
+stackdriver-agent/stackdriver-extractor-92-1.tgz:
+  object_id: f1608168-98e8-407a-a2d7-7b79cbd9908b
+  sha: 3ac6f0bf3a8067fc478931f13a35d4f7de0d8800
+  size: 11023

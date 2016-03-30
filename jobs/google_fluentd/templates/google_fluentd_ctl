@@ -1,0 +1,37 @@
+#!/bin/bash
+
+set -e # exit immediately if a simple command exits with a non-zero status
+set -u # report the usage of uninitialized variables
+
+RUN_DIR=/var/vcap/sys/run/google_fluentd
+LOG_DIR=/var/vcap/sys/log/google_fluentd
+
+PIDFILE=${RUN_DIR}/google_fluentd.pid
+
+source /var/vcap/packages/common/utils.sh
+
+case $1 in
+
+  start)
+    pid_guard ${PIDFILE} "google_fluentd"
+
+    mkdir -p ${RUN_DIR} ${LOG_DIR}
+
+    export PATH=/var/vcap/packages/ruby/bin:${PATH}
+
+    exec /var/vcap/packages/google-fluentd/bin/fluentd \
+      --config /var/vcap/jobs/google_fluentd/config/google_fluentd.conf \
+      --daemon ${PIDFILE} \
+      --no-supervisor \
+      >>  ${LOG_DIR}/google_fluentd.stdout.log \
+      2>> ${LOG_DIR}/google_fluentd.stderr.log
+    ;;
+
+  stop)
+    kill_and_wait ${PIDFILE}
+    ;;
+
+  *)
+    echo "Usage: google_fluentd_ctl {start|stop}" ;;
+
+esac

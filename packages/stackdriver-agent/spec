@@ -1,0 +1,5 @@
+---
+name: stackdriver-agent
+files:
+  - stackdriver-agent/stackdriver-agent-5.5.0-269.tgz
+  - stackdriver-agent/stackdriver-extractor-92-1.tgz

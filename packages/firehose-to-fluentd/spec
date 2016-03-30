@@ -1,0 +1,6 @@
+---
+name: firehose-to-fluentd
+dependencies:
+  - golang
+files:
+  - firehose-to-fluentd/**/*

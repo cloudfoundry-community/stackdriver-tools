@@ -1,0 +1,8 @@
+#!/bin/bash
+
+set -e # exit immediately if a simple command exits with a non-zero status
+set -u # report the usage of uninitialized variables
+
+tar xzvf ${BOSH_COMPILE_TARGET}/stackdriver-agent/stackdriver-agent-5.5.0-269.tgz
+tar xzvf ${BOSH_COMPILE_TARGET}/stackdriver-agent/stackdriver-extractor-92-1.tgz
+cp -a ${BOSH_COMPILE_TARGET}/stackdriver/* ${BOSH_INSTALL_TARGET}

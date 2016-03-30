@@ -1,0 +1,6 @@
+---
+name: google-fluentd
+dependencies:
+  - ruby
+files:
+  - google-fluentd/Gemfile

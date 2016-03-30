@@ -1,0 +1,15 @@
+---
+name: google_fluentd
+
+packages:
+  - common
+  - google-fluentd
+  - ruby
+
+templates:
+  google_fluentd_ctl: bin/google_fluentd_ctl
+  google_fluentd.conf: config/google_fluentd.conf
+  fluentd.conf: config/config.d/fluentd.conf
+  syslog_endpoint.conf: config/config.d/syslog_endpoint.conf
+
+properties: {}

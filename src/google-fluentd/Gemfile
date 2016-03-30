@@ -1,0 +1,23 @@
+# https://github.com/GoogleCloudPlatform/google-fluentd/blob/master/plugin_gems.rb
+source 'https://rubygems.org'
+
+gem "httpclient", "2.7.1"
+gem "td-client", "0.8.78"
+gem "td", "0.13.2"
+gem "fluent-plugin-td", "0.10.28"
+gem "thrift", "0.8.0"
+gem "fluent-plugin-scribe", "0.10.14"
+gem "uuidtools", "2.1.5"
+gem "bson", "1.12.5"
+gem "bson_ext", "1.12.5"
+gem "mongo", "1.12.5"
+gem "fluent-plugin-mongo", "0.7.12"
+gem "aws-sdk", "2.2.14"
+gem "aws-sdk-v1", "1.66.0"
+gem "fluent-plugin-s3", "0.6.5"
+gem "webhdfs", "0.7.4"
+gem "fluent-plugin-webhdfs", "0.4.1"
+gem "string-scrub", "0.0.5"
+gem "fluent-plugin-rewrite-tag-filter", "1.5.4"
+gem "fluent-plugin-td-monitoring", "0.2.2"
+gem "fluent-plugin-google-cloud", "0.4.14"
