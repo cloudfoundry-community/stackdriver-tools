@@ -1,0 +1,14 @@
+---
+platform: linux
+image_resource:
+  type: docker-image
+  source:
+    repository: boshcpi/gce-cpi-release
+    tag: v2
+inputs:
+  - name: gcp-tools-release
+  - name: version-semver
+outputs:
+  - name: candidate
+run:
+  path: gcp-tools-release/ci/tasks/build-candidate.sh
