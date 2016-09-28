@@ -16,6 +16,15 @@ This is NOT presently a production ready BOSH release. This is just a Proof of C
 
 Many thanks to [Etourneau Gwenn](https://github.com/shinji62) for his fantastic [firehose-to-fluentd](https://github.com/shinji62/firehose-to-fluentd) utility.
 
+## Access Control
+
+The follow roles are required for the service account on each deployed instance:
+
+ - `roles/logging.logWriter` to stream logs to StackDriver Logging
+ - `roles/logging.configWriter` to setup CloudFoundry specific metrics on StackDriver Monitoring
+
+See the [access control documentation](https://cloud.google.com/logging/docs/access-control) for more information.
+
 ## Usage
 
 ### Upload the BOSH release
