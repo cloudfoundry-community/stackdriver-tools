@@ -1,0 +1,6 @@
+# http://direnv.net
+export API_ENDPOINT=https://api.bosh-lite.com
+export FIREHOSE_USER=admin
+export FIREHOSE_PASSWORD=admin
+export SKIP_SSL_VALIDATION=true
+export PROJECT_ID=<fill in gcp project id>
