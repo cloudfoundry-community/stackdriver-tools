@@ -1,6 +1,8 @@
 package stackdriver
 
 import (
+	"time"
+
 	"cloud.google.com/go/logging"
 	"golang.org/x/net/context"
 )
@@ -13,10 +15,14 @@ type client struct {
 	logger *logging.Logger
 }
 
-const LOG_ID = "cf_logs"
+const (
+	logId                = "cf_logs"
+	DefaultBatchCount    = "10"
+	DefaultBatchDuration = "1s"
+)
 
 // TODO error handling #131310523
-func NewClient(projectID string) Client {
+func NewClient(projectID string, batchCount int, batchDuration time.Duration) Client {
 	ctx := context.Background()
 
 	loggingClient, err := logging.NewClient(ctx, projectID)
@@ -28,7 +34,9 @@ func NewClient(projectID string) Client {
 		panic(err)
 	}
 
-	logger := loggingClient.Logger(LOG_ID)
+	logger := loggingClient.Logger(logId,
+		logging.EntryCountThreshold(batchCount),
+		logging.DelayThreshold(batchDuration))
 
 	return &client{logger: logger}
 }

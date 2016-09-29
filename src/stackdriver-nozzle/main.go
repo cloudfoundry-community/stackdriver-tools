@@ -33,6 +33,15 @@ var (
 	projectID = kingpin.Flag("project-id", "gcp project id").
 			OverrideDefaultFromEnvar("PROJECT_ID").
 			String() //maybe we can get this from gcp env...? research
+
+	batchCount = kingpin.Flag("batch-count", "maximum number of entries to buffer").
+		Default(stackdriver.DefaultBatchCount).
+		OverrideDefaultFromEnvar("BATCH_COUNT").
+		Int()
+	batchDuration = kingpin.Flag("batch-duration", "maximum amount of seconds to buffer").
+		Default(stackdriver.DefaultBatchDuration).
+		OverrideDefaultFromEnvar("BATCH_DURATION").
+		Duration()
 )
 
 func main() {
@@ -49,7 +58,7 @@ func main() {
 		}
 	} else {
 		println("Sending firehose to Stackdriver")
-		sdClient := stackdriver.NewClient(*projectID)
+		sdClient := stackdriver.NewClient(*projectID, *batchCount, *batchDuration)
 		n := nozzle.Nozzle{StackdriverClient: sdClient}
 
 		client.StartListening(&n)
