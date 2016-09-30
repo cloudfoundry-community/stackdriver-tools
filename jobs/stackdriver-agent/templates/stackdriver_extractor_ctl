@@ -17,13 +17,13 @@ case $1 in
 
     mkdir -p ${RUN_DIR} ${LOG_DIR}
 
-    GCE_INSTANCE_ID=`curl --silent -f -H "Metadata-Flavor: Google" http://169.254.169.254/computeMetadata/v1/instance/id 2>/dev/null`
+    GCE_INSTANCE_ID=`curl --silent -f -H "Metadata-Flavor: Google" http://169.254.169.254/computeMetadata/v1/instance/id 2>/dev/null || true`
     if [ -z "$GCE_INSTANCE_ID" ]; then
       echo "Unable to discover GCE Instance ID" >&2
       return 1
     fi
 
-    STACKDRIVER_API_KEY=`curl --silent -f -H "Metadata-Flavor: Google" http://169.254.169.254/computeMetadata/v1/project/attributes/stackdriver-agent-key 2>/dev/null`
+    STACKDRIVER_API_KEY=`curl --silent -f -H "Metadata-Flavor: Google" http://169.254.169.254/computeMetadata/v1/project/attributes/stackdriver-agent-key 2>/dev/null || true`
     if test -z "$STACKDRIVER_API_KEY" ; then
       echo "Unable to discover StackDriver API KEY" >&2
       return 1
