@@ -1,10 +1,10 @@
 package nozzle
 
 import (
-	"github.com/evandbrown/gcp-tools-release/src/stackdriver-nozzle/stackdriver"
 	"fmt"
-)
 
+	"github.com/evandbrown/gcp-tools-release/src/stackdriver-nozzle/stackdriver"
+)
 
 type Nozzle struct {
 	StackdriverClient stackdriver.Client
@@ -15,7 +15,17 @@ func (n *Nozzle) Connect() bool {
 }
 
 func (n *Nozzle) ShipEvents(event map[string]interface{}, _ string /* TODO research second string */) {
-	n.StackdriverClient.Post(event, map[string]string{
-		"event_type": fmt.Sprintf("%v", event["event_type"]),
-	})
+	switch event["event_type"] {
+
+	case "ValueMetric":
+		name := event["name"]
+		count := event["value"]
+		n.StackdriverClient.PostMetric(name.(string), count.(float64))
+
+	default:
+		n.StackdriverClient.PostLog(event, map[string]string{
+			"event_type": fmt.Sprintf("%v", event["event_type"]),
+		})
+	}
+
 }

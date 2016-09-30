@@ -1,10 +1,10 @@
 package main
 
 import (
-	"github.com/evandbrown/gcp-tools-release/src/stackdriver-nozzle/firehose"
-	"github.com/evandbrown/gcp-tools-release/src/stackdriver-nozzle/stackdriver"
 	"github.com/evandbrown/gcp-tools-release/src/stackdriver-nozzle/dev"
+	"github.com/evandbrown/gcp-tools-release/src/stackdriver-nozzle/firehose"
 	"github.com/evandbrown/gcp-tools-release/src/stackdriver-nozzle/nozzle"
+	"github.com/evandbrown/gcp-tools-release/src/stackdriver-nozzle/stackdriver"
 	"gopkg.in/alecthomas/kingpin.v2"
 )
 
@@ -35,13 +35,13 @@ var (
 			String() //maybe we can get this from gcp env...? research
 
 	batchCount = kingpin.Flag("batch-count", "maximum number of entries to buffer").
-		Default(stackdriver.DefaultBatchCount).
-		OverrideDefaultFromEnvar("BATCH_COUNT").
-		Int()
+			Default(stackdriver.DefaultBatchCount).
+			OverrideDefaultFromEnvar("BATCH_COUNT").
+			Int()
 	batchDuration = kingpin.Flag("batch-duration", "maximum amount of seconds to buffer").
-		Default(stackdriver.DefaultBatchDuration).
-		OverrideDefaultFromEnvar("BATCH_DURATION").
-		Duration()
+			Default(stackdriver.DefaultBatchDuration).
+			OverrideDefaultFromEnvar("BATCH_DURATION").
+			Duration()
 )
 
 func main() {
