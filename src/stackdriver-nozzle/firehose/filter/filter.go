@@ -6,13 +6,34 @@ import (
 )
 
 type filter struct {
-	destination firehose.FirehoseHandler
+	dest    firehose.FirehoseHandler
+	enabled map[events.Envelope_EventType]bool
 }
 
-func New() firehose.FirehoseHandler {
-	return &filter{}
+func parseEventName(string) (events.Envelope_EventType, error) {
+	panic("NYI")
 }
 
-func (f *filter) HandleEvent(*events.Envelope) error {
+func New(dest firehose.FirehoseHandler, events []string) (firehose.FirehoseHandler, error) {
+	f := filter{}
+	f.dest = dest
+
+	for _, eventName := range events {
+		eventType, err := parseEventName(eventName)
+
+		if err != nil {
+			return nil, err
+		}
+
+		f.enabled[eventType] = true
+	}
+
+	return f, nil
+}
+
+func (f filter) HandleEvent(envelope *events.Envelope) error {
+	if f.enabled[envelope.GetEventType()] {
+		return f.dest.HandleEvent(envelope)
+	}
 	return nil
 }
