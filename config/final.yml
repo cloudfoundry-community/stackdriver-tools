@@ -6,3 +6,4 @@ blobstore:
     bucket_name: gcp-tools-release
     host: storage.googleapis.com
     use_ssl: true
+    endpoint: https://storage.googleapis.com
