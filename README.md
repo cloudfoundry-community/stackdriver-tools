@@ -64,6 +64,14 @@ properties:
 
 ### Deploying StackDriver Monitoring
 
+Set the `stackdriver-agent-key` metadata field with your StackDriver Agent API
+key. This can be found in the [StackDriver Agent
+Settings](https://app.google.stackdriver.com/settings/accounts/agent/).
+
+```
+gcloud compute project-info add-metadata --metadata stackdriver-agent-key=YOUR_STACKDRIVER_API_KEY
+```
+
 Add the `gcp-tools` release to the `release` section of your existing deployment manifest:
 
 ```
