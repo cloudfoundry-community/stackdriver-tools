@@ -50,19 +50,20 @@ func main() {
 
 	client := firehose.NewClient(*apiEndpoint, *username, *password, *skipSSLValidation)
 
+	var handler firehose.FirehoseHandler
+
 	var err error
 	if *debug {
 		println("Sending firehose to standard out")
-		err = client.StartListening(&dev.StdOut{})
+		handler = &dev.StdOut{}
 	} else {
 		println("Sending firehose to Stackdriver")
 		sdClient := stackdriver.NewClient(*projectID, *batchCount, *batchDuration)
-		n := nozzle.Nozzle{StackdriverClient: sdClient}
-
-		err = client.StartListening(&n)
+		handler = &nozzle.Nozzle{StackdriverClient: sdClient}
 	}
-	if err != nil {
+	if err != nil || handler == nil {
 		panic(err)
 	}
 
+	client.StartListening(handler)
 }
