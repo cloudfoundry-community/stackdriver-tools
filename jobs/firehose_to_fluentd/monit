@@ -1,5 +1,0 @@
-check process firehose_to_fluentd
-  with pidfile /var/vcap/sys/run/firehose_to_fluentd/firehose_to_fluentd.pid
-  start program "/var/vcap/jobs/firehose_to_fluentd/bin/firehose_to_fluentd_ctl start"
-  stop program "/var/vcap/jobs/firehose_to_fluentd/bin/firehose_to_fluentd_ctl stop"
-  group vcap

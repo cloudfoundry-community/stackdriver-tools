@@ -12,10 +12,6 @@ This is a [BOSH](http://bosh.io/) release for [Google Cloud Platform](https://cl
 
 This is NOT presently a production ready BOSH release. This is just a Proof of Concept. It is suitable for experimentation and may not become supported in the future.
 
-## Acknowledgements
-
-Many thanks to [Etourneau Gwenn](https://github.com/shinji62) for his fantastic [firehose-to-fluentd](https://github.com/shinji62/firehose-to-fluentd) utility.
-
 ## Access Control
 
 The follow roles are required for the service account on each deployed instance:
@@ -49,7 +45,6 @@ bosh -n deploy
 
 Once deployed:
 * the `google_fluentd` will act as a Syslog endpoint and will forward logs to [StackDriver Logging](https://cloud.google.com/logging/)
-* the `firehose_to_fluentd` will forward all [Cloud Foundry Firehose](https://docs.cloudfoundry.org/loggregator/architecture.html#firehose) event data (including application logs) to [StackDriver Logging](https://cloud.google.com/logging/)
 
 If you want to send all your Cloud Foundry component's logs to [StackDriver Logging](https://cloud.google.com/logging/), configure your Cloud Foundry manifest adding (or updating):
 
