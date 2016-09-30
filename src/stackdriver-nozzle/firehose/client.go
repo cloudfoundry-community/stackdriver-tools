@@ -1,15 +1,20 @@
 package firehose
 
 import (
-	"github.com/cloudfoundry-community/firehose-to-syslog/caching"
-	"github.com/cloudfoundry-community/firehose-to-syslog/eventRouting"
-	"github.com/cloudfoundry-community/firehose-to-syslog/firehoseclient"
-	"github.com/cloudfoundry-community/firehose-to-syslog/logging"
+	"crypto/tls"
+	"time"
+
 	"github.com/cloudfoundry-community/go-cfclient"
+	"github.com/cloudfoundry/noaa/consumer"
+	"github.com/cloudfoundry/sonde-go/events"
 )
 
+type FirehoseHandler interface {
+	HandleEvent(*events.Envelope) error
+}
+
 type Client interface {
-	StartListening(nozzle logging.Logging) error
+	StartListening(FirehoseHandler) error
 }
 
 type client struct {
@@ -25,30 +30,41 @@ func NewClient(apiAddress, username, password string, skipSSLValidation bool) Cl
 			SkipSslValidation: skipSSLValidation}}
 }
 
-func (fc *client) StartListening(nozzle logging.Logging) error {
-	cfClient := cfclient.NewClient(fc.cfConfig)
+func (c *client) StartListening(fh FirehoseHandler) error {
+	cfConfig := &cfclient.Config{
+		ApiAddress:        c.cfConfig.ApiAddress,
+		Username:          c.cfConfig.Username,
+		Password:          c.cfConfig.Password,
+		SkipSslValidation: c.cfConfig.SkipSslValidation}
+	cfClient := cfclient.NewClient(cfConfig)
 
-	cachingClient := caching.NewCachingEmpty()
+	cfConsumer := consumer.New(
+		cfClient.Endpoint.DopplerEndpoint,
+		&tls.Config{InsecureSkipVerify: c.cfConfig.SkipSslValidation},
+		nil)
 
-	eventRouter := eventRouting.NewEventRouting(cachingClient, nozzle)
+	refresher := CfClientTokenRefresh{cfClient: cfClient}
+	cfConsumer.SetIdleTimeout(time.Duration(30) * time.Second)
+	cfConsumer.RefreshTokenFrom(&refresher)
+	messages, errs := cfConsumer.FirehoseWithoutReconnect("test", "")
 
-	//err := eventRouter.SetupEventRouting("LogMessage,ValueMetric,HttpStartStop,CounterEvent,Error,ContainerMetric")
-	err := eventRouter.SetupEventRouting("HttpStartStop,ValueMetric")
-	if err != nil {
-		return err
-	}
-
-	if nozzle.Connect() {
-		firehoseConfig := &firehoseclient.FirehoseConfig{
-			TrafficControllerURL:   cfClient.Endpoint.DopplerEndpoint,
-			InsecureSSLSkipVerify:  fc.cfConfig.SkipSslValidation,
-			IdleTimeoutSeconds:     30,
-			FirehoseSubscriptionID: "stackdriver-nozzle",
+	for {
+		select {
+		case envelope := <-messages:
+			err := fh.HandleEvent(envelope)
+			if err != nil {
+				return err
+			}
+		case err := <-errs:
+			return err
 		}
-
-		firehoseClient := firehoseclient.NewFirehoseNozzle(cfClient, eventRouter, firehoseConfig)
-
-		firehoseClient.Start()
 	}
-	return nil
+}
+
+type CfClientTokenRefresh struct {
+	cfClient *cfclient.Client
+}
+
+func (ct *CfClientTokenRefresh) RefreshAuthToken() (string, error) {
+	return ct.cfClient.GetToken(), nil
 }

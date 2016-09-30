@@ -1,6 +1,8 @@
 package nozzle_test
 
 import (
+	"errors"
+	"github.com/cloudfoundry/sonde-go/events"
 	"github.com/evandbrown/gcp-tools-release/src/stackdriver-nozzle/nozzle"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -10,28 +12,33 @@ var _ = Describe("Nozzle", func() {
 
 	var (
 		mockStackdriverClient *MockStackdriverClient
+		subject               nozzle.Nozzle
 	)
 
 	BeforeEach(func() {
 		mockStackdriverClient = &MockStackdriverClient{}
+		subject = nozzle.Nozzle{StackdriverClient: mockStackdriverClient}
 	})
 
 	Context("logging", func() {
+		var envelope *events.Envelope
+
+		BeforeEach(func() {
+			eventType := events.Envelope_HttpStartStop
+			envelope = &events.Envelope{
+				EventType: &eventType,
+			}
+		})
+
 		It("ships something to the stackdriver client", func() {
 			var postedEvent interface{}
 			mockStackdriverClient.PostLogFn = func(e interface{}, _ map[string]string) {
 				postedEvent = e
 			}
 
-			shippedEvent := map[string]interface{}{
-				"event_type": "HttpStartStop",
-				"foo":        "bar",
-			}
+			subject.HandleEvent(envelope)
 
-			n := nozzle.Nozzle{StackdriverClient: mockStackdriverClient}
-			n.ShipEvents(shippedEvent, "message")
-
-			Expect(postedEvent).To(Equal(shippedEvent))
+			Expect(postedEvent).To(Equal(envelope))
 		})
 
 		It("ships multiple events", func() {
@@ -40,14 +47,8 @@ var _ = Describe("Nozzle", func() {
 				count += 1
 			}
 
-			shippedEvent := map[string]interface{}{
-				"event_type": "HttpStartStop",
-				"foo":        "bar",
-			}
-			n := nozzle.Nozzle{StackdriverClient: mockStackdriverClient}
-
 			for i := 0; i < 10; i++ {
-				n.ShipEvents(shippedEvent, "message")
+				subject.HandleEvent(envelope)
 			}
 
 			Expect(count).To(Equal(10))
@@ -59,13 +60,7 @@ var _ = Describe("Nozzle", func() {
 				labels = sentLabels
 			}
 
-			shippedEvent := map[string]interface{}{
-				"event_type": "HttpStartStop",
-				"foo":        "bar",
-			}
-			n := nozzle.Nozzle{StackdriverClient: mockStackdriverClient}
-
-			n.ShipEvents(shippedEvent, "message")
+			subject.HandleEvent(envelope)
 
 			Expect(labels).To(Equal(map[string]string{
 				"event_type": "HttpStartStop",
@@ -74,33 +69,60 @@ var _ = Describe("Nozzle", func() {
 	})
 
 	Context("metrics", func() {
+		var envelope *events.Envelope
+
 		It("should post the metric", func() {
 			var name string
 			var value float64
-			mockStackdriverClient.PostMetricFn = func(n string, v float64) error {
+			var labels map[string]string
+
+			mockStackdriverClient.PostMetricFn = func(n string, v float64, l map[string]string) error {
 				name = n
 				value = v
+				labels = l
 				return nil
 			}
 
-			shippedEvent := map[string]interface{}{
-				"event_type": "ValueMetric",
-				"name":       "memoryStats.lastGCPauseTimeNS",
-				"value":      536182.,
+			metricName := "memoryStats.lastGCPauseTimeNS"
+			metricValue := float64(536182)
+			metricType := events.Envelope_ValueMetric
+
+			valueMetric := events.ValueMetric{
+				Name:  &metricName,
+				Value: &metricValue,
 			}
 
-			n := nozzle.Nozzle{StackdriverClient: mockStackdriverClient}
-			n.ShipEvents(shippedEvent, "message")
+			envelope = &events.Envelope{
+				EventType:   &metricType,
+				ValueMetric: &valueMetric,
+			}
 
-			Expect(name).To(Equal("memoryStats.lastGCPauseTimeNS"))
-			Expect(value).To(Equal(536182.))
+			err := subject.HandleEvent(envelope)
+			Expect(err).To(BeNil())
+
+			Expect(name).To(Equal(metricName))
+			Expect(value).To(Equal(metricValue))
+			Expect(labels).To(Equal(map[string]string{
+				"event_type": "ValueMetric",
+			}))
+		})
+
+		It("returns error if client errors out", func() {
+			mockStackdriverClient.PostMetricFn = func(string, float64, map[string]string) error {
+				return errors.New("fail")
+			}
+
+			err := subject.HandleEvent(envelope)
+
+			Expect(err).NotTo(BeNil())
+			Expect(err.Error()).To(Equal("fail"))
 		})
 	})
 })
 
 type MockStackdriverClient struct {
 	PostLogFn    func(interface{}, map[string]string)
-	PostMetricFn func(string, float64) error
+	PostMetricFn func(string, float64, map[string]string) error
 }
 
 func (m *MockStackdriverClient) PostLog(payload interface{}, labels map[string]string) {
@@ -109,9 +131,9 @@ func (m *MockStackdriverClient) PostLog(payload interface{}, labels map[string]s
 	}
 }
 
-func (m *MockStackdriverClient) PostMetric(name string, value float64) error {
+func (m *MockStackdriverClient) PostMetric(name string, value float64, labels map[string]string) error {
 	if m.PostMetricFn != nil {
-		return m.PostMetricFn(name, value)
+		return m.PostMetricFn(name, value, labels)
 	}
 	return nil
 }

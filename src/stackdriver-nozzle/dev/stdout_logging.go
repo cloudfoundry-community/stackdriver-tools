@@ -1,15 +1,10 @@
 package dev
 
-import "fmt"
+import "github.com/cloudfoundry/sonde-go/events"
 
-type StdOut struct {
+type StdOut struct{}
+
+func (so *StdOut) HandleEvent(envelope *events.Envelope) error {
+	println(envelope.String())
+	return nil
 }
-
-func (so *StdOut) Connect() bool {
-	return true
-}
-
-func (so *StdOut) ShipEvents(event map[string]interface{}, msg string) {
-	fmt.Printf("%s: %+v\n\n", msg, event)
-}
-

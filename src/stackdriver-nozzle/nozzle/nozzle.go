@@ -1,8 +1,7 @@
 package nozzle
 
 import (
-	"fmt"
-
+	"github.com/cloudfoundry/sonde-go/events"
 	"github.com/evandbrown/gcp-tools-release/src/stackdriver-nozzle/stackdriver"
 )
 
@@ -10,22 +9,20 @@ type Nozzle struct {
 	StackdriverClient stackdriver.Client
 }
 
-func (n *Nozzle) Connect() bool {
-	return true
-}
-
-func (n *Nozzle) ShipEvents(event map[string]interface{}, _ string /* TODO research second string */) {
-	switch event["event_type"] {
-
-	case "ValueMetric":
-		name := event["name"]
-		count := event["value"]
-		n.StackdriverClient.PostMetric(name.(string), count.(float64))
-
-	default:
-		n.StackdriverClient.PostLog(event, map[string]string{
-			"event_type": fmt.Sprintf("%v", event["event_type"]),
-		})
+func (n *Nozzle) HandleEvent(envelope *events.Envelope) error {
+	labels := map[string]string{
+		"event_type": envelope.GetEventType().String(),
 	}
+	switch envelope.GetEventType() {
+	case events.Envelope_ValueMetric:
+		valueMetric := envelope.GetValueMetric()
+		name := valueMetric.GetName()
+		value := valueMetric.GetValue()
 
+		err := n.StackdriverClient.PostMetric(name, value, labels)
+		return err
+	default:
+		n.StackdriverClient.PostLog(envelope, labels)
+		return nil
+	}
 }
