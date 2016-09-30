@@ -57,8 +57,6 @@ jobs:
     templates:
       - name: google_fluentd
         release: gcp-tools
-      - name: firehose_to_fluentd
-        release: gcp-tools
       - name: stackdriver_agent
         release: gcp-tools
     instances: 1
@@ -66,12 +64,3 @@ jobs:
     networks:
       - name: private
         default: [dns, gateway]
-
-properties:
-  firehose_to_fluentd:
-    cf:
-      api_url: "https://api.<%= root_domain %>"
-      admin_username: admin
-      admin_password: "<%= common_password %>"
-      skip_ssl_validation: true
-      events: "ContainerMetric,HttpStart,HttpStop,HttpStartStop,LogMessage,Error"
