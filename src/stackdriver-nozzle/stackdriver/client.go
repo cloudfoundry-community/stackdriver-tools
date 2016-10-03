@@ -5,6 +5,8 @@ import (
 
 	"fmt"
 
+	"path"
+
 	"cloud.google.com/go/logging"
 	"cloud.google.com/go/monitoring/apiv3"
 	"github.com/golang/protobuf/ptypes/timestamp"
@@ -12,7 +14,6 @@ import (
 	"google.golang.org/api/option"
 	"google.golang.org/genproto/googleapis/api/metric"
 	monitoringpb "google.golang.org/genproto/googleapis/monitoring/v3"
-	"path"
 )
 
 type Client interface {
@@ -107,5 +108,9 @@ func (s *client) PostMetric(name string, value float64, labels map[string]string
 			},
 		},
 	}
-	return s.metricClient.CreateTimeSeries(s.ctx, req)
+	err := s.metricClient.CreateTimeSeries(s.ctx, req)
+	if err != nil {
+		fmt.Printf("Name: %v Value: %f Error: %v\n", name, value, err.Error())
+	}
+	return nil
 }
