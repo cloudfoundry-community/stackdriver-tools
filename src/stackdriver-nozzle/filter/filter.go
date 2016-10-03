@@ -1,7 +1,7 @@
 package filter
 
 import (
-	"errors"
+	"fmt"
 
 	"github.com/cloudfoundry/sonde-go/events"
 	"github.com/evandbrown/gcp-tools-release/src/stackdriver-nozzle/firehose"
@@ -16,7 +16,7 @@ func parseEventName(name string) (events.Envelope_EventType, error) {
 	if eventId, ok := events.Envelope_EventType_value[name]; ok {
 		return events.Envelope_EventType(eventId), nil
 	}
-	return events.Envelope_Error, errors.New("Unknown EventType")
+	return events.Envelope_Error, fmt.Errorf("unknown event name: %s", name)
 }
 
 func New(dest firehose.FirehoseHandler, eventNames []string) (firehose.FirehoseHandler, error) {
@@ -40,4 +40,11 @@ func (f *filter) HandleEvent(envelope *events.Envelope) error {
 		return f.dest.HandleEvent(envelope)
 	}
 	return nil
+}
+
+func DisplayValidEvents() {
+	println("Valid event choices:")
+	for name, _ := range events.Envelope_EventType_value {
+		println("- ", name)
+	}
 }

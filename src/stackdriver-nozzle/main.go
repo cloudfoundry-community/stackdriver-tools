@@ -1,7 +1,10 @@
 package main
 
 import (
+	"strings"
+
 	"github.com/evandbrown/gcp-tools-release/src/stackdriver-nozzle/dev"
+	"github.com/evandbrown/gcp-tools-release/src/stackdriver-nozzle/filter"
 	"github.com/evandbrown/gcp-tools-release/src/stackdriver-nozzle/firehose"
 	"github.com/evandbrown/gcp-tools-release/src/stackdriver-nozzle/nozzle"
 	"github.com/evandbrown/gcp-tools-release/src/stackdriver-nozzle/stackdriver"
@@ -26,6 +29,10 @@ var (
 			Default("admin").
 			OverrideDefaultFromEnvar("FIREHOSE_PASSWORD").
 			String()
+	eventsFilter = kingpin.Flag("events", "events to subscribe to from firehose (comma separated)").
+			Default("LogMessage,Error").
+			OverrideDefaultFromEnvar("FIREHOSE_EVENTS").
+			String()
 	skipSSLValidation = kingpin.Flag("skip-ssl-validation", "please don't").
 				Default("false").
 				OverrideDefaultFromEnvar("SKIP_SSL_VALIDATION").
@@ -33,7 +40,6 @@ var (
 	projectID = kingpin.Flag("project-id", "gcp project id").
 			OverrideDefaultFromEnvar("PROJECT_ID").
 			String() //maybe we can get this from gcp env...? research
-
 	batchCount = kingpin.Flag("batch-count", "maximum number of entries to buffer").
 			Default(stackdriver.DefaultBatchCount).
 			OverrideDefaultFromEnvar("BATCH_COUNT").
@@ -48,22 +54,32 @@ func main() {
 	//todo: pull in logging library...
 	kingpin.Parse()
 
-	client := firehose.NewClient(*apiEndpoint, *username, *password, *skipSSLValidation)
+	input := firehose.NewClient(*apiEndpoint, *username, *password, *skipSSLValidation)
 
-	var handler firehose.FirehoseHandler
-
+	var output firehose.FirehoseHandler
 	var err error
+
 	if *debug {
 		println("Sending firehose to standard out")
-		handler = &dev.StdOut{}
+		output = &dev.StdOut{}
 	} else {
 		println("Sending firehose to Stackdriver")
 		sdClient := stackdriver.NewClient(*projectID, *batchCount, *batchDuration)
-		handler = &nozzle.Nozzle{StackdriverClient: sdClient}
+		output = &nozzle.Nozzle{StackdriverClient: sdClient}
 	}
-	if err != nil || handler == nil {
+	if err != nil || output == nil {
 		panic(err)
 	}
 
-	client.StartListening(handler)
+	filteredOutput, err := filter.New(output, strings.Split(*eventsFilter, ","))
+
+	if err != nil {
+		println("Error:", err.Error())
+		filter.DisplayValidEvents()
+		return
+	} else {
+		println("Listening to event(s):", *eventsFilter)
+	}
+
+	input.StartListening(filteredOutput)
 }
