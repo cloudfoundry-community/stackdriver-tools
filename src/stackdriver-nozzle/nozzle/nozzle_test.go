@@ -2,6 +2,7 @@ package nozzle_test
 
 import (
 	"errors"
+
 	"github.com/cloudfoundry/sonde-go/events"
 	"github.com/evandbrown/gcp-tools-release/src/stackdriver-nozzle/nozzle"
 	. "github.com/onsi/ginkgo"
@@ -38,7 +39,7 @@ var _ = Describe("Nozzle", func() {
 
 			subject.HandleEvent(envelope)
 
-			Expect(postedEvent).To(Equal(envelope))
+			Expect(postedEvent).To(Equal(nozzle.Envelope{envelope}))
 		})
 
 		It("ships multiple events", func() {

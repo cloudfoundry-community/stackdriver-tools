@@ -1,7 +1,6 @@
 package main
 
 import (
-	"github.com/evandbrown/gcp-tools-release/src/stackdriver-nozzle/dev"
 	"github.com/evandbrown/gcp-tools-release/src/stackdriver-nozzle/firehose"
 	"github.com/evandbrown/gcp-tools-release/src/stackdriver-nozzle/nozzle"
 	"github.com/evandbrown/gcp-tools-release/src/stackdriver-nozzle/stackdriver"
@@ -9,10 +8,6 @@ import (
 )
 
 var (
-	debug = kingpin.Flag("debug", "send events to stdout").
-		Default("false").
-		OverrideDefaultFromEnvar("DEBUG").
-		Bool()
 	apiEndpoint = kingpin.Flag("api-endpoint",
 		"CF API endpoint (use https://api.bosh-lite.com for BOSH Lite)").
 		OverrideDefaultFromEnvar("API_ENDPOINT").
@@ -45,22 +40,15 @@ var (
 )
 
 func main() {
-	//todo: pull in logging library...
 	kingpin.Parse()
 
 	client := firehose.NewClient(*apiEndpoint, *username, *password, *skipSSLValidation)
 
-	var err error
-	if *debug {
-		println("Sending firehose to standard out")
-		err = client.StartListening(&dev.StdOut{})
-	} else {
-		println("Sending firehose to Stackdriver")
-		sdClient := stackdriver.NewClient(*projectID, *batchCount, *batchDuration)
-		n := nozzle.Nozzle{StackdriverClient: sdClient}
+	sdClient := stackdriver.NewClient(*projectID, *batchCount, *batchDuration)
+	n := nozzle.Nozzle{StackdriverClient: sdClient}
 
-		err = client.StartListening(&n)
-	}
+	err := client.StartListening(&n)
+
 	if err != nil {
 		panic(err)
 	}
