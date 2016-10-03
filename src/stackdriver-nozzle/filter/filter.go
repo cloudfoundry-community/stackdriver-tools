@@ -12,11 +12,20 @@ type filter struct {
 	enabled map[events.Envelope_EventType]bool
 }
 
+type UnknownEventName struct {
+	Given   string
+	Choices []string
+}
+
 func parseEventName(name string) (events.Envelope_EventType, error) {
 	if eventId, ok := events.Envelope_EventType_value[name]; ok {
 		return events.Envelope_EventType(eventId), nil
 	}
-	return events.Envelope_Error, fmt.Errorf("unknown event name: %s", name)
+	return events.Envelope_Error, &UnknownEventName{Given: name, Choices: validEventChoices()}
+}
+
+func (uen *UnknownEventName) Error() string {
+	return fmt.Sprintf("unknown event name: %s", uen.Given)
 }
 
 func New(dest firehose.FirehoseHandler, eventNames []string) (firehose.FirehoseHandler, error) {
@@ -42,9 +51,10 @@ func (f *filter) HandleEvent(envelope *events.Envelope) error {
 	return f.dest.HandleEvent(envelope)
 }
 
-func DisplayValidEvents() {
-	fmt.Println("Valid event choices:")
+func validEventChoices() []string {
+	choices := []string{}
 	for _, name := range events.Envelope_EventType_name {
-		fmt.Println("- ", name)
+		choices = append(choices, name)
 	}
+	return choices
 }

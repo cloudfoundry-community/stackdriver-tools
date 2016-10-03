@@ -57,12 +57,15 @@ func main() {
 
 	filteredOutput, err := filter.New(&output, strings.Split(*eventsFilter, ","))
 	if err != nil {
-		fmt.Println("Error:", err.Error())
-		filter.DisplayValidEvents()
-		os.Exit(-1)
-	} else {
-		fmt.Println("Listening to event(s):", *eventsFilter)
+		if unknownEvent, ok := err.(*filter.UnknownEventName); ok {
+			fmt.Printf("Error: %s, possible choices: %s\n", unknownEvent.Error(), strings.Join(unknownEvent.Choices, ","))
+			os.Exit(-1)
+		} else {
+			panic(err)
+		}
 	}
+
+	fmt.Println("Listening to event(s):", *eventsFilter)
 
 	err = input.StartListening(filteredOutput)
 
