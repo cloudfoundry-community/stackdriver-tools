@@ -20,21 +20,16 @@ var _ = Describe("Filter", func() {
 
 	It("can accept an empty filter and blocks all events", func() {
 		emptyFilter := []string{}
-		f, err := filter.New(mockFirehoseHandler, emptyFilter)
+		f, err := filter.New(&mockFirehoseHandler, emptyFilter)
 		Expect(err).To(BeNil())
 		Expect(f).NotTo(BeNil())
-
-		mockFirehoseHandler.HandleEventFn = func(envelope *events.Envelope) error {
-			Fail("Should not receive any events")
-			return nil
-		}
 
 		SendAllEvents(f)
 	})
 
 	It("can accept a single event to filter", func() {
 		singleFilter := []string{"Error"}
-		f, err := filter.New(mockFirehoseHandler, singleFilter)
+		f, err := filter.New(&mockFirehoseHandler, singleFilter)
 		Expect(err).To(BeNil())
 		Expect(f).NotTo(BeNil())
 
@@ -46,8 +41,26 @@ var _ = Describe("Filter", func() {
 		SendAllEvents(f)
 	})
 
+	It("can accept multiple events to filter", func() {
+		multiFilter := []string{"Error", "LogMessage"}
+		multiFilterTyped := []events.Envelope_EventType{events.Envelope_Error, events.Envelope_LogMessage}
+		f, err := filter.New(&mockFirehoseHandler, multiFilter)
+		Expect(err).To(BeNil())
+		Expect(f).NotTo(BeNil())
+
+		mockFirehoseHandler.HandleEventFn = func(envelope *events.Envelope) error {
+			Expect(multiFilterTyped).To(ContainElement(envelope.GetEventType()))
+			return nil
+		}
+
+		SendAllEvents(f)
+	})
+
 	It("rejects invalid events", func() {
-		Fail("NYI")
+		invalidFilter := []string{"Error", "FakeEvent111"}
+		f, err := filter.New(&mockFirehoseHandler, invalidFilter)
+		Expect(err).NotTo(BeNil())
+		Expect(f).To(BeNil())
 	})
 })
 
