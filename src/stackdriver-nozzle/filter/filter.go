@@ -43,8 +43,8 @@ func (f *filter) HandleEvent(envelope *events.Envelope) error {
 }
 
 func DisplayValidEvents() {
-	fmt.Printf("Valid event choices:")
+	fmt.Println("Valid event choices:")
 	for _, name := range events.Envelope_EventType_name {
-		fmt.Printf("- ", name)
+		fmt.Println("- ", name)
 	}
 }
