@@ -36,15 +36,15 @@ func New(dest firehose.FirehoseHandler, eventNames []string) (firehose.FirehoseH
 }
 
 func (f *filter) HandleEvent(envelope *events.Envelope) error {
-	if f.enabled[envelope.GetEventType()] {
-		return f.dest.HandleEvent(envelope)
+	if !f.enabled[envelope.GetEventType()] {
+		return nil
 	}
-	return nil
+	return f.dest.HandleEvent(envelope)
 }
 
 func DisplayValidEvents() {
 	println("Valid event choices:")
-	for name, _ := range events.Envelope_EventType_value {
+	for _, name := range events.Envelope_EventType_name {
 		println("- ", name)
 	}
 }
