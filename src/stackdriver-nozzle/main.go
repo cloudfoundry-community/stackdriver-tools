@@ -1,6 +1,7 @@
 package main
 
 import (
+	"os"
 	"strings"
 
 	"github.com/evandbrown/gcp-tools-release/src/stackdriver-nozzle/dev"
@@ -76,7 +77,7 @@ func main() {
 	if err != nil {
 		println("Error:", err.Error())
 		filter.DisplayValidEvents()
-		return
+		os.Exit(-1)
 	} else {
 		println("Listening to event(s):", *eventsFilter)
 	}
