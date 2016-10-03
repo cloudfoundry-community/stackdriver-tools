@@ -32,10 +32,10 @@ func New(dest firehose.FirehoseHandler, eventNames []string) (firehose.FirehoseH
 		f.enabled[eventType] = true
 	}
 
-	return f, nil
+	return &f, nil
 }
 
-func (f filter) HandleEvent(envelope *events.Envelope) error {
+func (f *filter) HandleEvent(envelope *events.Envelope) error {
 	if f.enabled[envelope.GetEventType()] {
 		return f.dest.HandleEvent(envelope)
 	}

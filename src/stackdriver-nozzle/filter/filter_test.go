@@ -25,6 +25,7 @@ var _ = Describe("Filter", func() {
 		Expect(f).NotTo(BeNil())
 
 		SendAllEvents(f)
+		Expect(mockFirehoseHandler.HandleEventCalls).To(Equal(0))
 	})
 
 	It("can accept a single event to filter", func() {
@@ -39,6 +40,7 @@ var _ = Describe("Filter", func() {
 		}
 
 		SendAllEvents(f)
+		Expect(mockFirehoseHandler.HandleEventCalls).To(Equal(1))
 	})
 
 	It("can accept multiple events to filter", func() {
@@ -54,6 +56,7 @@ var _ = Describe("Filter", func() {
 		}
 
 		SendAllEvents(f)
+		Expect(mockFirehoseHandler.HandleEventCalls).To(Equal(2))
 	})
 
 	It("rejects invalid events", func() {
@@ -75,10 +78,12 @@ func SendAllEvents(filter firehose.FirehoseHandler) {
 }
 
 type MockFirehoseHandler struct {
-	HandleEventFn func(envelope *events.Envelope) error
+	HandleEventFn    func(envelope *events.Envelope) error
+	HandleEventCalls int
 }
 
-func (mfh MockFirehoseHandler) HandleEvent(envelope *events.Envelope) error {
+func (mfh *MockFirehoseHandler) HandleEvent(envelope *events.Envelope) error {
+	mfh.HandleEventCalls += 1
 	if mfh.HandleEventFn != nil {
 		return mfh.HandleEventFn(envelope)
 	} else {
