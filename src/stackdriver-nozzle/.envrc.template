@@ -1,4 +1,6 @@
 # http://direnv.net
+export GOPATH=`pwd`/../..
+
 export API_ENDPOINT=https://api.bosh-lite.com
 export FIREHOSE_USER=admin
 export FIREHOSE_PASSWORD=admin

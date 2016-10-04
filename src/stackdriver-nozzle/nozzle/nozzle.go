@@ -2,7 +2,7 @@ package nozzle
 
 import (
 	"github.com/cloudfoundry/sonde-go/events"
-	"github.com/evandbrown/gcp-tools-release/src/stackdriver-nozzle/stackdriver"
+	"stackdriver-nozzle/stackdriver"
 )
 
 type Nozzle struct {
