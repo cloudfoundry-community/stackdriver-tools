@@ -5,10 +5,10 @@
 
 ### Getting started
 
-* Install dependencies (using [Glide](https://glide.sh/))
+* Install dependencies (using [govendor](https://github.com/kardianos/govendor))
 
 ```
-glide install --strip-vendor
+govendor fetch +missing
 ```
 
 * Nozzle Configuration:
