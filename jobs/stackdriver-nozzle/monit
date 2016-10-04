@@ -1,0 +1,5 @@
+check process stackdriver-nozzle
+  with pidfile /var/vcap/sys/run/stackdriver-nozzle/stackdriver-nozzle.pid
+  start program "/var/vcap/jobs/stackdriver-nozzle/bin/stackdriver-nozzle-ctl start"
+  stop program "/var/vcap/jobs/stackdriver-nozzle/bin/stackdriver-nozzle-ctl stop"
+  group vcap

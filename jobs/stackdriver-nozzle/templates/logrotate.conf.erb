@@ -1,0 +1,9 @@
+/var/vcap/sys/log/stackdriver-nozzle/*.log {
+  missingok
+  rotate <%= p("stackdriver.logrotate.rotate") %>
+  compress
+  delaycompress
+  copytruncate
+  size=<%= p("stackdriver.logrotate.size") %>
+}
+
