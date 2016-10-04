@@ -9,12 +9,25 @@ packages:
   - stackdriver-nozzle
 
 properties:
+  firehose.api_endpoint:
+    description: CF API endpoint
+  firehose.username:
+    description: CF user (needs cloud_controller.admin or cloud_controller.admin_read_only)
+  firehose.password:
+    description: Password for firehose.username
+  firehose.skip_ssl_validation:
+    description: Skip SSL validation (for self signed certs, useful in dev environments)
+    default: false
+
+  gcp.project_id:
+    description: Google Cloud Platform project ID
+
   stackdriver.logrotate.freq_min:
-    description: "The frequency in minutes which logrotate will rotate VM logs"
+    description: The frequency in minutes which logrotate will rotate VM logs
     default: 5
   stackdriver.logrotate.rotate:
-    description: "The number of files that logrotate will keep around on the VM"
+    description: The number of files that logrotate will keep around on the VM
     default: 3
   stackdriver.logrotate.size:
-    description: "The size at which logrotate will decide to rotate the log file"
+    description: The size at which logrotate will decide to rotate the log file
     default: 50M

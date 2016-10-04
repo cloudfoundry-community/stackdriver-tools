@@ -18,6 +18,14 @@ chown -R vcap:vcap $LOG_DIR
 exec >>$LOG_DIR/stackdriver-nozzle.stdout.log \
     2>>$LOG_DIR/stackdriver-nozzle.stderr.log
 
+
+export API_ENDPOINT=<%= p('firehose.api_endpoint') %>
+export FIREHOSE_USERNAME=<%= p('firehose.username') %>
+export FIREHOSE_PASSWORD=<%= p('firehose.password') %>
+export SKIP_SSL_VALIDATION=<%= p('firehose.skip_ssl_validation', false) %>
+
+export PROJECT_ID=<%= p('gcp.project_id') %>
+
 chpst -u vcap:vcap /var/vcap/packages/stackdriver-nozzle/bin/stackdriver-nozzle &
 
 echo $! > $PIDFILE
