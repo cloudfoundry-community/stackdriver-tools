@@ -3,7 +3,7 @@ package nozzle_test
 import (
 	"time"
 
-	"github.com/evandbrown/gcp-tools-release/src/stackdriver-nozzle/nozzle"
+	"stackdriver-nozzle/nozzle"
 
 	"github.com/cloudfoundry/sonde-go/events"
 	. "github.com/onsi/ginkgo"
@@ -38,12 +38,12 @@ var _ = Describe("Envelope", func() {
 
 		labels := envelope.Labels()
 		Expect(labels).To(Equal(map[string]string{
-			"origin": origin,
+			"origin":     origin,
 			"event_type": eventType.String(),
 			"deployment": deployment,
-			"job": job,
-			"index": index,
-			"ip": ip,
+			"job":        job,
+			"index":      index,
+			"ip":         ip,
 		}))
 	})
 
@@ -72,10 +72,10 @@ var _ = Describe("Envelope", func() {
 
 		labels := envelope.Labels()
 		Expect(labels).To(Equal(map[string]string{
-			"origin": origin,
+			"origin":     origin,
 			"event_type": eventType.String(),
-			"job": job,
-			"index": index,
+			"job":        job,
+			"index":      index,
 		}))
 	})
 

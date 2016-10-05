@@ -2,8 +2,8 @@ package filter_test
 
 import (
 	"github.com/cloudfoundry/sonde-go/events"
-	"github.com/evandbrown/gcp-tools-release/src/stackdriver-nozzle/filter"
-	"github.com/evandbrown/gcp-tools-release/src/stackdriver-nozzle/firehose"
+	"stackdriver-nozzle/filter"
+	"stackdriver-nozzle/firehose"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"

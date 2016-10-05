@@ -5,8 +5,9 @@ import (
 
 	"sync"
 
+	"stackdriver-nozzle/nozzle"
+
 	"github.com/cloudfoundry/sonde-go/events"
-	"github.com/evandbrown/gcp-tools-release/src/stackdriver-nozzle/nozzle"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 )
