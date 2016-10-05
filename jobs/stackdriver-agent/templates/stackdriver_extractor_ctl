@@ -31,6 +31,7 @@ case $1 in
 
     CONFIG_TMPL=/var/vcap/jobs/stackdriver_agent/config/extractor.conf.tmpl
     CONFIG_FILE=/var/vcap/jobs/stackdriver_agent/config/extractor.conf
+    rm -f $CONFIG_FILE
     sed -e "s/^host_id=.*/host_id=${GCE_INSTANCE_ID}/; s/^apikey=.*/apikey=${STACKDRIVER_API_KEY}/" ${CONFIG_TMPL} >> ${CONFIG_FILE}
 
     export PYTHONPATH=/var/vcap/packages/stackdriver-agent/python/lib/python2.7/site-packages:${PYTHONPATH:-}

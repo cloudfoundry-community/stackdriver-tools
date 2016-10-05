@@ -1,8 +1,7 @@
-Hostname "{GCE_INSTANCE_ID}"
+Hostname "{GCE_INSTANCE_ID}" 
 
 Interval 60
 
-PIDFile "/var/vcap/sys/run/stackdriver_agent/stackdriver_collectd.pid"
 PluginDir "/var/vcap/packages/stackdriver-agent/collectd/lib/collectd/"
 TypesDB "/var/vcap/packages/stackdriver-agent/collectd/share/collectd/types.db"
 
@@ -29,7 +28,6 @@ LoadPlugin df
   FSType "devfs"
   IgnoreSelected true
   ReportByDevice true
-  ReportReserved true
 </Plugin>
 
 LoadPlugin cpu
@@ -130,4 +128,3 @@ PreCacheChain "PreCache"
 # if you have other config, especially for plugins, you can drop them
 # into this directory
 Include "/var/vcap/packages/stackdriver-agent/collectd/etc/collectd.d"
-

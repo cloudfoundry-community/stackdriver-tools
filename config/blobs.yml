@@ -23,14 +23,6 @@ libtool/libtool-2.4.2.tar.gz:
   object_id: 2e2677e4-06fd-4a5a-b2d1-45c3c2984867
   sha: 22b71a8b5ce3ad86e1094e7285981cae10e6ff88
   size: 2632347
-stackdriver-agent/stackdriver-agent-5.5.0-269.tgz:
-  object_id: d2996cdd-99db-4664-9743-5ed73b441132
-  sha: 05e302e8b1aacae8bbd3cc8109fb038bdffa8faf
-  size: 537741
-stackdriver-agent/stackdriver-extractor-92-1.tgz:
-  object_id: f1608168-98e8-407a-a2d7-7b79cbd9908b
-  sha: 3ac6f0bf3a8067fc478931f13a35d4f7de0d8800
-  size: 11023
 python/netifaces-0.10.4.tar.gz:
   object_id: d4b7d301-60b0-4e2e-a515-074d296199d9
   sha: c3fcd491a89c2994815053e853b005e7fc27c79a
