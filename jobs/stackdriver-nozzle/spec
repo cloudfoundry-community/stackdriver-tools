@@ -2,8 +2,6 @@
 name: stackdriver-nozzle
 templates:
   stackdriver-nozzle-ctl.erb: bin/stackdriver-nozzle-ctl
-  stackdriver_logrotate.cron.erb: config/stackdriver_logrotate.cron
-  logrotate.conf.erb: config/logrotate.conf
 
 packages:
   - stackdriver-nozzle
@@ -21,13 +19,3 @@ properties:
 
   gcp.project_id:
     description: Google Cloud Platform project ID
-
-  stackdriver.logrotate.freq_min:
-    description: The frequency in minutes which logrotate will rotate VM logs
-    default: 5
-  stackdriver.logrotate.rotate:
-    description: The number of files that logrotate will keep around on the VM
-    default: 3
-  stackdriver.logrotate.size:
-    description: The size at which logrotate will decide to rotate the log file
-    default: 50M
