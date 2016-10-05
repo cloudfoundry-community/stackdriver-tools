@@ -3,6 +3,8 @@ package nozzle_test
 import (
 	"errors"
 
+	"sync"
+
 	"github.com/cloudfoundry/sonde-go/events"
 	"github.com/evandbrown/gcp-tools-release/src/stackdriver-nozzle/nozzle"
 	. "github.com/onsi/ginkgo"
@@ -10,80 +12,32 @@ import (
 )
 
 var _ = Describe("Nozzle", func() {
-
 	var (
-		mockStackdriverClient *MockStackdriverClient
-		subject               nozzle.Nozzle
+		sdClient *MockStackdriverClient
+		subject  nozzle.Nozzle
 	)
 
 	BeforeEach(func() {
-		mockStackdriverClient = &MockStackdriverClient{}
-		subject = nozzle.Nozzle{StackdriverClient: mockStackdriverClient}
+		sdClient = NewMockStackdriverClient()
+		subject = nozzle.Nozzle{StackdriverClient: sdClient}
 	})
 
-	Context("logging", func() {
-		var envelope *events.Envelope
+	It("handles HttpStartStop", func() {
+		eventType := events.Envelope_HttpStartStop
+		envelope := &events.Envelope{EventType: &eventType}
 
-		BeforeEach(func() {
-			eventType := events.Envelope_HttpStartStop
-			envelope = &events.Envelope{
-				EventType: &eventType,
-			}
-		})
+		subject.HandleEvent(envelope)
 
-		It("ships something to the stackdriver client", func() {
-			var postedEvent interface{}
-			mockStackdriverClient.PostLogFn = func(e interface{}, _ map[string]string) {
-				postedEvent = e
-			}
-
-			subject.HandleEvent(envelope)
-
-			Expect(postedEvent).To(Equal(nozzle.Envelope{envelope}))
-		})
-
-		It("ships multiple events", func() {
-			count := 0
-			mockStackdriverClient.PostLogFn = func(e interface{}, _ map[string]string) {
-				count += 1
-			}
-
-			for i := 0; i < 10; i++ {
-				subject.HandleEvent(envelope)
-			}
-
-			Expect(count).To(Equal(10))
-		})
-
-		It("creates labels from the event", func() {
-			var labels map[string]string
-			mockStackdriverClient.PostLogFn = func(e interface{}, sentLabels map[string]string) {
-				labels = sentLabels
-			}
-
-			subject.HandleEvent(envelope)
-
-			Expect(labels).To(Equal(map[string]string{
-				"event_type": "HttpStartStop",
-			}))
-		})
+		postedLog := sdClient.postedLogs[0]
+		Expect(postedLog.payload).To(Equal(nozzle.Envelope{envelope}))
+		Expect(postedLog.labels).To(Equal(map[string]string{
+			"event_type": "HttpStartStop",
+		}))
 	})
 
 	Context("metrics", func() {
-		var envelope *events.Envelope
 
-		It("should post the metric", func() {
-			var name string
-			var value float64
-			var labels map[string]string
-
-			mockStackdriverClient.PostMetricFn = func(n string, v float64, l map[string]string) error {
-				name = n
-				value = v
-				labels = l
-				return nil
-			}
-
+		It("should post the value metric", func() {
 			metricName := "memoryStats.lastGCPauseTimeNS"
 			metricValue := float64(536182)
 			metricType := events.Envelope_ValueMetric
@@ -93,7 +47,7 @@ var _ = Describe("Nozzle", func() {
 				Value: &metricValue,
 			}
 
-			envelope = &events.Envelope{
+			envelope := &events.Envelope{
 				EventType:   &metricType,
 				ValueMetric: &valueMetric,
 			}
@@ -101,40 +55,113 @@ var _ = Describe("Nozzle", func() {
 			err := subject.HandleEvent(envelope)
 			Expect(err).To(BeNil())
 
-			Expect(name).To(Equal(metricName))
-			Expect(value).To(Equal(metricValue))
-			Expect(labels).To(Equal(map[string]string{
+			postedMetric := sdClient.postedMetrics[0]
+			Expect(postedMetric.name).To(Equal(metricName))
+			Expect(postedMetric.value).To(Equal(metricValue))
+			Expect(postedMetric.labels).To(Equal(map[string]string{
 				"event_type": "ValueMetric",
 			}))
 		})
 
+		It("should post the container metrics", func() {
+			diskBytesQuota := uint64(1073741824)
+			instanceIndex := int32(0)
+			cpuPercentage := 0.061651273460637
+			diskBytes := uint64(164634624)
+			memoryBytes := uint64(16601088)
+			memoryBytesQuota := uint64(33554432)
+			applicationId := "ee2aa52e-3c8a-4851-b505-0cb9fe24806e"
+
+			metricType := events.Envelope_ContainerMetric
+			containerMetric := events.ContainerMetric{
+				DiskBytesQuota:   &diskBytesQuota,
+				InstanceIndex:    &instanceIndex,
+				CpuPercentage:    &cpuPercentage,
+				DiskBytes:        &diskBytes,
+				MemoryBytes:      &memoryBytes,
+				MemoryBytesQuota: &memoryBytesQuota,
+				ApplicationId:    &applicationId,
+			}
+
+			envelope := &events.Envelope{
+				EventType:       &metricType,
+				ContainerMetric: &containerMetric,
+			}
+
+			err := subject.HandleEvent(envelope)
+			Expect(err).To(BeNil())
+
+			labels := map[string]string{
+				"event_type":    "ContainerMetric",
+				"applicationId": applicationId,
+			}
+			Expect(len(sdClient.postedMetrics)).To(Equal(6))
+			Expect(sdClient.postedMetrics).To(ConsistOf(
+				PostedMetric{"diskBytesQuota", float64(1073741824), labels},
+				PostedMetric{"instanceIndex", float64(0), labels},
+				PostedMetric{"cpuPercentage", 0.061651273460637, labels},
+				PostedMetric{"diskBytes", float64(164634624), labels},
+				PostedMetric{"memoryBytes", float64(16601088), labels},
+				PostedMetric{"memoryBytesQuota", float64(33554432), labels},
+			))
+		})
+
 		It("returns error if client errors out", func() {
-			mockStackdriverClient.PostMetricFn = func(string, float64, map[string]string) error {
-				return errors.New("fail")
+			sdClient.postMetricError = errors.New("fail")
+			metricType := events.Envelope_ContainerMetric
+			envelope := &events.Envelope{
+				EventType:   &metricType,
+				ValueMetric: nil,
 			}
 
 			err := subject.HandleEvent(envelope)
 
 			Expect(err).NotTo(BeNil())
-			Expect(err.Error()).To(Equal("fail"))
+			Expect(err.Error()).To(ContainSubstring("diskBytesQuota: fail"))
+			Expect(err.Error()).To(ContainSubstring("memoryBytesQuota: fail"))
 		})
 	})
 })
 
 type MockStackdriverClient struct {
-	PostLogFn    func(interface{}, map[string]string)
-	PostMetricFn func(string, float64, map[string]string) error
+	postedLogs    []PostedLog
+	postedMetrics []PostedMetric
+
+	postMetricError error
+
+	mutex *sync.Mutex
+}
+
+func NewMockStackdriverClient() *MockStackdriverClient {
+	return &MockStackdriverClient{
+		postedLogs:      []PostedLog{},
+		postedMetrics:   []PostedMetric{},
+		postMetricError: nil,
+		mutex:           &sync.Mutex{},
+	}
 }
 
 func (m *MockStackdriverClient) PostLog(payload interface{}, labels map[string]string) {
-	if m.PostLogFn != nil {
-		m.PostLogFn(payload, labels)
-	}
+	m.mutex.Lock()
+	m.postedLogs = append(m.postedLogs, PostedLog{payload, labels})
+	m.mutex.Unlock()
 }
 
 func (m *MockStackdriverClient) PostMetric(name string, value float64, labels map[string]string) error {
-	if m.PostMetricFn != nil {
-		return m.PostMetricFn(name, value, labels)
-	}
-	return nil
+	m.mutex.Lock()
+	m.postedMetrics = append(m.postedMetrics, PostedMetric{name, value, labels})
+	m.mutex.Unlock()
+
+	return m.postMetricError
+}
+
+type PostedLog struct {
+	payload interface{}
+	labels  map[string]string
+}
+
+type PostedMetric struct {
+	name   string
+	value  float64
+	labels map[string]string
 }
