@@ -5,11 +5,11 @@ import (
 	"os"
 	"strings"
 
-	"github.com/evandbrown/gcp-tools-release/src/stackdriver-nozzle/filter"
-	"github.com/evandbrown/gcp-tools-release/src/stackdriver-nozzle/firehose"
-	"github.com/evandbrown/gcp-tools-release/src/stackdriver-nozzle/nozzle"
-	"github.com/evandbrown/gcp-tools-release/src/stackdriver-nozzle/stackdriver"
 	"gopkg.in/alecthomas/kingpin.v2"
+	"stackdriver-nozzle/filter"
+	"stackdriver-nozzle/firehose"
+	"stackdriver-nozzle/nozzle"
+	"stackdriver-nozzle/stackdriver"
 )
 
 var (

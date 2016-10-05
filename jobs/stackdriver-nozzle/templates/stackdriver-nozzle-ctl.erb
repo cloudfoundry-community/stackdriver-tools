@@ -1,0 +1,43 @@
+#!/bin/bash -e
+
+RUN_DIR=/var/vcap/sys/run/stackdriver-nozzle
+LOG_DIR=/var/vcap/sys/log/stackdriver-nozzle
+PIDFILE=$RUN_DIR/stackdriver-nozzle.pid
+
+case $1 in
+
+start)
+
+mkdir -p $RUN_DIR
+mkdir -p $LOG_DIR
+
+chown -R vcap:vcap $LOG_DIR
+
+exec >>$LOG_DIR/stackdriver-nozzle.stdout.log \
+    2>>$LOG_DIR/stackdriver-nozzle.stderr.log
+
+export API_ENDPOINT=<%= p('firehose.api_endpoint') %>
+export FIREHOSE_USERNAME=<%= p('firehose.username') %>
+export FIREHOSE_PASSWORD=<%= p('firehose.password') %>
+export SKIP_SSL_VALIDATION=<%= p('firehose.skip_ssl_validation', false) %>
+
+export PROJECT_ID=<%= p('gcp.project_id') %>
+
+chpst -u vcap:vcap /var/vcap/packages/stackdriver-nozzle/bin/stackdriver-nozzle &
+
+echo $! > $PIDFILE
+
+;;
+
+stop)
+kill -9 `cat $PIDFILE`
+rm -f $PIDFILE
+
+;;
+
+*)
+echo "Usage: stackdriver-nozzle {start|stop}"
+
+;;
+
+esac
