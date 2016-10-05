@@ -766,5 +766,5 @@
 			"revision": ""
 		}
 	],
-	"rootPath": "github.com/evandbrown/gcp-tools-release/src/stackdriver-nozzle"
+	"rootPath": "stackdriver-nozzle"
 }
