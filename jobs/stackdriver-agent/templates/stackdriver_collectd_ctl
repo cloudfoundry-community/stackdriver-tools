@@ -31,9 +31,10 @@ case $1 in
 
     CONFIG_TMPL=/var/vcap/jobs/stackdriver_agent/config/collectd.conf.tmpl
     CONFIG_FILE=/var/vcap/jobs/stackdriver_agent/config/collectd.conf
+    rm -f $CONFIG_FILE
     sed -e "s/{GCE_INSTANCE_ID}/${GCE_INSTANCE_ID}/; s/{STACKDRIVER_API_KEY}/${STACKDRIVER_API_KEY}/" ${CONFIG_TMPL} >> ${CONFIG_FILE}
 
-    export LD_LIBRARY_PATH=/var/vcap/packages/stackdriver-agent/libtool/lib
+    export LD_LIBRARY_PATH=/var/vcap/packages/stackdriver-agent/libtool/lib:/var/vcap/packages/stackdriver-agent/libyajl/lib
     exec /var/vcap/packages/stackdriver-agent/collectd/sbin/stackdriver-collectd \
       -C /var/vcap/jobs/stackdriver_agent/config/collectd.conf \
       -P ${PIDFILE} \
