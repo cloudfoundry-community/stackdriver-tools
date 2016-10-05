@@ -1,6 +1,11 @@
 package main
 
 import (
+	"fmt"
+	"os"
+	"strings"
+
+	"github.com/evandbrown/gcp-tools-release/src/stackdriver-nozzle/filter"
 	"github.com/evandbrown/gcp-tools-release/src/stackdriver-nozzle/firehose"
 	"github.com/evandbrown/gcp-tools-release/src/stackdriver-nozzle/nozzle"
 	"github.com/evandbrown/gcp-tools-release/src/stackdriver-nozzle/stackdriver"
@@ -21,6 +26,10 @@ var (
 			Default("admin").
 			OverrideDefaultFromEnvar("FIREHOSE_PASSWORD").
 			String()
+	eventsFilter = kingpin.Flag("events", "events to subscribe to from firehose (comma separated)").
+			Default("LogMessage,Error").
+			OverrideDefaultFromEnvar("FIREHOSE_EVENTS").
+			String()
 	skipSSLValidation = kingpin.Flag("skip-ssl-validation", "please don't").
 				Default("false").
 				OverrideDefaultFromEnvar("SKIP_SSL_VALIDATION").
@@ -28,7 +37,6 @@ var (
 	projectID = kingpin.Flag("project-id", "gcp project id").
 			OverrideDefaultFromEnvar("PROJECT_ID").
 			String() //maybe we can get this from gcp env...? research
-
 	batchCount = kingpin.Flag("batch-count", "maximum number of entries to buffer").
 			Default(stackdriver.DefaultBatchCount).
 			OverrideDefaultFromEnvar("BATCH_COUNT").
@@ -42,15 +50,26 @@ var (
 func main() {
 	kingpin.Parse()
 
-	client := firehose.NewClient(*apiEndpoint, *username, *password, *skipSSLValidation)
+	input := firehose.NewClient(*apiEndpoint, *username, *password, *skipSSLValidation)
 
 	sdClient := stackdriver.NewClient(*projectID, *batchCount, *batchDuration)
-	n := nozzle.Nozzle{StackdriverClient: sdClient}
+	output := nozzle.Nozzle{StackdriverClient: sdClient}
 
-	err := client.StartListening(&n)
+	filteredOutput, err := filter.New(&output, strings.Split(*eventsFilter, ","))
+	if err != nil {
+		if unknownEvent, ok := err.(*filter.UnknownEventName); ok {
+			fmt.Printf("Error: %s, possible choices: %s\n", unknownEvent.Error(), strings.Join(unknownEvent.Choices, ","))
+			os.Exit(-1)
+		} else {
+			panic(err)
+		}
+	}
+
+	fmt.Println("Listening to event(s):", *eventsFilter)
+
+	err = input.StartListening(filteredOutput)
 
 	if err != nil {
 		panic(err)
 	}
-
 }
