@@ -4,7 +4,6 @@
 #
 # Packages:
 #  - stackdriver-agent
-#  - stackdriver-extractor
 #
 
 # Fetch latest version
@@ -41,7 +40,6 @@ def strip_end(str)
 end
 
 agent_pkg = File.basename(`ls stackdriver-agent/archives/stackdriver-agent*.deb`.strip)
-extractor_pkg = File.basename(`ls stackdriver-agent/archives/stackdriver-extractor*.deb`.strip)
 
 agent_full_name = strip_end(agent_pkg)
 extractor_full_name = strip_end(extractor_pkg)
@@ -55,7 +53,6 @@ def repackage(src_pkg, full_name)
 end
 
 repackage(agent_pkg, agent_full_name)
-repackage(extractor_pkg, extractor_full_name)
 
 # Clean up
 exec! "rm -rf stackdriver-agent/extracted"
