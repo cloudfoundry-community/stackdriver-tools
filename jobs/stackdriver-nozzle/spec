@@ -16,6 +16,9 @@ properties:
   firehose.skip_ssl_validation:
     description: Skip SSL validation (for self signed certs, useful in dev environments)
     default: false
+  firehose.events:
+    description: Whitelisted event types to send to Stackdriver (comma separated)
+    default: LogMessage,Error
 
   gcp.project_id:
     description: Google Cloud Platform project ID
