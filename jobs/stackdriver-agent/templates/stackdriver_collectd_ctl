@@ -28,6 +28,9 @@ PKG_DIR=/var/vcap/packages/stackdriver-agent
 JOB_DIR=/var/vcap/jobs/stackdriver_agent
 DETECT_GCM="yes"
 
+mkdir -p ${RUN_DIR} ${LOG_DIR}
+source ${PKG_DIR}/utils.sh
+
 export LD_LIBRARY_PATH="$LD_LIBRARY_PATH:${PKG_DIR}/libtool/lib:${PKG_DIR}/libyajl/lib"
 
 . /lib/lsb/init-functions
@@ -45,13 +48,11 @@ CONFIG_TEMPLATE=${JOB_DIR}/config/collectd.conf.tmpl
 GCM_CONFIG_TEMPLATE=${JOB_DIR}/config/collectd-gcm.conf.tmpl
 _PIDFILE=${RUN_DIR}/stackdriver_collectd.pid
 
-
 MAXWAIT=30
 
 JAVA_LIB_DIR=""
 
-# Gracefully exit if the package has been removed.
-test -x $DAEMON || exit 0
+
 
 if [ -r /etc/default/${NAME} ]; then
     . /etc/default/${NAME}
