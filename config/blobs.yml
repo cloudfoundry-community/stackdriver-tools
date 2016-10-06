@@ -39,3 +39,11 @@ python/psutil-1.2.1.tar.gz:
   object_id: 65957b56-b096-4a79-8354-504a76abd69a
   sha: c8c1842bf1c63b9068ac25a37f7aae11fcecd57f
   size: 167397
+libyajl/yajl-2.1.0.tar.gz:
+  object_id: 98602cdb-974d-4df1-8b21-e080f80aae10
+  sha: fe6b3c7439b26175aee59cabf8c4923b9eb3650d
+  size: 84039
+stackdriver-agent/stackdriver-agent_5.5.2-347.tgz:
+  object_id: ba5064b6-9690-4757-8bc6-a1cf43d0f13f
+  sha: 862df2ed4a2558086df9491231068075b2495026
+  size: 1085047
