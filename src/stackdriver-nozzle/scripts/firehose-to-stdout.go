@@ -4,8 +4,8 @@ import (
 	"os"
 
 	"github.com/cloudfoundry/sonde-go/events"
-	"github.com/evandbrown/gcp-tools-release/src/stackdriver-nozzle/firehose"
 	"gopkg.in/alecthomas/kingpin.v2"
+	"stackdriver-nozzle/firehose"
 )
 
 func main() {
