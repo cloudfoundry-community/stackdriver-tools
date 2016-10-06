@@ -9,11 +9,13 @@ import (
 
 	"cloud.google.com/go/logging"
 	"cloud.google.com/go/monitoring/apiv3"
+	"github.com/cloudfoundry/lager"
 	"github.com/golang/protobuf/ptypes/timestamp"
 	"golang.org/x/net/context"
 	"google.golang.org/api/option"
 	"google.golang.org/genproto/googleapis/api/metric"
 	monitoringpb "google.golang.org/genproto/googleapis/monitoring/v3"
+	"stackdriver-nozzle/heartbeat"
 )
 
 type Client interface {
@@ -23,9 +25,11 @@ type Client interface {
 
 type client struct {
 	ctx          context.Context
-	logger       *logging.Logger
+	sdLogger     *logging.Logger
 	metricClient *monitoring.MetricClient
 	projectID    string
+	logger       lager.Logger
+	heartbeater  heartbeat.Heartbeater
 }
 
 const (
@@ -35,48 +39,53 @@ const (
 )
 
 // TODO error handling #131310523
-func NewClient(projectID string, batchCount int, batchDuration time.Duration) Client {
+func NewClient(projectID string, batchCount int, batchDuration time.Duration, logger lager.Logger, hearbeater heartbeat.Heartbeater) Client {
 	ctx := context.Background()
 
-	logger, err := newLogger(ctx, projectID, batchCount, batchDuration)
-	if err != nil {
-		panic(err)
-	}
+	sdLogger := newLogger(ctx, projectID, batchCount, batchDuration, logger)
 
 	metricClient, err := monitoring.NewMetricClient(ctx, option.WithScopes("https://www.googleapis.com/auth/monitoring.write"))
 	if err != nil {
-		panic(err)
+		logger.Fatal("metricClient", err)
 	}
 
-	return &client{ctx: ctx, logger: logger, metricClient: metricClient, projectID: projectID}
+	return &client{
+		ctx:          ctx,
+		sdLogger:     sdLogger,
+		metricClient: metricClient,
+		projectID:    projectID,
+		logger:       logger,
+		heartbeater:  hearbeater,
+	}
 }
 
-func newLogger(ctx context.Context, projectID string, batchCount int, batchDuration time.Duration) (*logging.Logger, error) {
+func newLogger(ctx context.Context, projectID string, batchCount int, batchDuration time.Duration, logger lager.Logger) *logging.Logger {
 	loggingClient, err := logging.NewClient(ctx, projectID)
 	if err != nil {
-		return nil, err
+		logger.Fatal("stackdriverClient", err)
 	}
 
 	loggingClient.OnError = func(err error) {
-		panic(err)
+		logger.Fatal("stackdriverClientOnError", err)
 	}
 
-	logger := loggingClient.Logger(logId,
+	return loggingClient.Logger(logId,
 		logging.EntryCountThreshold(batchCount),
 		logging.DelayThreshold(batchDuration),
 	)
-	return logger, nil
 }
 
 func (s *client) PostLog(payload interface{}, labels map[string]string) {
+	s.heartbeater.AddCounter()
 	entry := logging.Entry{
 		Payload: payload,
 		Labels:  labels,
 	}
-	s.logger.Log(entry)
+	s.sdLogger.Log(entry)
 }
 
 func (s *client) PostMetric(name string, value float64, labels map[string]string) error {
+	s.heartbeater.AddCounter()
 	projectName := fmt.Sprintf("projects/%s", s.projectID)
 	metricType := path.Join("custom.googleapis.com", name)
 
@@ -108,9 +117,5 @@ func (s *client) PostMetric(name string, value float64, labels map[string]string
 			},
 		},
 	}
-	err := s.metricClient.CreateTimeSeries(s.ctx, req)
-	if err != nil {
-		fmt.Printf("Name: %v Value: %f Error: %v\n", name, value, err.Error())
-	}
-	return nil
+	return s.metricClient.CreateTimeSeries(s.ctx, req)
 }

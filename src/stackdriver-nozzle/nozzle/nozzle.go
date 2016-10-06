@@ -1,12 +1,14 @@
 package nozzle
 
 import (
-	"fmt"
 	"strings"
 
-	"github.com/cloudfoundry/sonde-go/events"
 	"stackdriver-nozzle/serializer"
 	"stackdriver-nozzle/stackdriver"
+
+	"github.com/cloudfoundry/sonde-go/events"
+
+	"fmt"
 )
 
 type PostMetricError struct {
@@ -65,7 +67,7 @@ func (n *Nozzle) postMetric(errorsCh chan error, name string, value float64, lab
 	go func() {
 		err := n.StackdriverClient.PostMetric(name, value, labels)
 		if err != nil {
-			errorsCh <- fmt.Errorf("%v: %v", name, err.Error())
+			errorsCh <- fmt.Errorf("name: %v value: %f, error: %v", name, value, err.Error())
 		} else {
 			errorsCh <- nil
 		}

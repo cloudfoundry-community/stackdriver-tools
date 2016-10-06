@@ -3,8 +3,10 @@ package serializer
 import (
 	"fmt"
 
+	"errors"
 	"github.com/cloudfoundry-community/firehose-to-syslog/caching"
 	"github.com/cloudfoundry-community/firehose-to-syslog/utils"
+	"github.com/cloudfoundry/lager"
 	"github.com/cloudfoundry/sonde-go/events"
 )
 
@@ -27,10 +29,17 @@ type Serializer interface {
 
 type cachingClientSerializer struct {
 	cachingClient caching.Caching
+	logger        lager.Logger
 }
 
-func NewSerializer(cachingClient caching.Caching) Serializer {
-	return &cachingClientSerializer{cachingClient}
+func NewSerializer(cachingClient caching.Caching, logger lager.Logger) Serializer {
+	if cachingClient == nil {
+		logger.Fatal("nilCachingClient", errors.New("caching client cannot be nil"))
+	}
+
+	cachingClient.GetAllApp()
+
+	return &cachingClientSerializer{cachingClient, logger}
 }
 
 func (s *cachingClientSerializer) GetLog(e *events.Envelope) *Log {
@@ -56,13 +65,14 @@ func (s *cachingClientSerializer) GetMetrics(envelope *events.Envelope) []*Metri
 			{"memoryBytesQuota", float64(containerMetric.GetMemoryBytesQuota()), labels},
 		}
 	default:
-		panic(fmt.Errorf("Unknown event type: %v", envelope.EventType))
+		s.logger.Error("unknownEventType", fmt.Errorf("unknown event type: %v", envelope.EventType))
+		return nil
 	}
 
 }
 
-func (s *cachingClientSerializer) IsLog(e *events.Envelope) bool {
-	switch *e.EventType {
+func (s *cachingClientSerializer) IsLog(envelope *events.Envelope) bool {
+	switch *envelope.EventType {
 	case events.Envelope_HttpStartStop, events.Envelope_LogMessage, events.Envelope_Error:
 		return true
 	case events.Envelope_ValueMetric, events.Envelope_ContainerMetric:
@@ -71,7 +81,8 @@ func (s *cachingClientSerializer) IsLog(e *events.Envelope) bool {
 		//Not yet implemented as a metric
 		return true
 	default:
-		panic(fmt.Errorf("Unknown event type: %v", e.EventType))
+		s.logger.Error("unknownEventType", fmt.Errorf("unknown event type: %v", envelope.EventType))
+		return false
 	}
 }
 
@@ -123,10 +134,6 @@ func (s *cachingClientSerializer) buildLabels(envelope *events.Envelope) map[str
 }
 
 func (s *cachingClientSerializer) buildAppMetadataLabels(appId string, labels map[string]string, envelope *events.Envelope) {
-	if s.cachingClient == nil {
-		return
-	}
-
 	app := s.cachingClient.GetAppInfo(appId)
 
 	if app.Name != "" {

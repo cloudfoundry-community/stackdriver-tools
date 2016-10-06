@@ -148,6 +148,12 @@
 			"revisionTime": "2016-09-13T11:13:55Z"
 		},
 		{
+			"checksumSHA1": "oUv216QBWDQod3CiTJ0AqutHdqQ=",
+			"path": "github.com/cloudfoundry/lager",
+			"revision": "62951a8009ab331bb21dc418074fa54e66eb9b6a",
+			"revisionTime": "2016-07-05T18:53:22Z"
+		},
+		{
 			"checksumSHA1": "Iqf2xnWXrn9523erEXi2BMFOsAM=",
 			"origin": "github.com/cloudfoundry-community/firehose-to-syslog/vendor/github.com/cloudfoundry/noaa",
 			"path": "github.com/cloudfoundry/noaa",

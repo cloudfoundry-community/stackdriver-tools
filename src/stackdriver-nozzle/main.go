@@ -1,8 +1,10 @@
 package main
 
 import (
+	"os"
+	"strings"
+
 	"github.com/cloudfoundry-community/firehose-to-syslog/caching"
-	"github.com/cloudfoundry-community/go-cfclient"
 
 	"stackdriver-nozzle/filter"
 	"stackdriver-nozzle/firehose"
@@ -10,11 +12,13 @@ import (
 	"stackdriver-nozzle/serializer"
 	"stackdriver-nozzle/stackdriver"
 
-	"fmt"
-	"os"
-	"strings"
-
+	"github.com/cloudfoundry-community/go-cfclient"
 	"gopkg.in/alecthomas/kingpin.v2"
+
+	"time"
+
+	"github.com/cloudfoundry/lager"
+	"stackdriver-nozzle/heartbeat"
 )
 
 var (
@@ -61,7 +65,15 @@ var (
 )
 
 func main() {
+	const triggerDuration = 30 * time.Second
 	kingpin.Parse()
+
+	logger := lager.NewLogger("stackdriver-nozzle")
+	logger.RegisterSink(lager.NewWriterSink(os.Stdout, lager.DEBUG))
+	logger.Info("arguments", lager.Data{
+		"resolveCfMetadata": resolveCfMetadata,
+		"events":            eventsFilter,
+	})
 
 	cfConfig := &cfclient.Config{
 		ApiAddress:        *apiEndpoint,
@@ -69,38 +81,35 @@ func main() {
 		Password:          *password,
 		SkipSslValidation: *skipSSLValidation}
 	cfClient := cfclient.NewClient(cfConfig)
-	input := firehose.NewClient(cfConfig, cfClient)
-	sdClient := stackdriver.NewClient(*projectID, *batchCount, *batchDuration)
+	input := firehose.NewClient(cfConfig, cfClient, logger)
 
 	var cachingClient caching.Caching
 	if *resolveCfMetadata {
 		cachingClient = caching.NewCachingBolt(cfClient, *boltDatabasePath)
-		// Initialize the caching client with the state of the world
-		cachingClient.GetAllApp()
 	} else {
-		fmt.Println("Not resolving CloudFoundry app metadata")
+		cachingClient = caching.NewCachingEmpty()
 	}
+
+	trigger := time.NewTicker(triggerDuration).C
+	heartbeater := heartbeat.NewHeartbeat(logger, trigger)
+	sdClient := stackdriver.NewClient(*projectID, *batchCount, *batchDuration, logger, heartbeater)
+	nozzleSerializer := serializer.NewSerializer(cachingClient, logger)
 
 	output := nozzle.Nozzle{
 		StackdriverClient: sdClient,
-		Serializer:        serializer.NewSerializer(cachingClient),
+		Serializer:        nozzleSerializer,
 	}
 
 	filteredOutput, err := filter.New(&output, strings.Split(*eventsFilter, ","))
 	if err != nil {
-		if unknownEvent, ok := err.(*filter.UnknownEventName); ok {
-			fmt.Printf("Error: %s, possible choices: %s\n", unknownEvent.Error(), strings.Join(unknownEvent.Choices, ","))
-			os.Exit(-1)
-		} else {
-			panic(err)
-		}
+		logger.Fatal("newFilter", err)
 	}
 
-	fmt.Println("Listening to event(s):", *eventsFilter)
-
+	heartbeater.Start()
 	err = input.StartListening(filteredOutput)
+	heartbeater.Stop()
 
 	if err != nil {
-		panic(err)
+		logger.Fatal("firehoseStart", err)
 	}
 }

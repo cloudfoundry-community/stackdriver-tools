@@ -5,12 +5,15 @@ import (
 
 	"sync"
 
+	"stackdriver-nozzle/nozzle"
+
 	"github.com/cloudfoundry-community/firehose-to-syslog/caching"
+
+	"stackdriver-nozzle/serializer"
+
 	"github.com/cloudfoundry/sonde-go/events"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
-	"stackdriver-nozzle/nozzle"
-	"stackdriver-nozzle/serializer"
 )
 
 var _ = Describe("Nozzle", func() {
@@ -21,7 +24,10 @@ var _ = Describe("Nozzle", func() {
 
 	BeforeEach(func() {
 		sdClient = NewMockStackdriverClient()
-		subject = nozzle.Nozzle{StackdriverClient: sdClient, Serializer: serializer.NewSerializer(caching.NewCachingEmpty())}
+		subject = nozzle.Nozzle{
+			StackdriverClient: sdClient,
+			Serializer:        serializer.NewSerializer(caching.NewCachingEmpty(), nil),
+		}
 	})
 
 	It("handles HttpStartStop", func() {
@@ -119,8 +125,8 @@ var _ = Describe("Nozzle", func() {
 			err := subject.HandleEvent(envelope)
 
 			Expect(err).NotTo(BeNil())
-			Expect(err.Error()).To(ContainSubstring("diskBytesQuota: fail"))
-			Expect(err.Error()).To(ContainSubstring("memoryBytesQuota: fail"))
+			Expect(err.Error()).To(ContainSubstring("name: diskBytesQuota value: 0.000000, error: fail"))
+			Expect(err.Error()).To(ContainSubstring("name: memoryBytesQuota value: 0.000000, error: fail"))
 		})
 	})
 })

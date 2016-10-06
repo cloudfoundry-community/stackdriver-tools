@@ -5,6 +5,7 @@ import (
 
 	"github.com/cloudfoundry/sonde-go/events"
 	"stackdriver-nozzle/firehose"
+	"strings"
 )
 
 type filter struct {
@@ -12,20 +13,25 @@ type filter struct {
 	enabled map[events.Envelope_EventType]bool
 }
 
-type UnknownEventName struct {
-	Given   string
-	Choices []string
+type invalidEvent struct {
+	name string
 }
 
 func parseEventName(name string) (events.Envelope_EventType, error) {
 	if eventId, ok := events.Envelope_EventType_value[name]; ok {
 		return events.Envelope_EventType(eventId), nil
 	}
-	return events.Envelope_Error, &UnknownEventName{Given: name, Choices: validEventChoices()}
+	return events.Envelope_Error, &invalidEvent{name: name}
 }
 
-func (uen *UnknownEventName) Error() string {
-	return fmt.Sprintf("unknown event name: %s", uen.Given)
+func (ie *invalidEvent) Error() string {
+	eventNames := []string{}
+	for _, name := range events.Envelope_EventType_name {
+		eventNames = append(eventNames, name)
+	}
+	validEvents := strings.Join(eventNames, ", ")
+
+	return fmt.Sprintf("invalid event '%s'; valid events: %s", ie.name, validEvents)
 }
 
 func New(dest firehose.FirehoseHandler, eventNames []string) (firehose.FirehoseHandler, error) {
@@ -49,12 +55,4 @@ func (f *filter) HandleEvent(envelope *events.Envelope) error {
 		return nil
 	}
 	return f.dest.HandleEvent(envelope)
-}
-
-func validEventChoices() []string {
-	choices := []string{}
-	for _, name := range events.Envelope_EventType_name {
-		choices = append(choices, name)
-	}
-	return choices
 }
