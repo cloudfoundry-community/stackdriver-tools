@@ -46,12 +46,12 @@ var _ = Describe("Serializer", func() {
 
 		labels := log.Labels
 		Expect(labels).To(Equal(map[string]string{
-			"cloudFoundry/origin":     origin,
-			"cloudFoundry/eventType":  eventType.String(),
-			"cloudFoundry/deployment": deployment,
-			"cloudFoundry/job":        job,
-			"cloudFoundry/index":      index,
-			"cloudFoundry/ip":         ip,
+			"origin":     origin,
+			"eventType":  eventType.String(),
+			"deployment": deployment,
+			"job":        job,
+			"index":      index,
+			"ip":         ip,
 		}))
 	})
 
@@ -80,10 +80,10 @@ var _ = Describe("Serializer", func() {
 		labels := log.Labels
 
 		Expect(labels).To(Equal(map[string]string{
-			"cloudFoundry/origin":    origin,
-			"cloudFoundry/eventType": eventType.String(),
-			"cloudFoundry/job":       job,
-			"cloudFoundry/index":     index,
+			"origin":    origin,
+			"eventType": eventType.String(),
+			"job":       job,
+			"index":     index,
 		}))
 	})
 
@@ -114,8 +114,8 @@ var _ = Describe("Serializer", func() {
 			}
 
 			labels := map[string]string{
-				"cloudFoundry/eventType":     "ContainerMetric",
-				"cloudFoundry/applicationId": applicationId,
+				"eventType":     "ContainerMetric",
+				"applicationId": applicationId,
 			}
 
 			metrics := subject.GetMetrics(envelope)
@@ -215,7 +215,7 @@ var _ = Describe("Serializer", func() {
 				log := subject.GetLog(envelope)
 				labels := log.Labels
 
-				Expect(labels["cloudFoundry/applicationId"]).To(Equal(appGuid))
+				Expect(labels["applicationId"]).To(Equal(appGuid))
 			})
 
 			It("LogMessage adds app id", func() {
@@ -231,7 +231,7 @@ var _ = Describe("Serializer", func() {
 
 				log := subject.GetLog(envelope)
 				labels := log.Labels
-				Expect(labels["cloudFoundry/applicationId"]).To(Equal(appGuid))
+				Expect(labels["applicationId"]).To(Equal(appGuid))
 
 			})
 
@@ -249,7 +249,7 @@ var _ = Describe("Serializer", func() {
 				valueMetric := metrics[0]
 
 				labels := valueMetric.Labels
-				Expect(labels).NotTo(HaveKey("cloudFoundry/applicationId"))
+				Expect(labels).NotTo(HaveKey("applicationId"))
 
 			})
 
@@ -268,7 +268,7 @@ var _ = Describe("Serializer", func() {
 
 				log := subject.GetLog(envelope)
 				labels := log.Labels
-				Expect(labels).NotTo(HaveKey("cloudFoundry/applicationId"))
+				Expect(labels).NotTo(HaveKey("applicationId"))
 
 			})
 
@@ -289,7 +289,7 @@ var _ = Describe("Serializer", func() {
 
 				for _, metric := range metrics {
 					labels := metric.Labels
-					Expect(labels["cloudFoundry/applicationId"]).To(Equal(appGuid))
+					Expect(labels["applicationId"]).To(Equal(appGuid))
 
 				}
 			})
@@ -340,22 +340,22 @@ var _ = Describe("Serializer", func() {
 					log := subject.GetLog(envelope)
 					labels := log.Labels
 
-					Expect(labels).To(HaveKeyWithValue("cloudFoundry/appName", app.Name))
-					Expect(labels).To(HaveKeyWithValue("cloudFoundry/spaceName", app.SpaceName))
-					Expect(labels).To(HaveKeyWithValue("cloudFoundry/spaceGuid", app.SpaceGuid))
-					Expect(labels).To(HaveKeyWithValue("cloudFoundry/orgName", app.OrgName))
-					Expect(labels).To(HaveKeyWithValue("cloudFoundry/orgGuid", app.OrgGuid))
+					Expect(labels).To(HaveKeyWithValue("appName", app.Name))
+					Expect(labels).To(HaveKeyWithValue("spaceName", app.SpaceName))
+					Expect(labels).To(HaveKeyWithValue("spaceGuid", app.SpaceGuid))
+					Expect(labels).To(HaveKeyWithValue("orgName", app.OrgName))
+					Expect(labels).To(HaveKeyWithValue("orgGuid", app.OrgGuid))
 				})
 
 				It("doesn't add fields for an unresolved app", func() {
 					log := subject.GetLog(envelope)
 					labels := log.Labels
 
-					Expect(labels).NotTo(HaveKey("cloudFoundry/appName"))
-					Expect(labels).NotTo(HaveKey("cloudFoundry/spaceName"))
-					Expect(labels).NotTo(HaveKey("cloudFoundry/spaceGuid"))
-					Expect(labels).NotTo(HaveKey("cloudFoundry/orgName"))
-					Expect(labels).NotTo(HaveKey("cloudFoundry/orgGuid"))
+					Expect(labels).NotTo(HaveKey("appName"))
+					Expect(labels).NotTo(HaveKey("spaceName"))
+					Expect(labels).NotTo(HaveKey("spaceGuid"))
+					Expect(labels).NotTo(HaveKey("orgName"))
+					Expect(labels).NotTo(HaveKey("orgGuid"))
 				})
 			})
 		})

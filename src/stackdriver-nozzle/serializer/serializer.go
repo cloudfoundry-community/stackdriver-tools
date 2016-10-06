@@ -8,8 +8,6 @@ import (
 	"github.com/cloudfoundry/sonde-go/events"
 )
 
-const LabelPrefix = "cloudFoundry/"
-
 type Metric struct {
 	Name   string
 	Value  float64
@@ -93,31 +91,31 @@ func (s *cachingClientSerializer) buildLabels(envelope *events.Envelope) map[str
 	labels := map[string]string{}
 
 	if envelope.Origin != nil {
-		labels[LabelPrefix+"origin"] = envelope.GetOrigin()
+		labels["origin"] = envelope.GetOrigin()
 	}
 
 	if envelope.EventType != nil {
-		labels[LabelPrefix+"eventType"] = envelope.GetEventType().String()
+		labels["eventType"] = envelope.GetEventType().String()
 	}
 
 	if envelope.Deployment != nil {
-		labels[LabelPrefix+"deployment"] = envelope.GetDeployment()
+		labels["deployment"] = envelope.GetDeployment()
 	}
 
 	if envelope.Job != nil {
-		labels[LabelPrefix+"job"] = envelope.GetJob()
+		labels["job"] = envelope.GetJob()
 	}
 
 	if envelope.Index != nil {
-		labels[LabelPrefix+"index"] = envelope.GetIndex()
+		labels["index"] = envelope.GetIndex()
 	}
 
 	if envelope.Ip != nil {
-		labels[LabelPrefix+"ip"] = envelope.GetIp()
+		labels["ip"] = envelope.GetIp()
 	}
 
 	if appId := getApplicationId(envelope); appId != "" {
-		labels[LabelPrefix+"applicationId"] = appId
+		labels["applicationId"] = appId
 		s.buildAppMetadataLabels(appId, labels, envelope)
 	}
 
@@ -132,22 +130,22 @@ func (s *cachingClientSerializer) buildAppMetadataLabels(appId string, labels ma
 	app := s.cachingClient.GetAppInfo(appId)
 
 	if app.Name != "" {
-		labels[LabelPrefix+"appName"] = app.Name
+		labels["appName"] = app.Name
 	}
 
 	if app.SpaceName != "" {
-		labels[LabelPrefix+"spaceName"] = app.SpaceName
+		labels["spaceName"] = app.SpaceName
 	}
 
 	if app.SpaceGuid != "" {
-		labels[LabelPrefix+"spaceGuid"] = app.SpaceGuid
+		labels["spaceGuid"] = app.SpaceGuid
 	}
 
 	if app.OrgName != "" {
-		labels[LabelPrefix+"orgName"] = app.OrgName
+		labels["orgName"] = app.OrgName
 	}
 
 	if app.OrgGuid != "" {
-		labels[LabelPrefix+"orgGuid"] = app.OrgGuid
+		labels["orgGuid"] = app.OrgGuid
 	}
 }
