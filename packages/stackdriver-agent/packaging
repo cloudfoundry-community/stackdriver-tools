@@ -56,5 +56,4 @@ popd
 
 # Copy StackDriver agents
 tar xzvf ${BOSH_COMPILE_TARGET}/stackdriver-agent/stackdriver-agent_5.5.2-347.tgz
-tar xzvf ${BOSH_COMPILE_TARGET}/stackdriver-agent/stackdriver-extractor_94-1.tgz
 cp -a ${BOSH_COMPILE_TARGET}/stackdriver/* ${BOSH_INSTALL_TARGET}

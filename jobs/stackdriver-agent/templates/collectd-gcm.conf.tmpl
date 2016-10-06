@@ -1,0 +1,102 @@
+Interval 60
+
+PluginDir "/var/vcap/packages/stackdriver-agent/collectd/lib/collectd/"
+TypesDB "/var/vcap/packages/stackdriver-agent/collectd/share/collectd/types.db"
+
+LoadPlugin syslog
+<Plugin "syslog">
+  LogLevel "info"
+</Plugin>
+
+LoadPlugin df
+<Plugin "df">
+  FSType "devfs"
+  IgnoreSelected true
+  ReportByDevice true
+  ValuesPercentage true
+</Plugin>
+
+LoadPlugin cpu
+<Plugin "cpu">
+  ValuesPercentage true
+  ReportByCpu false
+</Plugin>
+LoadPlugin swap
+<Plugin "swap">
+  ValuesPercentage true
+</Plugin>
+LoadPlugin interface
+LoadPlugin disk
+LoadPlugin load
+LoadPlugin memory
+<Plugin "memory">
+  ValuesPercentage true
+</Plugin>
+LoadPlugin processes
+LoadPlugin tcpconns
+LoadPlugin write_gcm
+LoadPlugin match_regex
+LoadPlugin match_throttle_metadata_keys
+LoadPlugin stackdriver_agent
+
+<Plugin "processes">
+  ProcessMatch "all" ".*"
+  Detail "ps_vm"
+  Detail "ps_cputime"
+</Plugin>
+
+<Plugin "disk">
+  # No config - collectd fails parsing configuration if tag is empty.
+</Plugin>
+
+LoadPlugin aggregation
+LoadPlugin "match_regex"
+<Plugin "memory">
+  ValuesPercentage true
+</Plugin>
+
+<Plugin "write_gcm">
+  PrettyPrintJSON false
+</Plugin>
+
+PostCacheChain "PostCache"
+<Chain "PostCache">
+  <Rule "processes">
+    <Match "regex">
+      Plugin "^processes$"
+      Type "^(ps_vm|ps_cputime)$"
+    </Match>
+    <Target "jump">
+      Chain "MaybeThrottleProcesses"
+    </Target>
+    Target "stop"
+  </Rule>
+
+  <Rule "otherwise">
+    <Match "throttle_metadata_keys">
+      OKToThrottle false
+    </Match>
+    <Target "write">
+       Plugin "write_gcm"
+    </Target>
+  </Rule>
+</Chain>
+
+<Chain "MaybeThrottleProcesses">
+  <Rule "default">
+    <Match "throttle_metadata_keys">
+      OKToThrottle true
+      TrackedMetadata "processes:pid"
+      TrackedMetadata "processes:command"
+      TrackedMetadata "processes:command_line"
+      TrackedMetadata "processes:owner"
+    </Match>
+    <Target "write">
+       Plugin "write_gcm"
+    </Target>
+  </Rule>
+</Chain>
+
+# if you have other config, especially for plugins, you can drop them
+# into this directory
+Include "/var/vcap/packages/stackdriver-agent/collectd/etc/collectd.d"
