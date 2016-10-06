@@ -30,8 +30,6 @@ DETECT_GCM="yes"
 
 export LD_LIBRARY_PATH="$LD_LIBRARY_PATH:${PKG_DIR}/libtool/lib:${PKG_DIR}/libyajl/lib"
 
-source ${PKG_DIR}/utils.sh
-
 . /lib/lsb/init-functions
 
 export PATH=/sbin:/bin:/usr/sbin:/usr/bin
