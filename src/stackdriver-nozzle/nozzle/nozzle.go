@@ -34,7 +34,10 @@ func (n *Nozzle) HandleEvent(envelope *events.Envelope) error {
 		n.StackdriverClient.PostLog(log.Payload, log.Labels)
 		return nil
 	} else {
-		metrics := n.Serializer.GetMetrics(envelope)
+		metrics, err := n.Serializer.GetMetrics(envelope)
+		if err != nil {
+			return err
+		}
 		return n.postMetrics(metrics)
 	}
 }

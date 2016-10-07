@@ -10,17 +10,18 @@ import (
 	"errors"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
+	"stackdriver-nozzle/mocks"
 )
 
 var _ = Describe("Heartbeat", func() {
 	var (
 		subject heartbeat.Heartbeater
-		logger  *mockLogger
+		logger  *mocks.MockLogger
 		trigger chan time.Time
 	)
 
 	BeforeEach(func() {
-		logger = &mockLogger{}
+		logger = &mocks.MockLogger{}
 		trigger = make(chan time.Time)
 
 		subject = heartbeat.NewHeartbeat(logger, trigger)
@@ -30,12 +31,12 @@ var _ = Describe("Heartbeat", func() {
 	It("should start at zero", func() {
 		trigger <- time.Now()
 
-		Eventually(func() log {
-			return logger.lastLog()
-		}).Should(Equal(log{
-			level:  lager.INFO,
-			action: "counter",
-			datas: []lager.Data{
+		Eventually(func() mocks.Log {
+			return logger.LastLog()
+		}).Should(Equal(mocks.Log{
+			Level:  lager.INFO,
+			Action: "counter",
+			Datas: []lager.Data{
 				{"eventCount": 0},
 			},
 		}))
@@ -48,12 +49,12 @@ var _ = Describe("Heartbeat", func() {
 
 		trigger <- time.Now()
 
-		Eventually(func() log {
-			return logger.lastLog()
-		}).Should(Equal(log{
-			level:  lager.INFO,
-			action: "counter",
-			datas: []lager.Data{
+		Eventually(func() mocks.Log {
+			return logger.LastLog()
+		}).Should(Equal(mocks.Log{
+			Level:  lager.INFO,
+			Action: "counter",
+			Datas: []lager.Data{
 				{"eventCount": 10},
 			},
 		}))
@@ -72,12 +73,12 @@ var _ = Describe("Heartbeat", func() {
 
 		trigger <- time.Now()
 
-		Eventually(func() log {
-			return logger.lastLog()
-		}).Should(Equal(log{
-			level:  lager.INFO,
-			action: "counter",
-			datas: []lager.Data{
+		Eventually(func() mocks.Log {
+			return logger.LastLog()
+		}).Should(Equal(mocks.Log{
+			Level:  lager.INFO,
+			Action: "counter",
+			Datas: []lager.Data{
 				{"eventCount": 5},
 			},
 		}))
@@ -89,80 +90,21 @@ var _ = Describe("Heartbeat", func() {
 		}
 		subject.Stop()
 
-		Eventually(func() log {
-			return logger.lastLog()
-		}).Should(Equal(log{
-			level:  lager.INFO,
-			action: "counterStopped",
-			datas: []lager.Data{
+		Eventually(func() mocks.Log {
+			return logger.LastLog()
+		}).Should(Equal(mocks.Log{
+			Level:  lager.INFO,
+			Action: "counterStopped",
+			Datas: []lager.Data{
 				{"remainingCount": 5},
 			},
 		}))
 
 		subject.AddCounter()
-		Expect(logger.lastLog()).To(Equal(log{
-			level:  lager.ERROR,
-			action: "addCounter",
-			err:    errors.New("attempted to add to counter without starting heartbeat"),
+		Expect(logger.LastLog()).To(Equal(mocks.Log{
+			Level:  lager.ERROR,
+			Action: "addCounter",
+			Err:    errors.New("attempted to add to counter without starting heartbeat"),
 		}))
 	})
 })
-
-type mockLogger struct {
-	logs []log
-}
-
-type log struct {
-	level  lager.LogLevel
-	action string
-	err    error
-	datas  []lager.Data
-}
-
-func (m *mockLogger) RegisterSink(lager.Sink) {
-	panic("NYI")
-}
-
-func (m *mockLogger) Session(task string, data ...lager.Data) lager.Logger {
-	panic("NYI")
-}
-
-func (m *mockLogger) SessionName() string {
-	panic("NYI")
-}
-
-func (m *mockLogger) Debug(action string, data ...lager.Data) {
-	panic("NYI")
-}
-
-func (m *mockLogger) Info(action string, data ...lager.Data) {
-	m.logs = append(m.logs, log{
-		level:  lager.INFO,
-		action: action,
-		datas:  data,
-	})
-}
-
-func (m *mockLogger) Error(action string, err error, data ...lager.Data) {
-	m.logs = append(m.logs, log{
-		level:  lager.ERROR,
-		action: action,
-		err:    err,
-		datas:  data,
-	})
-}
-
-func (m *mockLogger) Fatal(action string, err error, data ...lager.Data) {
-	panic("NYI")
-}
-
-func (m *mockLogger) WithData(lager.Data) lager.Logger {
-	panic("NYI")
-}
-
-func (m *mockLogger) lastLog() log {
-	if len(m.logs) == 0 {
-		return log{}
-	}
-	return m.logs[len(m.logs)-1]
-}

@@ -14,6 +14,7 @@ import (
 	"github.com/cloudfoundry/sonde-go/events"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
+	"stackdriver-nozzle/mocks"
 )
 
 var _ = Describe("Nozzle", func() {
@@ -127,6 +128,28 @@ var _ = Describe("Nozzle", func() {
 			Expect(err).NotTo(BeNil())
 			Expect(err.Error()).To(ContainSubstring("name: diskBytesQuota value: 0.000000, error: fail"))
 			Expect(err.Error()).To(ContainSubstring("name: memoryBytesQuota value: 0.000000, error: fail"))
+		})
+
+		It("returns error if getting metric errors out", func() {
+			const errMessage = "GetMetrics fail"
+			mockSerializer := &mocks.MockSerializer{
+				GetMetricsFn: func(*events.Envelope) ([]*serializer.Metric, error) {
+					return nil, errors.New(errMessage)
+				},
+				IsLogFn: func(*events.Envelope) bool {
+					return false
+				},
+			}
+			subject = nozzle.Nozzle{
+				StackdriverClient: nil,
+				Serializer:        mockSerializer,
+			}
+
+			envelope := &events.Envelope{}
+
+			err := subject.HandleEvent(envelope)
+			Expect(err).NotTo(BeNil())
+			Expect(err.Error()).To(Equal(errMessage))
 		})
 	})
 })
