@@ -3,9 +3,10 @@ package filter
 import (
 	"fmt"
 
-	"github.com/cloudfoundry/sonde-go/events"
-	"stackdriver-nozzle/firehose"
 	"strings"
+
+	"github.com/cloudfoundry-community/gcp-tools-release/src/stackdriver-nozzle/firehose"
+	"github.com/cloudfoundry/sonde-go/events"
 )
 
 type filter struct {

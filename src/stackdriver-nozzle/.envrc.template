@@ -1,6 +1,4 @@
 # http://direnv.net
-export GOPATH=`pwd`/../..
-PATH_add $GOPATH/bin
 
 export API_ENDPOINT=https://api.bosh-lite.com
 export FIREHOSE_USERNAME=admin
