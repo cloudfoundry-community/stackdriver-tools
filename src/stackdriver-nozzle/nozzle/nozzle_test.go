@@ -2,19 +2,15 @@ package nozzle_test
 
 import (
 	"errors"
-
 	"sync"
 
-	"stackdriver-nozzle/nozzle"
-
 	"github.com/cloudfoundry-community/firehose-to-syslog/caching"
-
-	"stackdriver-nozzle/serializer"
-
+	"github.com/cloudfoundry-community/gcp-tools-release/src/stackdriver-nozzle/mocks"
+	"github.com/cloudfoundry-community/gcp-tools-release/src/stackdriver-nozzle/nozzle"
+	"github.com/cloudfoundry-community/gcp-tools-release/src/stackdriver-nozzle/serializer"
 	"github.com/cloudfoundry/sonde-go/events"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
-	"stackdriver-nozzle/mocks"
 )
 
 var _ = Describe("Nozzle", func() {

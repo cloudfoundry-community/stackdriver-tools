@@ -1,9 +1,8 @@
 package heartbeat
 
 import (
-	"time"
-
 	"errors"
+	"time"
 
 	"github.com/cloudfoundry/lager"
 )
