@@ -6,15 +6,11 @@ import (
 	"errors"
 	"github.com/cloudfoundry-community/firehose-to-syslog/caching"
 	"github.com/cloudfoundry-community/firehose-to-syslog/utils"
+	"github.com/cloudfoundry-community/gcp-tools-release/src/stackdriver-nozzle/stackdriver"
 	"github.com/cloudfoundry/lager"
 	"github.com/cloudfoundry/sonde-go/events"
+	"time"
 )
-
-type Metric struct {
-	Name   string
-	Value  float64
-	Labels map[string]string
-}
 
 type Log struct {
 	Payload interface{}
@@ -23,7 +19,7 @@ type Log struct {
 
 type Serializer interface {
 	GetLog(*events.Envelope) *Log
-	GetMetrics(*events.Envelope) ([]*Metric, error)
+	GetMetrics(*events.Envelope) ([]stackdriver.Metric, error)
 	IsLog(*events.Envelope) bool
 }
 
@@ -46,31 +42,35 @@ func (s *cachingClientSerializer) GetLog(e *events.Envelope) *Log {
 	return &Log{Payload: e, Labels: s.buildLabels(e)}
 }
 
-func (s *cachingClientSerializer) GetMetrics(envelope *events.Envelope) ([]*Metric, error) {
+func (s *cachingClientSerializer) GetMetrics(envelope *events.Envelope) ([]stackdriver.Metric, error) {
 	labels := s.buildLabels(envelope)
+	//TODO use time on envelope
 	switch envelope.GetEventType() {
 	case events.Envelope_ValueMetric:
 		valueMetric := envelope.GetValueMetric()
-		return []*Metric{{
-			Name:   valueMetric.GetName(),
-			Value:  valueMetric.GetValue(),
-			Labels: labels}}, nil
+		return []stackdriver.Metric{{
+			Name:      valueMetric.GetName(),
+			Value:     valueMetric.GetValue(),
+			Labels:    labels,
+			EventTime: time.Now(),
+		}}, nil
 	case events.Envelope_ContainerMetric:
 		containerMetric := envelope.GetContainerMetric()
-		return []*Metric{
-			{"diskBytesQuota", float64(containerMetric.GetDiskBytesQuota()), labels},
-			{"instanceIndex", float64(containerMetric.GetInstanceIndex()), labels},
-			{"cpuPercentage", float64(containerMetric.GetCpuPercentage()), labels},
-			{"diskBytes", float64(containerMetric.GetDiskBytes()), labels},
-			{"memoryBytes", float64(containerMetric.GetMemoryBytes()), labels},
-			{"memoryBytesQuota", float64(containerMetric.GetMemoryBytesQuota()), labels},
+		return []stackdriver.Metric{
+			{"diskBytesQuota", float64(containerMetric.GetDiskBytesQuota()), labels, time.Now()},
+			{"instanceIndex", float64(containerMetric.GetInstanceIndex()), labels, time.Now()},
+			{"cpuPercentage", float64(containerMetric.GetCpuPercentage()), labels, time.Now()},
+			{"diskBytes", float64(containerMetric.GetDiskBytes()), labels, time.Now()},
+			{"memoryBytes", float64(containerMetric.GetMemoryBytes()), labels, time.Now()},
+			{"memoryBytesQuota", float64(containerMetric.GetMemoryBytesQuota()), labels, time.Now()},
 		}, nil
 	case events.Envelope_CounterEvent:
 		counterEvent := envelope.GetCounterEvent()
-		return []*Metric{{
-			Name:   counterEvent.GetName(),
-			Value:  float64(counterEvent.GetTotal()),
-			Labels: labels,
+		return []stackdriver.Metric{{
+			Name:      counterEvent.GetName(),
+			Value:     float64(counterEvent.GetTotal()),
+			Labels:    labels,
+			EventTime: time.Now(),
 		}}, nil
 	default:
 		return nil, fmt.Errorf("unknown event type: %v", envelope.EventType)

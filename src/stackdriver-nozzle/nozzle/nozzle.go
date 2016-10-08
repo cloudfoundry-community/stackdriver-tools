@@ -3,12 +3,9 @@ package nozzle
 import (
 	"strings"
 
-	"github.com/cloudfoundry/sonde-go/events"
-
-	"fmt"
-
 	"github.com/cloudfoundry-community/gcp-tools-release/src/stackdriver-nozzle/serializer"
 	"github.com/cloudfoundry-community/gcp-tools-release/src/stackdriver-nozzle/stackdriver"
+	"github.com/cloudfoundry/sonde-go/events"
 )
 
 type PostMetricError struct {
@@ -26,6 +23,7 @@ func (e *PostMetricError) Error() string {
 type Nozzle struct {
 	StackdriverClient stackdriver.Client
 	Serializer        serializer.Serializer
+	MetricAdapter     stackdriver.MetricAdapter
 }
 
 func (n *Nozzle) HandleEvent(envelope *events.Envelope) error {
@@ -38,41 +36,6 @@ func (n *Nozzle) HandleEvent(envelope *events.Envelope) error {
 		if err != nil {
 			return err
 		}
-		return n.postMetrics(metrics)
+		return n.MetricAdapter.PostMetrics(metrics)
 	}
-}
-
-func (n *Nozzle) postMetrics(metrics []*serializer.Metric) error {
-	errorsCh := make(chan error)
-
-	for _, metric := range metrics {
-		n.postMetric(errorsCh, metric.Name, metric.Value, metric.Labels)
-	}
-
-	errors := []error{}
-	for range metrics {
-		err := <-errorsCh
-		if err != nil {
-			errors = append(errors, err)
-		}
-	}
-
-	if len(errors) == 0 {
-		return nil
-	} else {
-		return &PostMetricError{
-			Errors: errors,
-		}
-	}
-}
-
-func (n *Nozzle) postMetric(errorsCh chan error, name string, value float64, labels map[string]string) {
-	go func() {
-		err := n.StackdriverClient.PostMetric(name, value, labels)
-		if err != nil {
-			errorsCh <- fmt.Errorf("name: %v value: %f, error: %v", name, value, err.Error())
-		} else {
-			errorsCh <- nil
-		}
-	}()
 }
