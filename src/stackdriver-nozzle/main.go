@@ -96,7 +96,6 @@ func main() {
 		logger.Fatal("newMetricClient", err)
 	}
 
-	nozzleSerializer := serializer.NewSerializer(cachingClient, logger)
 	metricAdapter := stackdriver.NewMetricAdapter(*projectID, metricClient)
 	trigger := time.NewTicker(triggerDuration).C
 	heartbeater := heartbeat.NewHeartbeat(logger, trigger)
@@ -107,7 +106,6 @@ func main() {
 	output := nozzle.Nozzle{
 		LogHandler:    logHandler,
 		MetricHandler: metricHandler,
-		Serializer:    nozzleSerializer,
 		Heartbeater:   heartbeater,
 	}
 
