@@ -3,10 +3,9 @@ package main
 import (
 	"errors"
 	"fmt"
+	"os"
 	"path"
 	"time"
-
-	"os"
 
 	"cloud.google.com/go/monitoring/apiv3"
 	"github.com/golang/protobuf/ptypes/timestamp"

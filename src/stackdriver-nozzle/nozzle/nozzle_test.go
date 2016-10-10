@@ -28,6 +28,7 @@ var _ = Describe("Nozzle", func() {
 			StackdriverClient: sdClient,
 			Serializer:        serializer.NewSerializer(caching.NewCachingEmpty(), nil),
 			MetricAdapter:     &metricAdapter,
+			Heartbeater:       &mockHeartbeater{},
 		}
 	})
 
@@ -188,3 +189,9 @@ type PostedLog struct {
 	payload interface{}
 	labels  map[string]string
 }
+
+type mockHeartbeater struct{}
+
+func (mh *mockHeartbeater) Start()      {}
+func (mh *mockHeartbeater) AddCounter() {}
+func (mh *mockHeartbeater) Stop()       {}
