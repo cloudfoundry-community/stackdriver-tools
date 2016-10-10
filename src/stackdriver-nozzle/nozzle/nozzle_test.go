@@ -15,13 +15,13 @@ import (
 
 var _ = Describe("Nozzle", func() {
 	var (
-		logAdapter    *mockLogAdapter
+		logAdapter    *mocks.LogAdapter
 		metricAdapter *mockMetricAdapter
 		subject       nozzle.Nozzle
 	)
 
 	BeforeEach(func() {
-		logAdapter = newMockLogAdapter()
+		logAdapter = &mocks.LogAdapter{}
 		metricAdapter = &mockMetricAdapter{}
 		subject = nozzle.Nozzle{
 			LogAdapter:    logAdapter,
@@ -37,7 +37,7 @@ var _ = Describe("Nozzle", func() {
 
 		subject.HandleEvent(envelope)
 
-		postedLog := logAdapter.postedLogs[0]
+		postedLog := logAdapter.PostedLogs[0]
 		Expect(postedLog.Payload).To(Equal(envelope))
 		Expect(postedLog.Labels).To(Equal(map[string]string{
 			"eventType": "HttpStartStop",
@@ -158,20 +158,6 @@ var _ = Describe("Nozzle", func() {
 type mockMetricAdapter struct {
 	postedMetrics   []stackdriver.Metric
 	postMetricError error
-}
-
-type mockLogAdapter struct {
-	postedLogs []stackdriver.Log
-}
-
-func newMockLogAdapter() *mockLogAdapter {
-	return &mockLogAdapter{
-		postedLogs: []stackdriver.Log{},
-	}
-}
-
-func (m *mockLogAdapter) PostLog(log *stackdriver.Log) {
-	m.postedLogs = append(m.postedLogs, *log)
 }
 
 func (m *mockMetricAdapter) PostMetrics(metrics []stackdriver.Metric) error {
