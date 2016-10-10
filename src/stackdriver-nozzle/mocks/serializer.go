@@ -1,18 +1,17 @@
 package mocks
 
 import (
-	"github.com/cloudfoundry-community/gcp-tools-release/src/stackdriver-nozzle/serializer"
 	"github.com/cloudfoundry-community/gcp-tools-release/src/stackdriver-nozzle/stackdriver"
 	"github.com/cloudfoundry/sonde-go/events"
 )
 
 type MockSerializer struct {
-	GetLogFn     func(*events.Envelope) *serializer.Log
+	GetLogFn     func(*events.Envelope) *stackdriver.Log
 	GetMetricsFn func(*events.Envelope) ([]stackdriver.Metric, error)
 	IsLogFn      func(*events.Envelope) bool
 }
 
-func (m *MockSerializer) GetLog(envelope *events.Envelope) *serializer.Log {
+func (m *MockSerializer) GetLog(envelope *events.Envelope) *stackdriver.Log {
 	if m.GetLogFn != nil {
 		return m.GetLogFn(envelope)
 	}

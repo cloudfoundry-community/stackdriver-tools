@@ -32,7 +32,7 @@ func (n *Nozzle) HandleEvent(envelope *events.Envelope) error {
 	if n.Serializer.IsLog(envelope) {
 		log := n.Serializer.GetLog(envelope)
 		n.Heartbeater.AddCounter()
-		n.LogAdapter.PostLog(log.Payload, log.Labels)
+		n.LogAdapter.PostLog(log)
 		return nil
 	} else {
 		metrics, err := n.Serializer.GetMetrics(envelope)

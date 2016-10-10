@@ -15,7 +15,12 @@ const (
 )
 
 type LogAdapter interface {
-	PostLog(payload interface{}, labels map[string]string)
+	PostLog(*Log)
+}
+
+type Log struct {
+	Payload interface{}
+	Labels  map[string]string
 }
 
 func NewLogAdapter(projectID string, batchCount int, batchDuration time.Duration, logger lager.Logger) (LogAdapter, error) {
@@ -46,10 +51,10 @@ type logClient struct {
 	logger    lager.Logger
 }
 
-func (s *logClient) PostLog(payload interface{}, labels map[string]string) {
+func (s *logClient) PostLog(log *Log) {
 	entry := logging.Entry{
-		Payload: payload,
-		Labels:  labels,
+		Payload: log.Payload,
+		Labels:  log.Labels,
 	}
 	s.sdLogger.Log(entry)
 }

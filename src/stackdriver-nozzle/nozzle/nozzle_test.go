@@ -2,7 +2,6 @@ package nozzle_test
 
 import (
 	"errors"
-	"sync"
 
 	"github.com/cloudfoundry-community/firehose-to-syslog/caching"
 	"github.com/cloudfoundry-community/gcp-tools-release/src/stackdriver-nozzle/mocks"
@@ -39,8 +38,8 @@ var _ = Describe("Nozzle", func() {
 		subject.HandleEvent(envelope)
 
 		postedLog := logAdapter.postedLogs[0]
-		Expect(postedLog.payload).To(Equal(envelope))
-		Expect(postedLog.labels).To(Equal(map[string]string{
+		Expect(postedLog.Payload).To(Equal(envelope))
+		Expect(postedLog.Labels).To(Equal(map[string]string{
 			"eventType": "HttpStartStop",
 		}))
 	})
@@ -162,32 +161,22 @@ type mockMetricAdapter struct {
 }
 
 type mockLogAdapter struct {
-	postedLogs []PostedLog
-
-	mutex *sync.Mutex
+	postedLogs []stackdriver.Log
 }
 
 func newMockLogAdapter() *mockLogAdapter {
 	return &mockLogAdapter{
-		postedLogs: []PostedLog{},
-		mutex:      &sync.Mutex{},
+		postedLogs: []stackdriver.Log{},
 	}
 }
 
-func (m *mockLogAdapter) PostLog(payload interface{}, labels map[string]string) {
-	m.mutex.Lock()
-	m.postedLogs = append(m.postedLogs, PostedLog{payload, labels})
-	m.mutex.Unlock()
+func (m *mockLogAdapter) PostLog(log *stackdriver.Log) {
+	m.postedLogs = append(m.postedLogs, *log)
 }
 
 func (m *mockMetricAdapter) PostMetrics(metrics []stackdriver.Metric) error {
 	m.postedMetrics = append(m.postedMetrics, metrics...)
 	return m.postMetricError
-}
-
-type PostedLog struct {
-	payload interface{}
-	labels  map[string]string
 }
 
 type mockHeartbeater struct{}
