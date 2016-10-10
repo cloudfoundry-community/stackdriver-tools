@@ -44,7 +44,7 @@ func (s *cachingClientSerializer) GetLog(e *events.Envelope) *Log {
 
 func (s *cachingClientSerializer) GetMetrics(envelope *events.Envelope) ([]stackdriver.Metric, error) {
 	labels := s.buildLabels(envelope)
-	//TODO use time on envelope
+	eventTime := time.Unix(0, envelope.GetTimestamp())
 	switch envelope.GetEventType() {
 	case events.Envelope_ValueMetric:
 		valueMetric := envelope.GetValueMetric()
@@ -52,17 +52,17 @@ func (s *cachingClientSerializer) GetMetrics(envelope *events.Envelope) ([]stack
 			Name:      valueMetric.GetName(),
 			Value:     valueMetric.GetValue(),
 			Labels:    labels,
-			EventTime: time.Now(),
+			EventTime: eventTime,
 		}}, nil
 	case events.Envelope_ContainerMetric:
 		containerMetric := envelope.GetContainerMetric()
 		return []stackdriver.Metric{
-			{"diskBytesQuota", float64(containerMetric.GetDiskBytesQuota()), labels, time.Now()},
-			{"instanceIndex", float64(containerMetric.GetInstanceIndex()), labels, time.Now()},
-			{"cpuPercentage", float64(containerMetric.GetCpuPercentage()), labels, time.Now()},
-			{"diskBytes", float64(containerMetric.GetDiskBytes()), labels, time.Now()},
-			{"memoryBytes", float64(containerMetric.GetMemoryBytes()), labels, time.Now()},
-			{"memoryBytesQuota", float64(containerMetric.GetMemoryBytesQuota()), labels, time.Now()},
+			{"diskBytesQuota", float64(containerMetric.GetDiskBytesQuota()), labels, eventTime},
+			{"instanceIndex", float64(containerMetric.GetInstanceIndex()), labels, eventTime},
+			{"cpuPercentage", float64(containerMetric.GetCpuPercentage()), labels, eventTime},
+			{"diskBytes", float64(containerMetric.GetDiskBytes()), labels, eventTime},
+			{"memoryBytes", float64(containerMetric.GetMemoryBytes()), labels, eventTime},
+			{"memoryBytesQuota", float64(containerMetric.GetMemoryBytesQuota()), labels, eventTime},
 		}, nil
 	case events.Envelope_CounterEvent:
 		counterEvent := envelope.GetCounterEvent()
@@ -70,7 +70,7 @@ func (s *cachingClientSerializer) GetMetrics(envelope *events.Envelope) ([]stack
 			Name:      counterEvent.GetName(),
 			Value:     float64(counterEvent.GetTotal()),
 			Labels:    labels,
-			EventTime: time.Now(),
+			EventTime: eventTime,
 		}}, nil
 	default:
 		return nil, fmt.Errorf("unknown event type: %v", envelope.EventType)

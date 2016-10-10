@@ -6,6 +6,7 @@ import (
 	"github.com/cloudfoundry-community/firehose-to-syslog/caching"
 	"github.com/cloudfoundry-community/gcp-tools-release/src/stackdriver-nozzle/mocks"
 	"github.com/cloudfoundry-community/gcp-tools-release/src/stackdriver-nozzle/serializer"
+	"github.com/cloudfoundry-community/gcp-tools-release/src/stackdriver-nozzle/stackdriver"
 	"github.com/cloudfoundry/sonde-go/events"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -99,6 +100,7 @@ var _ = Describe("Serializer", func() {
 			memoryBytes := uint64(16601088)
 			memoryBytesQuota := uint64(33554432)
 			applicationId := "ee2aa52e-3c8a-4851-b505-0cb9fe24806e"
+			eventTime := time.Now().UnixNano()
 
 			metricType := events.Envelope_ContainerMetric
 			containerMetric := events.ContainerMetric{
@@ -114,6 +116,7 @@ var _ = Describe("Serializer", func() {
 			envelope := &events.Envelope{
 				EventType:       &metricType,
 				ContainerMetric: &containerMetric,
+				Timestamp:       &eventTime,
 			}
 
 			labels := map[string]string{
@@ -126,18 +129,19 @@ var _ = Describe("Serializer", func() {
 
 			Expect(metrics).To(HaveLen(6))
 
-			Expect(metrics).To(ContainElement(&serializer.Metric{"diskBytesQuota", float64(1073741824), labels}))
-			Expect(metrics).To(ContainElement(&serializer.Metric{"instanceIndex", float64(0), labels}))
-			Expect(metrics).To(ContainElement(&serializer.Metric{"cpuPercentage", 0.061651273460637, labels}))
-			Expect(metrics).To(ContainElement(&serializer.Metric{"diskBytes", float64(164634624), labels}))
-			Expect(metrics).To(ContainElement(&serializer.Metric{"memoryBytes", float64(16601088), labels}))
-			Expect(metrics).To(ContainElement(&serializer.Metric{"memoryBytesQuota", float64(33554432), labels}))
+			Expect(metrics).To(ContainElement(stackdriver.Metric{"diskBytesQuota", float64(1073741824), labels, time.Unix(0, eventTime)}))
+			Expect(metrics).To(ContainElement(stackdriver.Metric{"instanceIndex", float64(0), labels, time.Unix(0, eventTime)}))
+			Expect(metrics).To(ContainElement(stackdriver.Metric{"cpuPercentage", 0.061651273460637, labels, time.Unix(0, eventTime)}))
+			Expect(metrics).To(ContainElement(stackdriver.Metric{"diskBytes", float64(164634624), labels, time.Unix(0, eventTime)}))
+			Expect(metrics).To(ContainElement(stackdriver.Metric{"memoryBytes", float64(16601088), labels, time.Unix(0, eventTime)}))
+			Expect(metrics).To(ContainElement(stackdriver.Metric{"memoryBytesQuota", float64(33554432), labels, time.Unix(0, eventTime)}))
 		})
 
 		It("creates metric for CounterEvent", func() {
 			eventType := events.Envelope_CounterEvent
 			name := "counterName"
 			total := uint64(123456)
+			eventTime := time.Now().UnixNano()
 
 			event := events.CounterEvent{
 				Name:  &name,
@@ -146,6 +150,7 @@ var _ = Describe("Serializer", func() {
 			envelope := &events.Envelope{
 				EventType:    &eventType,
 				CounterEvent: &event,
+				Timestamp:    &eventTime,
 			}
 
 			labels := map[string]string{
@@ -154,8 +159,12 @@ var _ = Describe("Serializer", func() {
 
 			metrics, err := subject.GetMetrics(envelope)
 			Expect(err).To(BeNil())
-			Expect(metrics).To(HaveLen(1))
-			Expect(metrics).To(ContainElement(&serializer.Metric{"counterName", float64(123456), labels}))
+			Expect(metrics).To(ConsistOf(stackdriver.Metric{
+				"counterName",
+				float64(123456),
+				labels,
+				time.Unix(0, eventTime),
+			}))
 		})
 
 		It("returns error when envelope contains unhandled event type", func() {
