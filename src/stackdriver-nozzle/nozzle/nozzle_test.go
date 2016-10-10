@@ -7,7 +7,6 @@ import (
 	"github.com/cloudfoundry-community/gcp-tools-release/src/stackdriver-nozzle/mocks"
 	"github.com/cloudfoundry-community/gcp-tools-release/src/stackdriver-nozzle/nozzle"
 	"github.com/cloudfoundry-community/gcp-tools-release/src/stackdriver-nozzle/serializer"
-	"github.com/cloudfoundry-community/gcp-tools-release/src/stackdriver-nozzle/stackdriver"
 	"github.com/cloudfoundry/sonde-go/events"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -16,16 +15,16 @@ import (
 var _ = Describe("Nozzle", func() {
 	var (
 		logHandler    *mocks.LogHandler
-		metricAdapter *mocks.MetricAdapter
+		metricHandler *mocks.MetricHandler
 		subject       nozzle.Nozzle
 	)
 
 	BeforeEach(func() {
 		logHandler = &mocks.LogHandler{}
-		metricAdapter = &mocks.MetricAdapter{}
+		metricHandler = &mocks.MetricHandler{}
 		subject = nozzle.Nozzle{
 			LogHandler:    logHandler,
-			MetricAdapter: metricAdapter,
+			MetricHandler: metricHandler,
 			Serializer:    serializer.NewSerializer(caching.NewCachingEmpty(), nil),
 			Heartbeater:   &mockHeartbeater{},
 		}
@@ -35,7 +34,8 @@ var _ = Describe("Nozzle", func() {
 		eventType := events.Envelope_HttpStartStop
 		envelope := &events.Envelope{EventType: &eventType}
 
-		subject.HandleEvent(envelope)
+		err := subject.HandleEvent(envelope)
+		Expect(err).To(BeNil())
 
 		handledEnvelope := logHandler.HandledEnvelopes[0]
 		Expect(handledEnvelope).To(Equal(*envelope))
@@ -45,7 +45,8 @@ var _ = Describe("Nozzle", func() {
 		eventType := events.Envelope_LogMessage
 		envelope := &events.Envelope{EventType: &eventType}
 
-		subject.HandleEvent(envelope)
+		err := subject.HandleEvent(envelope)
+		Expect(err).To(BeNil())
 
 		handledEnvelope := logHandler.HandledEnvelopes[0]
 		Expect(handledEnvelope).To(Equal(*envelope))
@@ -55,120 +56,59 @@ var _ = Describe("Nozzle", func() {
 		eventType := events.Envelope_Error
 		envelope := &events.Envelope{EventType: &eventType}
 
-		subject.HandleEvent(envelope)
+		err := subject.HandleEvent(envelope)
+		Expect(err).To(BeNil())
 
 		handledEnvelope := logHandler.HandledEnvelopes[0]
 		Expect(handledEnvelope).To(Equal(*envelope))
 	})
 
-	Context("metrics", func() {
+	It("handles ValueMetric event", func() {
+		eventType := events.Envelope_ValueMetric
+		envelope := &events.Envelope{EventType: &eventType}
 
-		It("should post the value metric", func() {
-			metricName := "memoryStats.lastGCPauseTimeNS"
-			metricValue := float64(536182)
-			metricType := events.Envelope_ValueMetric
+		err := subject.HandleEvent(envelope)
+		Expect(err).To(BeNil())
 
-			valueMetric := events.ValueMetric{
-				Name:  &metricName,
-				Value: &metricValue,
-			}
+		handledEnvelope := metricHandler.HandledEnvelopes[0]
+		Expect(handledEnvelope).To(Equal(*envelope))
+	})
 
-			envelope := &events.Envelope{
-				EventType:   &metricType,
-				ValueMetric: &valueMetric,
-			}
+	It("handles ContainerMetric event", func() {
+		eventType := events.Envelope_ContainerMetric
+		envelope := &events.Envelope{EventType: &eventType}
 
-			err := subject.HandleEvent(envelope)
-			Expect(err).To(BeNil())
+		err := subject.HandleEvent(envelope)
+		Expect(err).To(BeNil())
 
-			postedMetric := metricAdapter.PostedMetrics[0]
-			Expect(postedMetric.Name).To(Equal(metricName))
-			Expect(postedMetric.Value).To(Equal(metricValue))
-			Expect(postedMetric.Labels).To(Equal(map[string]string{
-				"eventType": "ValueMetric",
-			}))
-		})
+		handledEnvelope := metricHandler.HandledEnvelopes[0]
+		Expect(handledEnvelope).To(Equal(*envelope))
+	})
 
-		It("should post the container metrics", func() {
-			diskBytesQuota := uint64(1073741824)
-			instanceIndex := int32(0)
-			cpuPercentage := 0.061651273460637
-			diskBytes := uint64(164634624)
-			memoryBytes := uint64(16601088)
-			memoryBytesQuota := uint64(33554432)
-			applicationId := "ee2aa52e-3c8a-4851-b505-0cb9fe24806e"
+	It("handles CounterEvent event", func() {
+		eventType := events.Envelope_CounterEvent
+		envelope := &events.Envelope{EventType: &eventType}
 
-			metricType := events.Envelope_ContainerMetric
-			containerMetric := events.ContainerMetric{
-				DiskBytesQuota:   &diskBytesQuota,
-				InstanceIndex:    &instanceIndex,
-				CpuPercentage:    &cpuPercentage,
-				DiskBytes:        &diskBytes,
-				MemoryBytes:      &memoryBytes,
-				MemoryBytesQuota: &memoryBytesQuota,
-				ApplicationId:    &applicationId,
-			}
+		err := subject.HandleEvent(envelope)
+		Expect(err).To(BeNil())
 
-			envelope := &events.Envelope{
-				EventType:       &metricType,
-				ContainerMetric: &containerMetric,
-			}
+		handledEnvelope := metricHandler.HandledEnvelopes[0]
+		Expect(handledEnvelope).To(Equal(*envelope))
+	})
 
-			err := subject.HandleEvent(envelope)
-			Expect(err).To(BeNil())
+	It("returns error if handler errors out", func() {
+		expectedError := errors.New("fail")
+		metricHandler.Error = expectedError
+		metricType := events.Envelope_ValueMetric
+		envelope := &events.Envelope{
+			EventType:   &metricType,
+			ValueMetric: nil,
+		}
 
-			//TODO: add this test back when we finish the restructure
-			//labels := map[string]string{
-			//	"eventType":     "ContainerMetric",
-			//	"applicationId": applicationId,
-			//}
-			Expect(len(metricAdapter.PostedMetrics)).To(Equal(6))
-			//Expect(metricAdapter.postedMetrics).To(ConsistOf(
-			//	stackdriver.Metric{"diskBytesQuota", float64(1073741824), labels},
-			//	stackdriver.Metric{"instanceIndex", float64(0), labels},
-			//	stackdriver.Metric{"cpuPercentage", 0.061651273460637, labels},
-			//	stackdriver.Metric{"diskBytes", float64(164634624), labels},
-			//	stackdriver.Metric{"memoryBytes", float64(16601088), labels},
-			//	stackdriver.Metric{"memoryBytesQuota", float64(33554432), labels},
-			//))
-		})
+		actualError := subject.HandleEvent(envelope)
 
-		It("returns error if client errors out", func() {
-			expectedError := errors.New("fail")
-			metricAdapter.PostMetricError = expectedError
-			metricType := events.Envelope_ContainerMetric
-			envelope := &events.Envelope{
-				EventType:   &metricType,
-				ValueMetric: nil,
-			}
-
-			actualError := subject.HandleEvent(envelope)
-
-			Expect(actualError).NotTo(BeNil())
-			Expect(actualError).To(Equal(expectedError))
-		})
-
-		It("returns error if getting metric errors out", func() {
-			const errMessage = "GetMetrics fail"
-			mockSerializer := &mocks.MockSerializer{
-				GetMetricsFn: func(*events.Envelope) ([]stackdriver.Metric, error) {
-					return nil, errors.New(errMessage)
-				},
-				IsLogFn: func(*events.Envelope) bool {
-					return false
-				},
-			}
-			subject = nozzle.Nozzle{
-				LogHandler: nil,
-				Serializer: mockSerializer,
-			}
-
-			envelope := &events.Envelope{}
-
-			err := subject.HandleEvent(envelope)
-			Expect(err).NotTo(BeNil())
-			Expect(err.Error()).To(Equal(errMessage))
-		})
+		Expect(actualError).NotTo(BeNil())
+		Expect(actualError).To(Equal(expectedError))
 	})
 })
 

@@ -102,10 +102,11 @@ func main() {
 	heartbeater := heartbeat.NewHeartbeat(logger, trigger)
 	labelMaker := nozzle.NewLabelMaker(cachingClient)
 	logHandler := nozzle.NewLogHandler(labelMaker, logAdapter)
+	metricHandler := nozzle.NewMetricHandler(labelMaker, metricAdapter)
 
 	output := nozzle.Nozzle{
 		LogHandler:    logHandler,
-		MetricAdapter: metricAdapter,
+		MetricHandler: metricHandler,
 		Serializer:    nozzleSerializer,
 		Heartbeater:   heartbeater,
 	}

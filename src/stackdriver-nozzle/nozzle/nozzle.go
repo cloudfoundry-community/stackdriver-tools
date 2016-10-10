@@ -5,7 +5,6 @@ import (
 
 	"github.com/cloudfoundry-community/gcp-tools-release/src/stackdriver-nozzle/heartbeat"
 	"github.com/cloudfoundry-community/gcp-tools-release/src/stackdriver-nozzle/serializer"
-	"github.com/cloudfoundry-community/gcp-tools-release/src/stackdriver-nozzle/stackdriver"
 	"github.com/cloudfoundry/sonde-go/events"
 )
 
@@ -23,7 +22,7 @@ func (e *PostMetricError) Error() string {
 
 type Nozzle struct {
 	LogHandler    LogHandler
-	MetricAdapter stackdriver.MetricAdapter
+	MetricHandler MetricHandler
 	Serializer    serializer.Serializer
 	Heartbeater   heartbeat.Heartbeater
 }
@@ -34,11 +33,7 @@ func (n *Nozzle) HandleEvent(envelope *events.Envelope) error {
 		n.LogHandler.HandleEnvelope(envelope)
 		return nil
 	} else {
-		metrics, err := n.Serializer.GetMetrics(envelope)
-		if err != nil {
-			return err
-		}
 		n.Heartbeater.AddCounter()
-		return n.MetricAdapter.PostMetrics(metrics)
+		return n.MetricHandler.HandleEnvelope(envelope)
 	}
 }
