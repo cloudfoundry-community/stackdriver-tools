@@ -7,7 +7,5 @@ image_resource:
     tag: v2
 inputs:
   - name: gcp-tools-release
-outputs:
-  - name: candidate
 run:
   path: gcp-tools-release/ci/tasks/unit-tests.sh

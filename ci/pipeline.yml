@@ -4,6 +4,7 @@ groups:
     jobs:
       - test-unit
       - build-candidate
+      - deploy-candidate
 
 jobs:
   - name: test-unit
@@ -33,6 +34,22 @@ jobs:
 
       - put: gcp-tools-release-artifacts-sha1
         params: {file: candidate/*.tgz.sha1}
+
+  - name: deploy-candidate
+    serial: true
+    plan:
+      - aggregate:
+        - {trigger: true, passed: [build-candidate],  get: gcp-tools-release,             resource: gcp-tools-release-in}
+        - {trigger: true, passed: [build-candidate],  get: gcp-tools-release-artifacts,   resource: gcp-tools-release-artifacts}
+
+      - task: build-release
+        file: gcp-tools-release/ci/tasks/deploy-candidate.yml
+        config:
+          params:
+            bosh_director_address:                 {{bosh_director_address}}
+            bosh_user:                             {{bosh_user}}
+            bosh_password:                         {{bosh_password}}
+            cf_deployment_name:                    {{cf_deployment_name}}
 
 resources:
   - name: gcp-tools-release-in
