@@ -5,12 +5,12 @@ import (
 
 	"time"
 
-	"stackdriver-nozzle/heartbeat"
+	"github.com/cloudfoundry-community/gcp-tools-release/src/stackdriver-nozzle/heartbeat"
 
 	"errors"
+	"github.com/cloudfoundry-community/gcp-tools-release/src/stackdriver-nozzle/mocks"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
-	"stackdriver-nozzle/mocks"
 )
 
 var _ = Describe("Heartbeat", func() {

@@ -1,8 +1,8 @@
 package mocks
 
 import (
+	"github.com/cloudfoundry-community/gcp-tools-release/src/stackdriver-nozzle/serializer"
 	"github.com/cloudfoundry/sonde-go/events"
-	"stackdriver-nozzle/serializer"
 )
 
 type MockSerializer struct {
