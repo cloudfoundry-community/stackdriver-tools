@@ -364,11 +364,11 @@ var _ = Describe("Serializer", func() {
 
 		Context("application metadata", func() {
 			var (
-				cachingClient MockCachingClient
+				cachingClient mocks.CachingClient
 			)
 
 			BeforeEach(func() {
-				cachingClient = MockCachingClient{}
+				cachingClient = mocks.CachingClient{}
 				cachingClient.AppInfo = make(map[string]caching.App)
 				subject = serializer.NewSerializer(&cachingClient, nil)
 			})
@@ -428,39 +428,3 @@ var _ = Describe("Serializer", func() {
 		})
 	})
 })
-
-type MockCachingClient struct {
-	AppInfo map[string]caching.App
-}
-
-func (c *MockCachingClient) CreateBucket() {
-	panic("unexpected")
-}
-
-func (c *MockCachingClient) PerformPoollingCaching(tickerTime time.Duration) {
-	panic("unexpected")
-}
-
-func (c *MockCachingClient) fillDatabase(listApps []caching.App) {
-	panic("unexpected")
-}
-
-func (c *MockCachingClient) GetAppByGuid(appGuid string) []caching.App {
-	panic("unexpected")
-}
-
-func (c *MockCachingClient) GetAllApp() []caching.App {
-	return []caching.App{}
-}
-
-func (c *MockCachingClient) GetAppInfo(appGuid string) caching.App {
-	return c.AppInfo[appGuid]
-}
-
-func (c *MockCachingClient) Close() {
-	panic("unexpected")
-}
-
-func (c *MockCachingClient) GetAppInfoCache(appGuid string) caching.App {
-	panic("unexpected")
-}
