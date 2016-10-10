@@ -16,19 +16,19 @@ import (
 
 var _ = Describe("Nozzle", func() {
 	var (
-		sdClient      *MockStackdriverClient
-		metricAdapter MockMetricAdapter
+		logAdapter    *mockLogAdapter
+		metricAdapter *mockMetricAdapter
 		subject       nozzle.Nozzle
 	)
 
 	BeforeEach(func() {
-		sdClient = NewMockStackdriverClient()
-		metricAdapter = MockMetricAdapter{}
+		logAdapter = newMockLogAdapter()
+		metricAdapter = &mockMetricAdapter{}
 		subject = nozzle.Nozzle{
-			StackdriverClient: sdClient,
-			Serializer:        serializer.NewSerializer(caching.NewCachingEmpty(), nil),
-			MetricAdapter:     &metricAdapter,
-			Heartbeater:       &mockHeartbeater{},
+			LogAdapter:    logAdapter,
+			MetricAdapter: metricAdapter,
+			Serializer:    serializer.NewSerializer(caching.NewCachingEmpty(), nil),
+			Heartbeater:   &mockHeartbeater{},
 		}
 	})
 
@@ -38,7 +38,7 @@ var _ = Describe("Nozzle", func() {
 
 		subject.HandleEvent(envelope)
 
-		postedLog := sdClient.postedLogs[0]
+		postedLog := logAdapter.postedLogs[0]
 		Expect(postedLog.payload).To(Equal(envelope))
 		Expect(postedLog.labels).To(Equal(map[string]string{
 			"eventType": "HttpStartStop",
@@ -143,8 +143,8 @@ var _ = Describe("Nozzle", func() {
 				},
 			}
 			subject = nozzle.Nozzle{
-				StackdriverClient: nil,
-				Serializer:        mockSerializer,
+				LogAdapter: nil,
+				Serializer: mockSerializer,
 			}
 
 			envelope := &events.Envelope{}
@@ -156,31 +156,31 @@ var _ = Describe("Nozzle", func() {
 	})
 })
 
-type MockMetricAdapter struct {
+type mockMetricAdapter struct {
 	postedMetrics   []stackdriver.Metric
 	postMetricError error
 }
 
-type MockStackdriverClient struct {
+type mockLogAdapter struct {
 	postedLogs []PostedLog
 
 	mutex *sync.Mutex
 }
 
-func NewMockStackdriverClient() *MockStackdriverClient {
-	return &MockStackdriverClient{
+func newMockLogAdapter() *mockLogAdapter {
+	return &mockLogAdapter{
 		postedLogs: []PostedLog{},
 		mutex:      &sync.Mutex{},
 	}
 }
 
-func (m *MockStackdriverClient) PostLog(payload interface{}, labels map[string]string) {
+func (m *mockLogAdapter) PostLog(payload interface{}, labels map[string]string) {
 	m.mutex.Lock()
 	m.postedLogs = append(m.postedLogs, PostedLog{payload, labels})
 	m.mutex.Unlock()
 }
 
-func (m *MockMetricAdapter) PostMetrics(metrics []stackdriver.Metric) error {
+func (m *mockMetricAdapter) PostMetrics(metrics []stackdriver.Metric) error {
 	m.postedMetrics = append(m.postedMetrics, metrics...)
 	return m.postMetricError
 }

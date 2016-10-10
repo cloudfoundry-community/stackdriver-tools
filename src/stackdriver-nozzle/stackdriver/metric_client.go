@@ -12,11 +12,6 @@ type MetricClient interface {
 	Post(*monitoringpb.CreateTimeSeriesRequest) error
 }
 
-type metricClient struct {
-	sdMetricClient *monitoring.MetricClient
-	ctx            context.Context
-}
-
 func NewMetricClient() (MetricClient, error) {
 	ctx := context.Background()
 	sdMetricClient, err := monitoring.NewMetricClient(ctx, option.WithScopes("https://www.googleapis.com/auth/monitoring.write"))
@@ -28,6 +23,11 @@ func NewMetricClient() (MetricClient, error) {
 		sdMetricClient: sdMetricClient,
 		ctx:            ctx,
 	}, nil
+}
+
+type metricClient struct {
+	sdMetricClient *monitoring.MetricClient
+	ctx            context.Context
 }
 
 func (m *metricClient) Post(request *monitoringpb.CreateTimeSeriesRequest) error {
