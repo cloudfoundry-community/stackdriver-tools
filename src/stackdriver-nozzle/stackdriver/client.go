@@ -9,13 +9,13 @@ import (
 
 	"cloud.google.com/go/logging"
 	"cloud.google.com/go/monitoring/apiv3"
+	"github.com/cloudfoundry-community/gcp-tools-release/src/stackdriver-nozzle/heartbeat"
 	"github.com/cloudfoundry/lager"
 	"github.com/golang/protobuf/ptypes/timestamp"
 	"golang.org/x/net/context"
 	"google.golang.org/api/option"
 	"google.golang.org/genproto/googleapis/api/metric"
 	monitoringpb "google.golang.org/genproto/googleapis/monitoring/v3"
-	"stackdriver-nozzle/heartbeat"
 )
 
 type Client interface {

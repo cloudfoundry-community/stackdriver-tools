@@ -3,22 +3,18 @@ package main
 import (
 	"os"
 	"strings"
-
-	"github.com/cloudfoundry-community/firehose-to-syslog/caching"
-
-	"stackdriver-nozzle/filter"
-	"stackdriver-nozzle/firehose"
-	"stackdriver-nozzle/nozzle"
-	"stackdriver-nozzle/serializer"
-	"stackdriver-nozzle/stackdriver"
-
-	"github.com/cloudfoundry-community/go-cfclient"
-	"gopkg.in/alecthomas/kingpin.v2"
-
 	"time"
 
+	"github.com/cloudfoundry-community/firehose-to-syslog/caching"
+	"github.com/cloudfoundry-community/gcp-tools-release/src/stackdriver-nozzle/filter"
+	"github.com/cloudfoundry-community/gcp-tools-release/src/stackdriver-nozzle/firehose"
+	"github.com/cloudfoundry-community/gcp-tools-release/src/stackdriver-nozzle/heartbeat"
+	"github.com/cloudfoundry-community/gcp-tools-release/src/stackdriver-nozzle/nozzle"
+	"github.com/cloudfoundry-community/gcp-tools-release/src/stackdriver-nozzle/serializer"
+	"github.com/cloudfoundry-community/gcp-tools-release/src/stackdriver-nozzle/stackdriver"
+	"github.com/cloudfoundry-community/go-cfclient"
 	"github.com/cloudfoundry/lager"
-	"stackdriver-nozzle/heartbeat"
+	"gopkg.in/alecthomas/kingpin.v2"
 )
 
 var (
