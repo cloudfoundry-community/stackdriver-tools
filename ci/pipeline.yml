@@ -38,8 +38,8 @@ resources:
   - name: gcp-tools-release-in
     type: git
     source:
-      uri: https://github.com/evandbrown/gcp-tools-release.git
-      branch: develop
+      uri: https://github.com/cloudfoundry-community/gcp-tools-release.git
+      branch: master
       ignore_paths:
         - .final_builds/**/*.yml
         - releases/**/*.yml
