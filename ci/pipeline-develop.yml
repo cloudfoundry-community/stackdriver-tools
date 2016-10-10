@@ -2,14 +2,24 @@
 groups:
   - name: gcp-tools-release
     jobs:
+      - test-unit
       - build-candidate
 
 jobs:
-  - name: build-candidate
+  - name: test-unit
     serial: true
     plan:
       - aggregate:
         - {trigger: true,  get: gcp-tools-release,   resource: gcp-tools-release-in}
+
+      - task: unit-tests
+        file: gcp-tools-release/ci/tasks/unit-tests.yml
+
+  - name: build-candidate
+    serial: true
+    plan:
+      - aggregate:
+        - {trigger: true, passed: [test-unit],  get: gcp-tools-release,   resource: gcp-tools-release-in}
         - {trigger: false, get: version-semver, params: {bump: patch}}
 
       - put: version-semver

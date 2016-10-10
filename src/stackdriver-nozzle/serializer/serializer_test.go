@@ -126,12 +126,12 @@ var _ = Describe("Serializer", func() {
 
 			Expect(metrics).To(HaveLen(6))
 
-			Expect(metrics).To(ContainElement(&serializer.Metric{"diskBytesQuota", float64(1073741824), labels}))
-			Expect(metrics).To(ContainElement(&serializer.Metric{"instanceIndex", float64(0), labels}))
-			Expect(metrics).To(ContainElement(&serializer.Metric{"cpuPercentage", 0.061651273460637, labels}))
-			Expect(metrics).To(ContainElement(&serializer.Metric{"diskBytes", float64(164634624), labels}))
-			Expect(metrics).To(ContainElement(&serializer.Metric{"memoryBytes", float64(16601088), labels}))
-			Expect(metrics).To(ContainElement(&serializer.Metric{"memoryBytesQuota", float64(33554432), labels}))
+			Expect(metrics).To(ContainElement(&serializer.Metric{Name: "diskBytesQuota", Value: float64(1073741824), Labels: labels}))
+			Expect(metrics).To(ContainElement(&serializer.Metric{Name: "instanceIndex", Value: float64(0), Labels: labels}))
+			Expect(metrics).To(ContainElement(&serializer.Metric{Name: "cpuPercentage", Value: 0.061651273460637, Labels: labels}))
+			Expect(metrics).To(ContainElement(&serializer.Metric{Name: "diskBytes", Value: float64(164634624), Labels: labels}))
+			Expect(metrics).To(ContainElement(&serializer.Metric{Name: "memoryBytes", Value: float64(16601088), Labels: labels}))
+			Expect(metrics).To(ContainElement(&serializer.Metric{Name: "memoryBytesQuota", Value: float64(33554432), Labels: labels}))
 		})
 
 		It("creates metric for CounterEvent", func() {
@@ -155,7 +155,7 @@ var _ = Describe("Serializer", func() {
 			metrics, err := subject.GetMetrics(envelope)
 			Expect(err).To(BeNil())
 			Expect(metrics).To(HaveLen(1))
-			Expect(metrics).To(ContainElement(&serializer.Metric{"counterName", float64(123456), labels}))
+			Expect(metrics).To(ContainElement(&serializer.Metric{Name: "counterName", Value: float64(123456), Labels: labels}))
 		})
 
 		It("returns error when envelope contains unhandled event type", func() {
