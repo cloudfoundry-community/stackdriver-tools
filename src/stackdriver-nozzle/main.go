@@ -61,7 +61,7 @@ var (
 )
 
 func main() {
-	const triggerDuration = 30 * time.Second
+	const triggerDuration = 5 * time.Second
 	kingpin.Parse()
 
 	logger := lager.NewLogger("stackdriver-nozzle")

@@ -9,21 +9,19 @@ type LogHandler interface {
 	HandleLog(*events.Envelope)
 }
 
-type LabelMakerFn func(*events.Envelope) map[string]string
-
-func NewLogHandler(labelMaker LabelMakerFn, logAdapter stackdriver.LogAdapter) LogHandler {
+func NewLogHandler(labelMaker LabelMaker, logAdapter stackdriver.LogAdapter) LogHandler {
 	return &logHandler{labelMaker: labelMaker, logAdapter: logAdapter}
 }
 
 type logHandler struct {
-	labelMaker LabelMakerFn
+	labelMaker LabelMaker
 	logAdapter stackdriver.LogAdapter
 }
 
 func (lh *logHandler) HandleLog(envelope *events.Envelope) {
 	log := &stackdriver.Log{
 		Payload: envelope,
-		Labels:  lh.labelMaker(envelope),
+		Labels:  lh.labelMaker.Build(envelope),
 	}
 
 	lh.logAdapter.PostLog(log)
