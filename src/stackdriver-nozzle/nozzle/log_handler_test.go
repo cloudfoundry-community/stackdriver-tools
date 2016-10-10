@@ -10,7 +10,7 @@ import (
 
 var _ = Describe("LogHandler", func() {
 	var (
-		subject    nozzle.LogHandler
+		subject    nozzle.Handler
 		labelMaker nozzle.LabelMaker
 		logAdapter *mocks.LogAdapter
 		labels     map[string]string

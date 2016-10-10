@@ -7,11 +7,7 @@ import (
 	"time"
 )
 
-type MetricHandler interface {
-	HandleEnvelope(*events.Envelope) error
-}
-
-func NewMetricHandler(labelMaker LabelMaker, metricAdapter stackdriver.MetricAdapter) MetricHandler {
+func NewMetricHandler(labelMaker LabelMaker, metricAdapter stackdriver.MetricAdapter) Handler {
 	return &metricHandler{
 		labelMaker:    labelMaker,
 		metricAdapter: metricAdapter,

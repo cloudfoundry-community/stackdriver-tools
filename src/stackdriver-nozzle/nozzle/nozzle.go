@@ -21,19 +21,20 @@ func (e *PostMetricError) Error() string {
 }
 
 type Nozzle struct {
-	LogHandler    LogHandler
-	MetricHandler MetricHandler
+	LogHandler    Handler
+	MetricHandler Handler
 	Serializer    serializer.Serializer
 	Heartbeater   heartbeat.Heartbeater
 }
 
 func (n *Nozzle) HandleEvent(envelope *events.Envelope) error {
+	var handler Handler
 	if n.Serializer.IsLog(envelope) {
-		n.Heartbeater.AddCounter()
-		n.LogHandler.HandleEnvelope(envelope)
-		return nil
+		handler = n.LogHandler
 	} else {
-		n.Heartbeater.AddCounter()
-		return n.MetricHandler.HandleEnvelope(envelope)
+		handler = n.MetricHandler
 	}
+
+	n.Heartbeater.AddCounter()
+	return handler.HandleEnvelope(envelope)
 }

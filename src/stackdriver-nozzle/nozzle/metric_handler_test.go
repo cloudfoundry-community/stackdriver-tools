@@ -14,7 +14,7 @@ import (
 
 var _ = Describe("MetricHandler", func() {
 	var (
-		subject       nozzle.MetricHandler
+		subject       nozzle.Handler
 		metricAdapter *mocks.MetricAdapter
 		labels        map[string]string
 	)
