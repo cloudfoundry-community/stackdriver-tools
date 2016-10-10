@@ -16,13 +16,13 @@ import (
 var _ = Describe("Nozzle", func() {
 	var (
 		logAdapter    *mocks.LogAdapter
-		metricAdapter *mockMetricAdapter
+		metricAdapter *mocks.MetricAdapter
 		subject       nozzle.Nozzle
 	)
 
 	BeforeEach(func() {
 		logAdapter = &mocks.LogAdapter{}
-		metricAdapter = &mockMetricAdapter{}
+		metricAdapter = &mocks.MetricAdapter{}
 		subject = nozzle.Nozzle{
 			LogAdapter:    logAdapter,
 			MetricAdapter: metricAdapter,
@@ -64,7 +64,7 @@ var _ = Describe("Nozzle", func() {
 			err := subject.HandleEvent(envelope)
 			Expect(err).To(BeNil())
 
-			postedMetric := metricAdapter.postedMetrics[0]
+			postedMetric := metricAdapter.PostedMetrics[0]
 			Expect(postedMetric.Name).To(Equal(metricName))
 			Expect(postedMetric.Value).To(Equal(metricValue))
 			Expect(postedMetric.Labels).To(Equal(map[string]string{
@@ -105,7 +105,7 @@ var _ = Describe("Nozzle", func() {
 			//	"eventType":     "ContainerMetric",
 			//	"applicationId": applicationId,
 			//}
-			Expect(len(metricAdapter.postedMetrics)).To(Equal(6))
+			Expect(len(metricAdapter.PostedMetrics)).To(Equal(6))
 			//Expect(metricAdapter.postedMetrics).To(ConsistOf(
 			//	stackdriver.Metric{"diskBytesQuota", float64(1073741824), labels},
 			//	stackdriver.Metric{"instanceIndex", float64(0), labels},
@@ -118,7 +118,7 @@ var _ = Describe("Nozzle", func() {
 
 		It("returns error if client errors out", func() {
 			expectedError := errors.New("fail")
-			metricAdapter.postMetricError = expectedError
+			metricAdapter.PostMetricError = expectedError
 			metricType := events.Envelope_ContainerMetric
 			envelope := &events.Envelope{
 				EventType:   &metricType,
@@ -154,16 +154,6 @@ var _ = Describe("Nozzle", func() {
 		})
 	})
 })
-
-type mockMetricAdapter struct {
-	postedMetrics   []stackdriver.Metric
-	postMetricError error
-}
-
-func (m *mockMetricAdapter) PostMetrics(metrics []stackdriver.Metric) error {
-	m.postedMetrics = append(m.postedMetrics, metrics...)
-	return m.postMetricError
-}
 
 type mockHeartbeater struct{}
 
