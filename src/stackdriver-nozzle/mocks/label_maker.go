@@ -2,7 +2,7 @@ package mocks
 
 import "github.com/cloudfoundry/sonde-go/events"
 
-type LabelMaker struct{
+type LabelMaker struct {
 	Labels map[string]string
 }
 
