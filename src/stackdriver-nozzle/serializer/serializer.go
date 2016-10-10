@@ -44,7 +44,13 @@ func (s *cachingClientSerializer) GetLog(e *events.Envelope) *Log {
 
 func (s *cachingClientSerializer) GetMetrics(envelope *events.Envelope) ([]stackdriver.Metric, error) {
 	labels := s.buildLabels(envelope)
-	eventTime := time.Unix(0, envelope.GetTimestamp())
+
+	timestamp := time.Duration(envelope.GetTimestamp())
+	eventTime := time.Unix(
+		int64(timestamp/time.Second),
+		int64(timestamp%time.Second),
+	)
+
 	switch envelope.GetEventType() {
 	case events.Envelope_ValueMetric:
 		valueMetric := envelope.GetValueMetric()

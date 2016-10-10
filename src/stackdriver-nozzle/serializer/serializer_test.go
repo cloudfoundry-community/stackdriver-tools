@@ -93,6 +93,8 @@ var _ = Describe("Serializer", func() {
 
 	Context("GetMetrics", func() {
 		It("creates the proper metrics for ContainerMetric", func() {
+			eventTime := time.Now()
+
 			diskBytesQuota := uint64(1073741824)
 			instanceIndex := int32(0)
 			cpuPercentage := 0.061651273460637
@@ -100,7 +102,7 @@ var _ = Describe("Serializer", func() {
 			memoryBytes := uint64(16601088)
 			memoryBytesQuota := uint64(33554432)
 			applicationId := "ee2aa52e-3c8a-4851-b505-0cb9fe24806e"
-			eventTime := time.Now().UnixNano()
+			timeStamp := eventTime.UnixNano()
 
 			metricType := events.Envelope_ContainerMetric
 			containerMetric := events.ContainerMetric{
@@ -116,12 +118,7 @@ var _ = Describe("Serializer", func() {
 			envelope := &events.Envelope{
 				EventType:       &metricType,
 				ContainerMetric: &containerMetric,
-				Timestamp:       &eventTime,
-			}
-
-			labels := map[string]string{
-				"eventType":     "ContainerMetric",
-				"applicationId": applicationId,
+				Timestamp:       &timeStamp,
 			}
 
 			metrics, err := subject.GetMetrics(envelope)
@@ -129,19 +126,26 @@ var _ = Describe("Serializer", func() {
 
 			Expect(metrics).To(HaveLen(6))
 
-			Expect(metrics).To(ContainElement(stackdriver.Metric{"diskBytesQuota", float64(1073741824), labels, time.Unix(0, eventTime)}))
-			Expect(metrics).To(ContainElement(stackdriver.Metric{"instanceIndex", float64(0), labels, time.Unix(0, eventTime)}))
-			Expect(metrics).To(ContainElement(stackdriver.Metric{"cpuPercentage", 0.061651273460637, labels, time.Unix(0, eventTime)}))
-			Expect(metrics).To(ContainElement(stackdriver.Metric{"diskBytes", float64(164634624), labels, time.Unix(0, eventTime)}))
-			Expect(metrics).To(ContainElement(stackdriver.Metric{"memoryBytes", float64(16601088), labels, time.Unix(0, eventTime)}))
-			Expect(metrics).To(ContainElement(stackdriver.Metric{"memoryBytesQuota", float64(33554432), labels, time.Unix(0, eventTime)}))
+			labels := map[string]string{
+				"eventType":     "ContainerMetric",
+				"applicationId": applicationId,
+			}
+
+			Expect(metrics).To(ContainElement(stackdriver.Metric{"diskBytesQuota", float64(1073741824), labels, eventTime}))
+			Expect(metrics).To(ContainElement(stackdriver.Metric{"instanceIndex", float64(0), labels, eventTime}))
+			Expect(metrics).To(ContainElement(stackdriver.Metric{"cpuPercentage", 0.061651273460637, labels, eventTime}))
+			Expect(metrics).To(ContainElement(stackdriver.Metric{"diskBytes", float64(164634624), labels, eventTime}))
+			Expect(metrics).To(ContainElement(stackdriver.Metric{"memoryBytes", float64(16601088), labels, eventTime}))
+			Expect(metrics).To(ContainElement(stackdriver.Metric{"memoryBytesQuota", float64(33554432), labels, eventTime}))
 		})
 
 		It("creates metric for CounterEvent", func() {
+			eventTime := time.Now()
+
 			eventType := events.Envelope_CounterEvent
 			name := "counterName"
 			total := uint64(123456)
-			eventTime := time.Now().UnixNano()
+			timeStamp := eventTime.UnixNano()
 
 			event := events.CounterEvent{
 				Name:  &name,
@@ -150,20 +154,20 @@ var _ = Describe("Serializer", func() {
 			envelope := &events.Envelope{
 				EventType:    &eventType,
 				CounterEvent: &event,
-				Timestamp:    &eventTime,
-			}
-
-			labels := map[string]string{
-				"eventType": "CounterEvent",
+				Timestamp:    &timeStamp,
 			}
 
 			metrics, err := subject.GetMetrics(envelope)
 			Expect(err).To(BeNil())
+
+			labels := map[string]string{
+				"eventType": "CounterEvent",
+			}
 			Expect(metrics).To(ConsistOf(stackdriver.Metric{
 				"counterName",
 				float64(123456),
 				labels,
-				time.Unix(0, eventTime),
+				eventTime,
 			}))
 		})
 

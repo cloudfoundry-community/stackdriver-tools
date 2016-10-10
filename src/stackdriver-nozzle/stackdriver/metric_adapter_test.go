@@ -22,6 +22,7 @@ var _ = Describe("MetricAdapter", func() {
 
 	It("takes metrics and posts a time series", func() {
 		eventTime := time.Now()
+
 		metrics := []stackdriver.Metric{
 			{
 				Name:  "metricName",
@@ -57,7 +58,7 @@ var _ = Describe("MetricAdapter", func() {
 		Expect(timeSeries.GetPoints()).To(HaveLen(1))
 
 		point := timeSeries.GetPoints()[0]
-		Expect(point.GetInterval().GetEndTime().Seconds).To(Equal(int64(eventTime.Second())))
+		Expect(point.GetInterval().GetEndTime().Seconds).To(Equal(int64(eventTime.Unix())))
 		Expect(point.GetInterval().GetEndTime().Nanos).To(Equal(int32(eventTime.Nanosecond())))
 		value, ok := point.GetValue().GetValue().(*monitoringpb.TypedValue_DoubleValue)
 		Expect(ok).To(BeTrue())

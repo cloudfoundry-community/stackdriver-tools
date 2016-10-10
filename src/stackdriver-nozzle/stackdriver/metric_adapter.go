@@ -37,6 +37,12 @@ func (ma *metricAdapter) PostMetrics(metrics []Metric) error {
 	var timeSerieses []*monitoringpb.TimeSeries
 
 	for _, metric := range metrics {
+		eventTime := metric.EventTime
+		timeStamp := timestamp.Timestamp{
+			Seconds: eventTime.Unix(),
+			Nanos:   int32(eventTime.Nanosecond()),
+		}
+
 		metricType := path.Join("custom.googleapis.com", metric.Name)
 		timeSeries := monitoringpb.TimeSeries{
 			Metric: &google_api.Metric{
@@ -46,14 +52,8 @@ func (ma *metricAdapter) PostMetrics(metrics []Metric) error {
 			Points: []*monitoringpb.Point{
 				{
 					Interval: &monitoringpb.TimeInterval{
-						EndTime: &timestamp.Timestamp{
-							Seconds: int64(metric.EventTime.Second()),
-							Nanos:   int32(metric.EventTime.Nanosecond()),
-						},
-						StartTime: &timestamp.Timestamp{
-							Seconds: int64(metric.EventTime.Second()),
-							Nanos:   int32(metric.EventTime.Nanosecond()),
-						},
+						EndTime:   &timeStamp,
+						StartTime: &timeStamp,
 					},
 					Value: &monitoringpb.TypedValue{
 						Value: &monitoringpb.TypedValue_DoubleValue{
