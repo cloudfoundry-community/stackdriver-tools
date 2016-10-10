@@ -4,11 +4,8 @@ import (
 	"time"
 
 	"cloud.google.com/go/logging"
-	"cloud.google.com/go/monitoring/apiv3"
-	"github.com/cloudfoundry-community/gcp-tools-release/src/stackdriver-nozzle/heartbeat"
 	"github.com/cloudfoundry/lager"
 	"golang.org/x/net/context"
-	"google.golang.org/api/option"
 )
 
 type Client interface {
@@ -16,12 +13,10 @@ type Client interface {
 }
 
 type client struct {
-	ctx          context.Context
-	sdLogger     *logging.Logger
-	metricClient *monitoring.MetricClient
-	projectID    string
-	logger       lager.Logger
-	heartbeater  heartbeat.Heartbeater
+	ctx       context.Context
+	sdLogger  *logging.Logger
+	projectID string
+	logger    lager.Logger
 }
 
 const (
@@ -31,23 +26,16 @@ const (
 )
 
 // TODO error handling #131310523
-func NewClient(projectID string, batchCount int, batchDuration time.Duration, logger lager.Logger, hearbeater heartbeat.Heartbeater) Client {
+func NewClient(projectID string, batchCount int, batchDuration time.Duration, logger lager.Logger) Client {
 	ctx := context.Background()
 
 	sdLogger := newLogger(ctx, projectID, batchCount, batchDuration, logger)
 
-	metricClient, err := monitoring.NewMetricClient(ctx, option.WithScopes("https://www.googleapis.com/auth/monitoring.write"))
-	if err != nil {
-		logger.Fatal("metricClient", err)
-	}
-
 	return &client{
-		ctx:          ctx,
-		sdLogger:     sdLogger,
-		metricClient: metricClient,
-		projectID:    projectID,
-		logger:       logger,
-		heartbeater:  hearbeater,
+		ctx:       ctx,
+		sdLogger:  sdLogger,
+		projectID: projectID,
+		logger:    logger,
 	}
 }
 
@@ -68,7 +56,6 @@ func newLogger(ctx context.Context, projectID string, batchCount int, batchDurat
 }
 
 func (s *client) PostLog(payload interface{}, labels map[string]string) {
-	s.heartbeater.AddCounter()
 	entry := logging.Entry{
 		Payload: payload,
 		Labels:  labels,

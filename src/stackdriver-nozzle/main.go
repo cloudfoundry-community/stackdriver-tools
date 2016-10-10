@@ -87,8 +87,7 @@ func main() {
 	}
 
 	trigger := time.NewTicker(triggerDuration).C
-	heartbeater := heartbeat.NewHeartbeat(logger, trigger)
-	sdClient := stackdriver.NewClient(*projectID, *batchCount, *batchDuration, logger, heartbeater)
+	sdClient := stackdriver.NewClient(*projectID, *batchCount, *batchDuration, logger)
 	nozzleSerializer := serializer.NewSerializer(cachingClient, logger)
 	metricClient, err := stackdriver.NewMetricClient()
 	if err != nil {
@@ -96,11 +95,13 @@ func main() {
 	}
 
 	metricAdapter := stackdriver.NewMetricAdapter(*projectID, metricClient)
+	heartbeater := heartbeat.NewHeartbeat(logger, trigger)
 
 	output := nozzle.Nozzle{
 		StackdriverClient: sdClient,
 		Serializer:        nozzleSerializer,
 		MetricAdapter:     metricAdapter,
+		Heartbeater:       heartbeater,
 	}
 
 	filteredOutput, err := filter.New(&output, strings.Split(*eventsFilter, ","))
