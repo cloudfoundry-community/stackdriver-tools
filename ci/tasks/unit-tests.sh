@@ -2,8 +2,17 @@
 
 set -e
 
-export GOPATH=${PWD}/gcp-tools-release
+# Create a workspace for a GOPATh
+gopath_prefix=/tmp/src/github.com/cloudfoundry-community
+mkdir -p ${gopath_prefix}
+
+# Link to the source repo
+ln -s ${PWD}/gcp-tools-release ${gopath_prefix}/
+
+# Configure GOPATH
+export GOPATH=/tmp
 export PATH=${GOPATH}/bin:$PATH
 
-cd ${PWD}/gcp-tools-release/src/stackdriver-nozzle
+# Run tests
+cd ${gopath_prefix}/gcp-tools-release/src/stackdriver-nozzle
 make test
