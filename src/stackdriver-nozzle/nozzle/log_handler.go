@@ -6,7 +6,7 @@ import (
 )
 
 type LogHandler interface {
-	HandleLog(*events.Envelope)
+	HandleEnvelope(*events.Envelope)
 }
 
 func NewLogHandler(labelMaker LabelMaker, logAdapter stackdriver.LogAdapter) LogHandler {
@@ -18,7 +18,7 @@ type logHandler struct {
 	logAdapter stackdriver.LogAdapter
 }
 
-func (lh *logHandler) HandleLog(envelope *events.Envelope) {
+func (lh *logHandler) HandleEnvelope(envelope *events.Envelope) {
 	log := &stackdriver.Log{
 		Payload: envelope,
 		Labels:  lh.labelMaker.Build(envelope),

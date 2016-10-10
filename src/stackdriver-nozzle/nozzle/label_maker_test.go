@@ -13,7 +13,7 @@ import (
 
 var _ = Describe("LabelMaker", func() {
 	var (
-		subject nozzle.LabelMaker
+		subject  nozzle.LabelMaker
 		envelope *events.Envelope
 	)
 

@@ -61,7 +61,7 @@ var (
 )
 
 func main() {
-	const triggerDuration = 5 * time.Second
+	const triggerDuration = 30 * time.Second
 	kingpin.Parse()
 
 	logger := lager.NewLogger("stackdriver-nozzle")
@@ -100,9 +100,11 @@ func main() {
 	metricAdapter := stackdriver.NewMetricAdapter(*projectID, metricClient)
 	trigger := time.NewTicker(triggerDuration).C
 	heartbeater := heartbeat.NewHeartbeat(logger, trigger)
+	labelMaker := nozzle.NewLabelMaker(cachingClient)
+	logHandler := nozzle.NewLogHandler(labelMaker, logAdapter)
 
 	output := nozzle.Nozzle{
-		LogAdapter:    logAdapter,
+		LogHandler:    logHandler,
 		MetricAdapter: metricAdapter,
 		Serializer:    nozzleSerializer,
 		Heartbeater:   heartbeater,

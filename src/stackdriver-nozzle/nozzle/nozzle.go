@@ -22,7 +22,7 @@ func (e *PostMetricError) Error() string {
 }
 
 type Nozzle struct {
-	LogAdapter    stackdriver.LogAdapter
+	LogHandler    LogHandler
 	MetricAdapter stackdriver.MetricAdapter
 	Serializer    serializer.Serializer
 	Heartbeater   heartbeat.Heartbeater
@@ -30,9 +30,8 @@ type Nozzle struct {
 
 func (n *Nozzle) HandleEvent(envelope *events.Envelope) error {
 	if n.Serializer.IsLog(envelope) {
-		log := n.Serializer.GetLog(envelope)
 		n.Heartbeater.AddCounter()
-		n.LogAdapter.PostLog(log)
+		n.LogHandler.HandleEnvelope(envelope)
 		return nil
 	} else {
 		metrics, err := n.Serializer.GetMetrics(envelope)

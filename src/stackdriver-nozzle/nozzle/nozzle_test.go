@@ -15,33 +15,50 @@ import (
 
 var _ = Describe("Nozzle", func() {
 	var (
-		logAdapter    *mocks.LogAdapter
+		logHandler    *mocks.LogHandler
 		metricAdapter *mocks.MetricAdapter
 		subject       nozzle.Nozzle
 	)
 
 	BeforeEach(func() {
-		logAdapter = &mocks.LogAdapter{}
+		logHandler = &mocks.LogHandler{}
 		metricAdapter = &mocks.MetricAdapter{}
 		subject = nozzle.Nozzle{
-			LogAdapter:    logAdapter,
+			LogHandler:    logHandler,
 			MetricAdapter: metricAdapter,
 			Serializer:    serializer.NewSerializer(caching.NewCachingEmpty(), nil),
 			Heartbeater:   &mockHeartbeater{},
 		}
 	})
 
-	It("handles HttpStartStop", func() {
+	It("handles HttpStartStop event", func() {
 		eventType := events.Envelope_HttpStartStop
 		envelope := &events.Envelope{EventType: &eventType}
 
 		subject.HandleEvent(envelope)
 
-		postedLog := logAdapter.PostedLogs[0]
-		Expect(postedLog.Payload).To(Equal(envelope))
-		Expect(postedLog.Labels).To(Equal(map[string]string{
-			"eventType": "HttpStartStop",
-		}))
+		handledEnvelope := logHandler.HandledEnvelopes[0]
+		Expect(handledEnvelope).To(Equal(*envelope))
+	})
+
+	It("handles LogMessage event", func() {
+		eventType := events.Envelope_LogMessage
+		envelope := &events.Envelope{EventType: &eventType}
+
+		subject.HandleEvent(envelope)
+
+		handledEnvelope := logHandler.HandledEnvelopes[0]
+		Expect(handledEnvelope).To(Equal(*envelope))
+	})
+
+	It("handles Error event", func() {
+		eventType := events.Envelope_Error
+		envelope := &events.Envelope{EventType: &eventType}
+
+		subject.HandleEvent(envelope)
+
+		handledEnvelope := logHandler.HandledEnvelopes[0]
+		Expect(handledEnvelope).To(Equal(*envelope))
 	})
 
 	Context("metrics", func() {
@@ -142,7 +159,7 @@ var _ = Describe("Nozzle", func() {
 				},
 			}
 			subject = nozzle.Nozzle{
-				LogAdapter: nil,
+				LogHandler: nil,
 				Serializer: mockSerializer,
 			}
 

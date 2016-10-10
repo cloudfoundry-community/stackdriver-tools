@@ -28,7 +28,7 @@ var _ = Describe("LogHandler", func() {
 		eventType := events.Envelope_HttpStartStop
 		envelope := &events.Envelope{EventType: &eventType}
 
-		subject.HandleLog(envelope)
+		subject.HandleEnvelope(envelope)
 
 		Expect(logAdapter.PostedLogs).To(HaveLen(1))
 		postedLog := logAdapter.PostedLogs[0]
@@ -37,8 +37,8 @@ var _ = Describe("LogHandler", func() {
 	})
 })
 
-type mockLabelMaker struct {}
+type mockLabelMaker struct{}
 
 func (mlm *mockLabelMaker) Build(_ *events.Envelope) map[string]string {
-	return map[string]string{"foo":"bar"}
+	return map[string]string{"foo": "bar"}
 }

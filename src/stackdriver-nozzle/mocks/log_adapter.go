@@ -6,6 +6,6 @@ type LogAdapter struct {
 	PostedLogs []stackdriver.Log
 }
 
-func (m *LogAdapter) PostLog(log *stackdriver.Log) {
-	m.PostedLogs = append(m.PostedLogs, *log)
+func (la *LogAdapter) PostLog(log *stackdriver.Log) {
+	la.PostedLogs = append(la.PostedLogs, *log)
 }

@@ -13,7 +13,6 @@ import (
 )
 
 type Serializer interface {
-	GetLog(*events.Envelope) *stackdriver.Log
 	GetMetrics(*events.Envelope) ([]stackdriver.Metric, error)
 	IsLog(*events.Envelope) bool
 }
@@ -31,10 +30,6 @@ func NewSerializer(cachingClient caching.Caching, logger lager.Logger) Serialize
 	cachingClient.GetAllApp()
 
 	return &cachingClientSerializer{cachingClient, logger}
-}
-
-func (s *cachingClientSerializer) GetLog(e *events.Envelope) *stackdriver.Log {
-	return &stackdriver.Log{Payload: e, Labels: s.buildLabels(e)}
 }
 
 func (s *cachingClientSerializer) GetMetrics(envelope *events.Envelope) ([]stackdriver.Metric, error) {
