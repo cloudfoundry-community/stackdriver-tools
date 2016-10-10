@@ -18,7 +18,7 @@ var _ = Describe("LogHandler", func() {
 
 	BeforeEach(func() {
 		labels = map[string]string{"foo": "bar"}
-		labelMaker = &mockLabelMaker{}
+		labelMaker = &mocks.LabelMaker{Labels: labels}
 		logAdapter = &mocks.LogAdapter{}
 
 		subject = nozzle.NewLogHandler(labelMaker, logAdapter)
@@ -36,9 +36,3 @@ var _ = Describe("LogHandler", func() {
 		Expect(postedLog.Labels).To(Equal(labels))
 	})
 })
-
-type mockLabelMaker struct{}
-
-func (mlm *mockLabelMaker) Build(_ *events.Envelope) map[string]string {
-	return map[string]string{"foo": "bar"}
-}
