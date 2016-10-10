@@ -2,7 +2,6 @@ package main
 
 import (
 	"fmt"
-
 	"os"
 
 	"cloud.google.com/go/monitoring/apiv3"
