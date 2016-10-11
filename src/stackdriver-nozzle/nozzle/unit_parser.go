@@ -43,6 +43,32 @@ type unitParser struct {
 	expressionRegex *regexp.Regexp
 }
 
+func (up *unitParser) Parse(input string) string {
+	matches := up.expressionRegex.FindStringSubmatch(input)
+	if matches == nil {
+		return up.annotate(input)
+	}
+
+	numerator := up.parseComponent(matches[1])
+	if matches[2] == "" {
+		return numerator
+	}
+
+	denominator := up.parseComponent(matches[3])
+	return fmt.Sprintf("%s/%s", numerator, denominator)
+}
+
+func (up *unitParser) parseComponent(input string) string {
+	matches := up.componentRegex.FindStringSubmatch(input)
+	if matches == nil {
+		return up.annotate(input)
+	}
+
+	prefix := prefixLookup(matches[1])
+	unit := unitLookup(matches[2])
+	return fmt.Sprintf("%s%s", prefix, unit)
+}
+
 // Not sure if this is faster than a map or not - if we
 // are looking for perf gains, maybe do some benchmarking
 // around here.
@@ -68,30 +94,4 @@ func prefixLookup(prefix string) string {
 
 func (up *unitParser) annotate(input string) string {
 	return fmt.Sprintf("{%s}", up.annotationRegex.ReplaceAllString(input, ""))
-}
-
-func (up *unitParser) Parse(input string) string {
-	matches := up.expressionRegex.FindStringSubmatch(input)
-	if matches == nil {
-		return up.annotate(input)
-	}
-
-	numerator := up.parseComponent(matches[1])
-	if matches[2] == "" {
-		return numerator
-	}
-
-	denominator := up.parseComponent(matches[3])
-	return fmt.Sprintf("%s/%s", numerator, denominator)
-}
-
-func (up *unitParser) parseComponent(input string) string {
-	matches := up.componentRegex.FindStringSubmatch(input)
-	if matches == nil {
-		return up.annotate(input)
-	}
-
-	prefix := prefixLookup(matches[1])
-	unit := unitLookup(matches[2])
-	return fmt.Sprintf("%s%s", prefix, unit)
 }

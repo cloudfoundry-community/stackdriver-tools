@@ -112,4 +112,19 @@ var _ = Describe("UnitParser", func() {
 			AssertUnitParsed(testCase.input, testCase.output)
 		}
 	})
+
+	It("translates units with annotations in expressions", func() {
+		testCases := []struct {
+			input string
+			output string
+		}{
+			{"req/s", "{req}/s"},
+			{"req/M", "{req}/min"},
+			{"mb/joule", "mbit/{joule}"},
+		}
+
+		for _, testCase := range testCases {
+			AssertUnitParsed(testCase.input, testCase.output)
+		}
+	})
 })
