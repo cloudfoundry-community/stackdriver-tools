@@ -3,8 +3,8 @@ platform: linux
 image_resource:
   type: docker-image
   source:
-    repository: boshcpi/gce-cpi-release
-    tag: v2
+    repository: lambr/gcp-tools
+    tag: v1
 inputs:
   - name: gcp-tools-release
 run:

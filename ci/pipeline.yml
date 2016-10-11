@@ -8,7 +8,6 @@ groups:
 
 jobs:
   - name: test-unit
-    serial: true
     plan:
       - aggregate:
         - {trigger: true,  get: gcp-tools-release,   resource: gcp-tools-release-in}
@@ -17,7 +16,6 @@ jobs:
         file: gcp-tools-release/ci/tasks/unit-tests.yml
 
   - name: build-candidate
-    serial: true
     plan:
       - aggregate:
         - {trigger: true, passed: [test-unit],  get: gcp-tools-release,   resource: gcp-tools-release-in}
@@ -36,7 +34,6 @@ jobs:
         params: {file: candidate/*.tgz.sha1}
 
   - name: deploy-candidate
-    serial: true
     plan:
       - aggregate:
         - {trigger: true, passed: [build-candidate],  get: gcp-tools-release,             resource: gcp-tools-release-in}
