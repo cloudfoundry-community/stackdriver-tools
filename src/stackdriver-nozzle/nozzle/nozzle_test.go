@@ -12,14 +12,14 @@ import (
 
 var _ = Describe("Nozzle", func() {
 	var (
-		logHandler    *mocks.Handler
-		metricHandler *mocks.Handler
+		logHandler    *mocks.Sink
+		metricHandler *mocks.Sink
 		subject       nozzle.Nozzle
 	)
 
 	BeforeEach(func() {
-		logHandler = &mocks.Handler{}
-		metricHandler = &mocks.Handler{}
+		logHandler = &mocks.Sink{}
+		metricHandler = &mocks.Sink{}
 		subject = nozzle.Nozzle{
 			LogHandler:    logHandler,
 			MetricHandler: metricHandler,

@@ -12,9 +12,9 @@ import (
 	. "github.com/onsi/gomega"
 )
 
-var _ = Describe("MetricHandler", func() {
+var _ = Describe("MetricSink", func() {
 	var (
-		subject       nozzle.Handler
+		subject       nozzle.Sink
 		metricAdapter *mocks.MetricAdapter
 		labels        map[string]string
 	)
@@ -23,7 +23,7 @@ var _ = Describe("MetricHandler", func() {
 		labels = map[string]string{"foo": "bar"}
 		labelMaker := &mocks.LabelMaker{Labels: labels}
 		metricAdapter = &mocks.MetricAdapter{}
-		subject = nozzle.NewMetricHandler(labelMaker, metricAdapter)
+		subject = nozzle.NewMetricSink(labelMaker, metricAdapter)
 	})
 
 	It("creates the proper metrics for ContainerMetric", func() {
@@ -55,7 +55,7 @@ var _ = Describe("MetricHandler", func() {
 			Timestamp:       &timeStamp,
 		}
 
-		err := subject.HandleEnvelope(envelope)
+		err := subject.Receive(envelope)
 		Expect(err).To(BeNil())
 
 		metrics := metricAdapter.PostedMetrics
@@ -87,7 +87,7 @@ var _ = Describe("MetricHandler", func() {
 			Timestamp:    &timeStamp,
 		}
 
-		err := subject.HandleEnvelope(envelope)
+		err := subject.Receive(envelope)
 		Expect(err).To(BeNil())
 
 		metrics := metricAdapter.PostedMetrics
@@ -111,7 +111,7 @@ var _ = Describe("MetricHandler", func() {
 			CounterEvent: &event,
 		}
 
-		err := subject.HandleEnvelope(envelope)
+		err := subject.Receive(envelope)
 		Expect(err).To(Equal(expectedErr))
 	})
 
@@ -121,7 +121,7 @@ var _ = Describe("MetricHandler", func() {
 			EventType: &eventType,
 		}
 
-		err := subject.HandleEnvelope(envelope)
+		err := subject.Receive(envelope)
 
 		Expect(err).NotTo(BeNil())
 	})

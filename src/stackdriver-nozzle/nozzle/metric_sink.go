@@ -7,19 +7,19 @@ import (
 	"time"
 )
 
-func NewMetricHandler(labelMaker LabelMaker, metricAdapter stackdriver.MetricAdapter) Handler {
-	return &metricHandler{
+func NewMetricSink(labelMaker LabelMaker, metricAdapter stackdriver.MetricAdapter) Sink {
+	return &metricSink{
 		labelMaker:    labelMaker,
 		metricAdapter: metricAdapter,
 	}
 }
 
-type metricHandler struct {
+type metricSink struct {
 	labelMaker    LabelMaker
 	metricAdapter stackdriver.MetricAdapter
 }
 
-func (mh *metricHandler) HandleEnvelope(envelope *events.Envelope) error {
+func (mh *metricSink) Receive(envelope *events.Envelope) error {
 	labels := mh.labelMaker.Build(envelope)
 
 	timestamp := time.Duration(envelope.GetTimestamp())

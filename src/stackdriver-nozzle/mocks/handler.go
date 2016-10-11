@@ -2,12 +2,12 @@ package mocks
 
 import "github.com/cloudfoundry/sonde-go/events"
 
-type Handler struct {
+type Sink struct {
 	HandledEnvelopes []events.Envelope
 	Error            error
 }
 
-func (h *Handler) HandleEnvelope(envelope *events.Envelope) error {
+func (h *Sink) Receive(envelope *events.Envelope) error {
 	h.HandledEnvelopes = append(h.HandledEnvelopes, *envelope)
 	return h.Error
 }

@@ -8,9 +8,9 @@ import (
 	. "github.com/onsi/gomega"
 )
 
-var _ = Describe("LogHandler", func() {
+var _ = Describe("LogSink", func() {
 	var (
-		subject    nozzle.Handler
+		subject    nozzle.Sink
 		labelMaker nozzle.LabelMaker
 		logAdapter *mocks.LogAdapter
 		labels     map[string]string
@@ -21,14 +21,14 @@ var _ = Describe("LogHandler", func() {
 		labelMaker = &mocks.LabelMaker{Labels: labels}
 		logAdapter = &mocks.LogAdapter{}
 
-		subject = nozzle.NewLogHandler(labelMaker, logAdapter)
+		subject = nozzle.NewLogSink(labelMaker, logAdapter)
 	})
 
 	It("handles logs", func() {
 		eventType := events.Envelope_HttpStartStop
 		envelope := &events.Envelope{EventType: &eventType}
 
-		subject.HandleEnvelope(envelope)
+		subject.Receive(envelope)
 
 		Expect(logAdapter.PostedLogs).To(HaveLen(1))
 		postedLog := logAdapter.PostedLogs[0]

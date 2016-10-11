@@ -20,13 +20,13 @@ func (e *PostMetricError) Error() string {
 }
 
 type Nozzle struct {
-	LogHandler    Handler
-	MetricHandler Handler
+	LogHandler    Sink
+	MetricHandler Sink
 	Heartbeater   heartbeat.Heartbeater
 }
 
 func (n *Nozzle) HandleEvent(envelope *events.Envelope) error {
-	var handler Handler
+	var handler Sink
 	if isLog(envelope) {
 		handler = n.LogHandler
 	} else {
@@ -34,7 +34,7 @@ func (n *Nozzle) HandleEvent(envelope *events.Envelope) error {
 	}
 
 	n.Heartbeater.AddCounter()
-	return handler.HandleEnvelope(envelope)
+	return handler.Receive(envelope)
 }
 
 func isLog(envelope *events.Envelope) bool {

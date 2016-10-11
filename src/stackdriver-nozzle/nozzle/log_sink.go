@@ -5,16 +5,16 @@ import (
 	"github.com/cloudfoundry/sonde-go/events"
 )
 
-func NewLogHandler(labelMaker LabelMaker, logAdapter stackdriver.LogAdapter) Handler {
-	return &logHandler{labelMaker: labelMaker, logAdapter: logAdapter}
+func NewLogSink(labelMaker LabelMaker, logAdapter stackdriver.LogAdapter) Sink {
+	return &logSink{labelMaker: labelMaker, logAdapter: logAdapter}
 }
 
-type logHandler struct {
+type logSink struct {
 	labelMaker LabelMaker
 	logAdapter stackdriver.LogAdapter
 }
 
-func (lh *logHandler) HandleEnvelope(envelope *events.Envelope) error {
+func (lh *logSink) Receive(envelope *events.Envelope) error {
 	log := &stackdriver.Log{
 		Payload: envelope,
 		Labels:  lh.labelMaker.Build(envelope),
