@@ -5,6 +5,7 @@ templates:
 
 packages:
   - stackdriver-nozzle
+  - common
 
 properties:
   firehose.api_endpoint:
