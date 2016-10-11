@@ -47,7 +47,9 @@ func (ls *logSink) buildPayload(envelope *events.Envelope) interface{} {
 		logMessage := envelope.GetLogMessage()
 		logMessageMap := structToMap(logMessage)
 		if logMessageMap != nil {
-			// TODO: should this be messageType?
+			// This is snake_cased to match the field in the protobuf. The other
+			// fields we pass to Stackdriver are camelCased. We arbitrarily chose
+			// to remain consistent with the protobuf.
 			logMessageMap["message_type"] = logMessage.GetMessageType().String()
 			envelopeMap["logMessage"] = logMessageMap
 		}
