@@ -3,59 +3,62 @@ package nozzle
 import (
 	"fmt"
 	"regexp"
-	"strings"
 )
 
-func UnitParser(fhUnit string) string {
-	fhPrefixes := []string{
-		"k",
-		"M",
-		"G",
-		"T",
-		"P",
-		"E",
-		"Z",
-		"Y",
-		"m",
-		"μ",
-		"n",
-		"p",
-		"f",
-		"a",
-		"z",
-		"y",
-		"Ki",
-		"Mi",
-		"Gi",
-		"Ti",
-	}
-	fhUnits := []string{"b", "B", "s", "M", "h", "d"}
-	prefixRegex := strings.Join(fhPrefixes, "|")
-	unitRegex := strings.Join(fhUnits, "|")
+const (
+	prefixRegex = "k|M|G|T|P|E|Z|Y|m|μ|n|p|f|a|z|y|Ki|Mi|Gi|Ti"
+	unitRegex   = "b|B|s|M|h|d"
+)
+
+type UnitParser interface {
+	Parse(string) string
+}
+
+func NewUnitParser() UnitParser {
 	componentRegex := regexp.MustCompile(fmt.Sprintf("^(%s)?(%s)$", prefixRegex, unitRegex))
+	annotationRegex := regexp.MustCompile("[{}]")
 
-	matches := componentRegex.FindStringSubmatch(fhUnit)
-	if matches == nil {
-		annotationRegex := regexp.MustCompile("[{}]")
-		return fmt.Sprintf("{%s}", annotationRegex.ReplaceAllString(fhUnit, ""))
+	return &unitParser{
+		componentRegex:  componentRegex,
+		annotationRegex: annotationRegex,
 	}
+}
 
-	prefix := matches[1]
-	unit := matches[2]
+type unitParser struct {
+	componentRegex  *regexp.Regexp
+	annotationRegex *regexp.Regexp
+}
 
-	unitLookup := map[string]string{
-		"b": "bit",
-		"B": "By",
-		"M": "min",
+// Not sure if this is faster than a map or not - if we
+// are looking for perf gains, maybe do some benchmarking
+// around here.
+func unitLookup(unit string) string {
+	switch unit {
+	case "b":
+		return "bit"
+	case "B":
+		return "By"
+	case "M":
+		return "min"
+	default:
+		return unit
 	}
+}
 
+func prefixLookup(prefix string) string {
 	if prefix == "μ" {
-		prefix = "u"
+		return "u"
+	}
+	return prefix
+}
+
+func (up *unitParser) Parse(input string) string {
+	matches := up.componentRegex.FindStringSubmatch(input)
+	if matches == nil {
+		return fmt.Sprintf("{%s}", up.annotationRegex.ReplaceAllString(input, ""))
 	}
 
-	if lookup, ok := unitLookup[unit]; ok {
-		unit = lookup
-	}
-
+	prefix := prefixLookup(matches[1])
+	unit := unitLookup(matches[2])
 	return fmt.Sprintf("%s%s", prefix, unit)
 }

@@ -7,11 +7,17 @@ import (
 )
 
 var _ = Describe("UnitParser", func() {
-	var AssertUnitParsed func(string, string)
+	var (
+		subject nozzle.UnitParser
+
+		AssertUnitParsed func(string, string)
+	)
 
 	BeforeEach(func() {
+		subject = nozzle.NewUnitParser()
+
 		AssertUnitParsed = func(input, output string) {
-			Expect(nozzle.UnitParser(input)).To(Equal(output))
+			Expect(subject.Parse(input)).To(Equal(output))
 		}
 	})
 
