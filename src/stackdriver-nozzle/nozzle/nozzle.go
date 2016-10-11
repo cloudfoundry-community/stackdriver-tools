@@ -1,11 +1,9 @@
 package nozzle
 
 import (
-	"fmt"
 	"strings"
 
-	"github.com/cloudfoundry-community/gcp-tools-release/src/stackdriver-nozzle/serializer"
-	"github.com/cloudfoundry-community/gcp-tools-release/src/stackdriver-nozzle/stackdriver"
+	"github.com/cloudfoundry-community/gcp-tools-release/src/stackdriver-nozzle/heartbeat"
 	"github.com/cloudfoundry/sonde-go/events"
 )
 
@@ -22,55 +20,28 @@ func (e *PostMetricError) Error() string {
 }
 
 type Nozzle struct {
-	StackdriverClient stackdriver.Client
-	Serializer        serializer.Serializer
+	LogHandler    Handler
+	MetricHandler Handler
+	Heartbeater   heartbeat.Heartbeater
 }
 
 func (n *Nozzle) HandleEvent(envelope *events.Envelope) error {
-	if n.Serializer.IsLog(envelope) {
-		log := n.Serializer.GetLog(envelope)
-		n.StackdriverClient.PostLog(log.Payload, log.Labels)
-		return nil
+	var handler Handler
+	if isLog(envelope) {
+		handler = n.LogHandler
 	} else {
-		metrics, err := n.Serializer.GetMetrics(envelope)
-		if err != nil {
-			return err
-		}
-		return n.postMetrics(metrics)
+		handler = n.MetricHandler
 	}
+
+	n.Heartbeater.AddCounter()
+	return handler.HandleEnvelope(envelope)
 }
 
-func (n *Nozzle) postMetrics(metrics []*serializer.Metric) error {
-	errorsCh := make(chan error)
-
-	for _, metric := range metrics {
-		n.postMetric(errorsCh, metric.Name, metric.Value, metric.Labels)
+func isLog(envelope *events.Envelope) bool {
+	switch *envelope.EventType {
+	case events.Envelope_ValueMetric, events.Envelope_ContainerMetric, events.Envelope_CounterEvent:
+		return false
+	default:
+		return true
 	}
-
-	errors := []error{}
-	for range metrics {
-		err := <-errorsCh
-		if err != nil {
-			errors = append(errors, err)
-		}
-	}
-
-	if len(errors) == 0 {
-		return nil
-	} else {
-		return &PostMetricError{
-			Errors: errors,
-		}
-	}
-}
-
-func (n *Nozzle) postMetric(errorsCh chan error, name string, value float64, labels map[string]string) {
-	go func() {
-		err := n.StackdriverClient.PostMetric(name, value, labels)
-		if err != nil {
-			errorsCh <- fmt.Errorf("name: %v value: %f, error: %v", name, value, err.Error())
-		} else {
-			errorsCh <- nil
-		}
-	}()
 }

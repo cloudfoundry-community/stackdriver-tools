@@ -1,4 +1,4 @@
-package serializer_test
+package stackdriver_test
 
 import (
 	. "github.com/onsi/ginkgo"
@@ -7,7 +7,7 @@ import (
 	"testing"
 )
 
-func TestSerializer(t *testing.T) {
+func TestStackdriver(t *testing.T) {
 	RegisterFailHandler(Fail)
-	RunSpecs(t, "Serializer Suite")
+	RunSpecs(t, "Stackdriver Suite")
 }

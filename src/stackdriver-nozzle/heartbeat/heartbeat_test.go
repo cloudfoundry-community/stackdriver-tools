@@ -1,14 +1,12 @@
 package heartbeat_test
 
 import (
-	"github.com/cloudfoundry/lager"
-
+	"errors"
 	"time"
 
 	"github.com/cloudfoundry-community/gcp-tools-release/src/stackdriver-nozzle/heartbeat"
-
-	"errors"
 	"github.com/cloudfoundry-community/gcp-tools-release/src/stackdriver-nozzle/mocks"
+	"github.com/cloudfoundry/lager"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 )

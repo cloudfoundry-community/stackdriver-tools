@@ -10,7 +10,6 @@ import (
 	"github.com/cloudfoundry-community/gcp-tools-release/src/stackdriver-nozzle/firehose"
 	"github.com/cloudfoundry-community/gcp-tools-release/src/stackdriver-nozzle/heartbeat"
 	"github.com/cloudfoundry-community/gcp-tools-release/src/stackdriver-nozzle/nozzle"
-	"github.com/cloudfoundry-community/gcp-tools-release/src/stackdriver-nozzle/serializer"
 	"github.com/cloudfoundry-community/gcp-tools-release/src/stackdriver-nozzle/stackdriver"
 	"github.com/cloudfoundry-community/go-cfclient"
 	"github.com/cloudfoundry/lager"
@@ -86,14 +85,27 @@ func main() {
 		cachingClient = caching.NewCachingEmpty()
 	}
 
+	logAdapter, err := stackdriver.NewLogAdapter(*projectID, *batchCount, *batchDuration, logger)
+	if err != nil {
+		logger.Fatal("newLogAdapter", err)
+	}
+
+	metricClient, err := stackdriver.NewMetricClient()
+	if err != nil {
+		logger.Fatal("newMetricClient", err)
+	}
+
+	metricAdapter := stackdriver.NewMetricAdapter(*projectID, metricClient)
 	trigger := time.NewTicker(triggerDuration).C
 	heartbeater := heartbeat.NewHeartbeat(logger, trigger)
-	sdClient := stackdriver.NewClient(*projectID, *batchCount, *batchDuration, logger, heartbeater)
-	nozzleSerializer := serializer.NewSerializer(cachingClient, logger)
+	labelMaker := nozzle.NewLabelMaker(cachingClient)
+	logHandler := nozzle.NewLogHandler(labelMaker, logAdapter)
+	metricHandler := nozzle.NewMetricHandler(labelMaker, metricAdapter)
 
 	output := nozzle.Nozzle{
-		StackdriverClient: sdClient,
-		Serializer:        nozzleSerializer,
+		LogHandler:    logHandler,
+		MetricHandler: metricHandler,
+		Heartbeater:   heartbeater,
 	}
 
 	filteredOutput, err := filter.New(&output, strings.Split(*eventsFilter, ","))
