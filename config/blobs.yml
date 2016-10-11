@@ -47,3 +47,7 @@ python/psutil-1.2.1.tar.gz:
   object_id: 65957b56-b096-4a79-8354-504a76abd69a
   sha: c8c1842bf1c63b9068ac25a37f7aae11fcecd57f
   size: 167397
+golang/go1.7.1.linux-amd64.tar.gz:
+  object_id: e78481ab-9a69-4116-8b99-06d3518232c5
+  sha: 919ab01305ada0078a9fdf8a12bb56fb0b8a1444
+  size: 81618401

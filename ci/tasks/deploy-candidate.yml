@@ -11,7 +11,22 @@ inputs:
 run:
   path: gcp-tools-release/ci/tasks/deploy-candidate.sh
 params:
+  # BOSH and CF settings
   bosh_director_address: replace-me
   bosh_user:             replace-me
   bosh_password:         replace-me
   cf_deployment_name:    replace-me
+  # CF settings
+  vip_ip:          replace me
+  common_password: replace me
+
+  # Google network settings
+  google_region:      replace me
+  google_zone:        replace me
+  network:            replace me
+  public_subnetwork:  replace me
+  private_subnetwork: replace me
+
+  # Google service account settings
+  project_id:              replace me
+  cf_service_account_user: replace me

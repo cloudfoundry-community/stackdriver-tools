@@ -43,10 +43,19 @@ jobs:
         file: gcp-tools-release/ci/tasks/deploy-candidate.yml
         config:
           params:
-            bosh_director_address:                 {{bosh_director_address}}
-            bosh_user:                             {{bosh_user}}
-            bosh_password:                         {{bosh_password}}
-            cf_deployment_name:                    {{cf_deployment_name}}
+            bosh_director_address: {{bosh_director_address}}
+            bosh_user: {{bosh_user}}
+            bosh_password: {{bosh_password}}
+            google_region: {{google_region}}
+            google_zone: {{google_zone}}
+            network: {{network}}
+            public_subnetwork: {{public_subnetwork}}
+            private_subnetwork: {{private_subnetwork}}
+            project_id: {{project_id}}
+            cf_service_account: {{cf_service_account}}
+            nozzle_user: {{nozzle_user}}
+            nozzle_password: {{nozzle_password}}
+            vip_ip: {{vip_ip}}
 
 resources:
   - name: gcp-tools-release-in
