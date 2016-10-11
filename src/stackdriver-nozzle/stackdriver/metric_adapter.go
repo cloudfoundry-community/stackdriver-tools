@@ -14,6 +14,7 @@ type Metric struct {
 	Value     float64
 	Labels    map[string]string
 	EventTime time.Time
+	Unit      string // TODO Should this be "1" if it's empty?
 }
 
 type MetricAdapter interface {

@@ -12,10 +12,20 @@ import (
 	. "github.com/onsi/gomega"
 )
 
+type mockUnitParser struct{
+	lastInput string
+}
+
+func (m *mockUnitParser) Parse(unit string) string {
+	m.lastInput = unit
+	return "{foo}"
+}
+
 var _ = Describe("MetricSink", func() {
 	var (
 		subject       nozzle.Sink
 		metricAdapter *mocks.MetricAdapter
+		unitParser *mockUnitParser
 		labels        map[string]string
 	)
 
@@ -23,7 +33,43 @@ var _ = Describe("MetricSink", func() {
 		labels = map[string]string{"foo": "bar"}
 		labelMaker := &mocks.LabelMaker{Labels: labels}
 		metricAdapter = &mocks.MetricAdapter{}
-		subject = nozzle.NewMetricSink(labelMaker, metricAdapter)
+		unitParser = &mockUnitParser{}
+		subject = nozzle.NewMetricSink(labelMaker, metricAdapter, unitParser)
+	})
+
+	It("creates metric for ValueMetric", func() {
+		eventTime := time.Now()
+
+		name := "valueMetricName"
+		value := 123.456
+		unit := "barUnit"
+		event := events.ValueMetric{
+			Name:  &name,
+			Value: &value,
+			Unit:  &unit,
+		}
+
+		eventType := events.Envelope_ValueMetric
+		timeStamp := eventTime.UnixNano()
+		envelope := &events.Envelope{
+			EventType:    &eventType,
+			ValueMetric: &event,
+			Timestamp:    &timeStamp,
+		}
+
+		err := subject.Receive(envelope)
+		Expect(err).To(BeNil())
+
+		metrics := metricAdapter.PostedMetrics
+		Expect(metrics).To(ConsistOf(stackdriver.Metric{
+			"valueMetricName",
+			123.456,
+			labels,
+			eventTime,
+			"{foo}",
+		}))
+
+		Expect(unitParser.lastInput).To(Equal("barUnit"))
 	})
 
 	It("creates the proper metrics for ContainerMetric", func() {
@@ -61,12 +107,12 @@ var _ = Describe("MetricSink", func() {
 		metrics := metricAdapter.PostedMetrics
 		Expect(metrics).To(HaveLen(6))
 
-		Expect(metrics).To(ContainElement(stackdriver.Metric{"diskBytesQuota", float64(1073741824), labels, eventTime}))
-		Expect(metrics).To(ContainElement(stackdriver.Metric{"instanceIndex", float64(0), labels, eventTime}))
-		Expect(metrics).To(ContainElement(stackdriver.Metric{"cpuPercentage", 0.061651273460637, labels, eventTime}))
-		Expect(metrics).To(ContainElement(stackdriver.Metric{"diskBytes", float64(164634624), labels, eventTime}))
-		Expect(metrics).To(ContainElement(stackdriver.Metric{"memoryBytes", float64(16601088), labels, eventTime}))
-		Expect(metrics).To(ContainElement(stackdriver.Metric{"memoryBytesQuota", float64(33554432), labels, eventTime}))
+		Expect(metrics).To(ContainElement(stackdriver.Metric{"diskBytesQuota", float64(1073741824), labels, eventTime, ""}))
+		Expect(metrics).To(ContainElement(stackdriver.Metric{"instanceIndex", float64(0), labels, eventTime, ""}))
+		Expect(metrics).To(ContainElement(stackdriver.Metric{"cpuPercentage", 0.061651273460637, labels, eventTime, ""}))
+		Expect(metrics).To(ContainElement(stackdriver.Metric{"diskBytes", float64(164634624), labels, eventTime, ""}))
+		Expect(metrics).To(ContainElement(stackdriver.Metric{"memoryBytes", float64(16601088), labels, eventTime, ""}))
+		Expect(metrics).To(ContainElement(stackdriver.Metric{"memoryBytesQuota", float64(33554432), labels, eventTime, ""}))
 	})
 
 	It("creates metric for CounterEvent", func() {
@@ -96,6 +142,7 @@ var _ = Describe("MetricSink", func() {
 			float64(123456),
 			labels,
 			eventTime,
+			"",
 		}))
 	})
 

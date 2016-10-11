@@ -2,25 +2,28 @@ package nozzle
 
 import (
 	"fmt"
+	"time"
+
 	"github.com/cloudfoundry-community/gcp-tools-release/src/stackdriver-nozzle/stackdriver"
 	"github.com/cloudfoundry/sonde-go/events"
-	"time"
 )
 
-func NewMetricSink(labelMaker LabelMaker, metricAdapter stackdriver.MetricAdapter) Sink {
+func NewMetricSink(labelMaker LabelMaker, metricAdapter stackdriver.MetricAdapter, unitParser UnitParser) Sink {
 	return &metricSink{
 		labelMaker:    labelMaker,
 		metricAdapter: metricAdapter,
+		unitParser:    unitParser,
 	}
 }
 
 type metricSink struct {
 	labelMaker    LabelMaker
 	metricAdapter stackdriver.MetricAdapter
+	unitParser    UnitParser
 }
 
-func (mh *metricSink) Receive(envelope *events.Envelope) error {
-	labels := mh.labelMaker.Build(envelope)
+func (ms *metricSink) Receive(envelope *events.Envelope) error {
+	labels := ms.labelMaker.Build(envelope)
 
 	timestamp := time.Duration(envelope.GetTimestamp())
 	eventTime := time.Unix(
@@ -37,16 +40,17 @@ func (mh *metricSink) Receive(envelope *events.Envelope) error {
 			Value:     valueMetric.GetValue(),
 			Labels:    labels,
 			EventTime: eventTime,
+			Unit:      ms.unitParser.Parse(valueMetric.GetUnit()),
 		}}
 	case events.Envelope_ContainerMetric:
 		containerMetric := envelope.GetContainerMetric()
 		metrics = []stackdriver.Metric{
-			{"diskBytesQuota", float64(containerMetric.GetDiskBytesQuota()), labels, eventTime},
-			{"instanceIndex", float64(containerMetric.GetInstanceIndex()), labels, eventTime},
-			{"cpuPercentage", float64(containerMetric.GetCpuPercentage()), labels, eventTime},
-			{"diskBytes", float64(containerMetric.GetDiskBytes()), labels, eventTime},
-			{"memoryBytes", float64(containerMetric.GetMemoryBytes()), labels, eventTime},
-			{"memoryBytesQuota", float64(containerMetric.GetMemoryBytesQuota()), labels, eventTime},
+			{Name: "diskBytesQuota", Value: float64(containerMetric.GetDiskBytesQuota()), Labels: labels, EventTime: eventTime},
+			{Name: "instanceIndex", Value: float64(containerMetric.GetInstanceIndex()), Labels: labels, EventTime: eventTime},
+			{Name: "cpuPercentage", Value: float64(containerMetric.GetCpuPercentage()), Labels: labels, EventTime: eventTime},
+			{Name: "diskBytes", Value: float64(containerMetric.GetDiskBytes()), Labels: labels, EventTime: eventTime},
+			{Name: "memoryBytes", Value: float64(containerMetric.GetMemoryBytes()), Labels: labels, EventTime: eventTime},
+			{Name: "memoryBytesQuota", Value: float64(containerMetric.GetMemoryBytesQuota()), Labels: labels, EventTime: eventTime},
 		}
 	case events.Envelope_CounterEvent:
 		counterEvent := envelope.GetCounterEvent()
@@ -60,5 +64,5 @@ func (mh *metricSink) Receive(envelope *events.Envelope) error {
 		return fmt.Errorf("unknown event type: %v", envelope.EventType)
 	}
 
-	return mh.metricAdapter.PostMetrics(metrics)
+	return ms.metricAdapter.PostMetrics(metrics)
 }
