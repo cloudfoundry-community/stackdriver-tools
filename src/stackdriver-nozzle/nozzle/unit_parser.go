@@ -10,6 +10,17 @@ const (
 	unitRegex   = "b|B|s|M|h|d"
 )
 
+/*
+Expression = Component { "." Component } { "/" Component } ;
+
+Component = [ PREFIX ] UNIT [ Annotation ]
+          | Annotation
+          | "1"
+          ;
+
+Annotation = "{" NAME "}" ;
+*/
+
 type UnitParser interface {
 	Parse(string) string
 }
@@ -17,16 +28,19 @@ type UnitParser interface {
 func NewUnitParser() UnitParser {
 	componentRegex := regexp.MustCompile(fmt.Sprintf("^(%s)?(%s)$", prefixRegex, unitRegex))
 	annotationRegex := regexp.MustCompile("[{}]")
+	expressionRegex := regexp.MustCompile("^([^/]*)(/([^/]*))?$")
 
 	return &unitParser{
 		componentRegex:  componentRegex,
 		annotationRegex: annotationRegex,
+		expressionRegex: expressionRegex,
 	}
 }
 
 type unitParser struct {
 	componentRegex  *regexp.Regexp
 	annotationRegex *regexp.Regexp
+	expressionRegex *regexp.Regexp
 }
 
 // Not sure if this is faster than a map or not - if we
@@ -52,10 +66,29 @@ func prefixLookup(prefix string) string {
 	return prefix
 }
 
+func (up *unitParser) annotate(input string) string {
+	return fmt.Sprintf("{%s}", up.annotationRegex.ReplaceAllString(input, ""))
+}
+
 func (up *unitParser) Parse(input string) string {
+	matches := up.expressionRegex.FindStringSubmatch(input)
+	if matches == nil {
+		return up.annotate(input)
+	}
+
+	numerator := up.parseComponent(matches[1])
+	if matches[2] == "" {
+		return numerator
+	}
+
+	denominator := up.parseComponent(matches[3])
+	return fmt.Sprintf("%s/%s", numerator, denominator)
+}
+
+func (up *unitParser) parseComponent(input string) string {
 	matches := up.componentRegex.FindStringSubmatch(input)
 	if matches == nil {
-		return fmt.Sprintf("{%s}", up.annotationRegex.ReplaceAllString(input, ""))
+		return up.annotate(input)
 	}
 
 	prefix := prefixLookup(matches[1])

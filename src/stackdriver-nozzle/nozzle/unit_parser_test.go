@@ -97,4 +97,19 @@ var _ = Describe("UnitParser", func() {
 			AssertUnitParsed(testCase.input, testCase.output)
 		}
 	})
+
+	It("translates units with expressions", func() {
+		testCases := []struct {
+			input string
+			output string
+		}{
+			{"mb/s", "mbit/s"},
+			{"μB/M", "uBy/min"},
+			{"μB/h", "uBy/h"},
+		}
+
+		for _, testCase := range testCases {
+			AssertUnitParsed(testCase.input, testCase.output)
+		}
+	})
 })
