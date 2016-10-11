@@ -84,6 +84,7 @@ func main() {
 	} else {
 		cachingClient = caching.NewCachingEmpty()
 	}
+	cachingClient.CreateBucket()
 
 	logAdapter, err := stackdriver.NewLogAdapter(*projectID, *batchCount, *batchDuration, logger)
 	if err != nil {
