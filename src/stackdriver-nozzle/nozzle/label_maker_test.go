@@ -49,10 +49,8 @@ var _ = Describe("LabelMaker", func() {
 		Expect(labels).To(Equal(map[string]string{
 			"origin":     origin,
 			"eventType":  eventType.String(),
-			"deployment": deployment,
 			"job":        job,
 			"index":      index,
-			"ip":         ip,
 		}))
 	})
 

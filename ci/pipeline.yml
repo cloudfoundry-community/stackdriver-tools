@@ -43,6 +43,9 @@ jobs:
         file: gcp-tools-release/ci/tasks/deploy-candidate.yml
         config:
           params:
+            ssh_bastion_address     : {{ssh_bastion_address}}
+            ssh_user: {{ssh_user}}
+            ssh_key: {{ssh_key}}
             bosh_director_address: {{bosh_director_address}}
             bosh_user: {{bosh_user}}
             bosh_password: {{bosh_password}}
@@ -56,6 +59,7 @@ jobs:
             nozzle_user: {{nozzle_user}}
             nozzle_password: {{nozzle_password}}
             vip_ip: {{vip_ip}}
+            service_account_key_json: {{service_account_key_json}}
 
 resources:
   - name: gcp-tools-release-in

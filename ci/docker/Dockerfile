@@ -16,6 +16,11 @@ RUN curl -sSL https://storage.googleapis.com/golang/go${GOLANG_VERSION}.linux-am
 ENV GOROOT /usr/local/go
 ENV PATH $PATH:$GOROOT/bin
 
+# Install Google Cloud SDK
+ENV GCLOUD_SDK_VERSION 129.0.0
+RUN curl -sSL https://dl.google.com/dl/cloudsdk/channels/rapid/downloads/google-cloud-sdk-${GCLOUD_SDK_VERSION}-linux-x86_64.tar.gz | tar -v -C /usr/local -xz
+ENV PATH $PATH:/usr/local/google-cloud-sdk/bin
+
 # Instal chruby
 RUN mkdir /tmp/chruby && \
     cd /tmp && \
@@ -40,3 +45,6 @@ RUN ruby-install ruby 2.1.2 && \
 
 # Install Bundler and BOSH CLI
 RUN /bin/bash -l -c "gem install bundler bosh_cli --no-ri --no-rdoc"
+
+# Install gcloud deps
+RUN apt-get install -y python python-pip libyaml-dev libpython-dev; apt-get clean

@@ -17,17 +17,39 @@ check_param nozzle_password
 
 # Google network settings
 check_param google_zone
+check_param google_region
 check_param network
 check_param private_subnetwork
 
 # Google service account settings
 check_param cf_service_account
+check_param service_account_key_json
+check_param ssh_bastion_name
+check_param ssh_user
+check_param ssh_key
+
+echo "Creating google json key..."
+mkdir -p $HOME/.config/gcloud/
+echo "${service_account_key_json}" > $HOME/.config/gcloud/application_default_credentials.json
+
+echo "Configuring google account..."
+gcloud auth activate-service-account --key-file $HOME/.config/gcloud/application_default_credentials.json
+gcloud config set project ${project_id}
+gcloud config set compute/region ${google_region}
+gcloud config set compute/zone ${google_zone}
+
+echo "Configuring SSH"
+echo -e "${ssh_key}" > /tmp/${ssh_user}.key
+chmod 700 /tmp/${ssh_user}.key
+
+echo "Connecting to SSH bastion..."
+ssh bosh@${ssh_bastion_address} -i /tmp/${ssh_user}.key -o StrictHostKeyChecking=no -L 25555:${bosh_director_address}:25555 -nNT &
 
 echo "Using BOSH CLI version..."
 bosh version
 
 echo "Targeting BOSH director..."
-bosh -n target ${bosh_director_address}
+bosh -n target localhost
 bosh login ${bosh_user} ${bosh_password}
 director_uuid=$(bosh status --uuid)
 
