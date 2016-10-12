@@ -5,6 +5,7 @@ import (
 	"strings"
 	"time"
 
+	"cloud.google.com/go/compute/metadata"
 	"github.com/cloudfoundry-community/firehose-to-syslog/caching"
 	"github.com/cloudfoundry-community/gcp-tools-release/src/stackdriver-nozzle/filter"
 	"github.com/cloudfoundry-community/gcp-tools-release/src/stackdriver-nozzle/firehose"
@@ -14,15 +15,14 @@ import (
 	"github.com/cloudfoundry-community/go-cfclient"
 	"github.com/cloudfoundry/lager"
 	"github.com/kelseyhightower/envconfig"
-	"cloud.google.com/go/compute/metadata"
 )
 
 type config struct {
 	// Firehose config
 	APIEndpoint string `envconfig:"firehose_endpoint" required:"true"`
+	Events      string `envconfig:"firehose_events" required:"true"`
 	Username    string `envconfig:"firehose_username" default:"admin"`
 	Password    string `envconfig:"firehose_password" default:"admin"`
-	Events      string `envconfig:"firehose_events" default:"LogMessage,Error"`
 	SkipSSL     bool   `envconfig:"firehose_skip_ssl" default:"false"`
 
 	// Stackdriver config

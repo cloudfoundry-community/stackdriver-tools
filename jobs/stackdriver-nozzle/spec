@@ -22,4 +22,4 @@ properties:
     default: LogMessage,Error
 
   gcp.project_id:
-    description: Google Cloud Platform project ID
+    description: Google Cloud Platform project ID (optional if on GCP)
