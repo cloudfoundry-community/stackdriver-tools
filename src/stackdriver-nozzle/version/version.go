@@ -1,7 +1,7 @@
 package version
 
 const (
-	Name      = "stackdriver-agent"
+	Name      = "cf-stackdriver-nozzle"
 	Release   = "0.0.0"
 	UserAgent = Name + "/" + Release
 )
