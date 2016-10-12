@@ -29,10 +29,6 @@ func (lm *labelMaker) Build(envelope *events.Envelope) map[string]string {
 		labels["eventType"] = envelope.GetEventType().String()
 	}
 
-	if envelope.Deployment != nil {
-		labels["deployment"] = envelope.GetDeployment()
-	}
-
 	if envelope.Job != nil {
 		labels["job"] = envelope.GetJob()
 	}
@@ -41,9 +37,6 @@ func (lm *labelMaker) Build(envelope *events.Envelope) map[string]string {
 		labels["index"] = envelope.GetIndex()
 	}
 
-	if envelope.Ip != nil {
-		labels["ip"] = envelope.GetIp()
-	}
 	if appId := lm.getApplicationId(envelope); appId != "" {
 		labels["applicationId"] = appId
 		lm.buildAppMetadataLabels(appId, labels, envelope)
