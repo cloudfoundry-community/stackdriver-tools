@@ -21,7 +21,6 @@ check_param network
 check_param private_subnetwork
 
 # Google service account settings
-check_param project_id
 check_param cf_service_account
 
 echo "Using BOSH CLI version..."
@@ -61,8 +60,6 @@ jobs:
       username: ${nozzle_user}
       password: ${nozzle_password}
       skip_ssl: true
-    gcp:
-      project_id: ${project_id}
 
 compilation:
   workers: 6
