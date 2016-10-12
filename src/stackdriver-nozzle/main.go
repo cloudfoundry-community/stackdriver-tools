@@ -96,7 +96,11 @@ func main() {
 		logger.Fatal("newMetricClient", err)
 	}
 
-	metricAdapter := stackdriver.NewMetricAdapter(*projectID, metricClient)
+	metricAdapter, err := stackdriver.NewMetricAdapter(*projectID, metricClient)
+	if err != nil {
+		logger.Fatal("newMetricAdapter", err)
+	}
+
 	trigger := time.NewTicker(triggerDuration).C
 	heartbeater := heartbeat.NewHeartbeat(logger, trigger)
 	labelMaker := nozzle.NewLabelMaker(cachingClient)
