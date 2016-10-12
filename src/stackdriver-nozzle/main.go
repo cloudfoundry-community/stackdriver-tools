@@ -39,6 +39,7 @@ func (c *config) toData() lager.Data {
 	return lager.Data{
 		"APIEndpoint":        c.APIEndpoint,
 		"Username":           c.Username,
+		"Password":           "<redacted>",
 		"Events":             c.Events,
 		"SkipSSL":            c.SkipSSL,
 		"ProjectID":          c.ProjectID,
