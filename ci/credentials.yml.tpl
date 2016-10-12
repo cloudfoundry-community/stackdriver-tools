@@ -10,6 +10,9 @@ service_account_key_json: |
   {{service_account_key_json}}
 
 # BOSH and Cloud Foundry
+ssh_bastion_address:      {{ssh_bastion_name}} # Instance name of a VM with public SSH and access to the BOSH director
+ssh_user:              {{ssh_user}} # The SSH user that can connecto to the bastion
+ssh_key: {{ssh_key}} # The SSH key for ssh_user
 bosh_director_address: {{bosh_director_address}} # IP address of BOSH director
 bosh_user:             {{bosh_user}} # Bosh admin username
 bosh_password:         {{bosh_password} # Bosh password

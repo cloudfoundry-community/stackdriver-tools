@@ -4,7 +4,7 @@ image_resource:
   type: docker-image
   source:
     repository: lambr/gcp-tools
-    tag: v1
+    tag: v3
 inputs:
   - name: gcp-tools-release
   - name: gcp-tools-release-artifacts
@@ -16,6 +16,7 @@ params:
   bosh_user:             replace-me
   bosh_password:         replace-me
   cf_deployment_name:    replace-me
+
   # CF settings
   vip_ip:          replace me
   common_password: replace me
@@ -28,5 +29,11 @@ params:
   private_subnetwork: replace me
 
   # Google service account settings
-  project_id:              replace me
-  cf_service_account_user: replace me
+  project_id:               replace me
+  cf_service_account:       replace me
+  service_account_key_json: replace me
+
+  ## SSH
+  ssh_bastion_address: replace me
+  ssh_user:         replace me
+  ssh_key:          replace me
