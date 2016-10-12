@@ -4,6 +4,7 @@ import (
 	"context"
 
 	"cloud.google.com/go/monitoring/apiv3"
+	"github.com/cloudfoundry-community/gcp-tools-release/src/stackdriver-nozzle/version"
 	"google.golang.org/api/option"
 	monitoringpb "google.golang.org/genproto/googleapis/monitoring/v3"
 )
@@ -18,6 +19,8 @@ func NewMetricClient() (MetricClient, error) {
 	if err != nil {
 		return nil, err
 	}
+
+	sdMetricClient.SetGoogleClientInfo(version.Name, version.Release)
 
 	return &metricClient{
 		sdMetricClient: sdMetricClient,
