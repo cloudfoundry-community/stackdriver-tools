@@ -17,8 +17,8 @@
 		{
 			"checksumSHA1": "ZLRh6zW4/DnVsGpgtt+ZiIaEFKc=",
 			"path": "cloud.google.com/go/compute/metadata",
-			"revision": "e9f84e95f791b227331b52e9e944e84f8030a365",
-			"revisionTime": "2016-09-29T17:04:08Z"
+			"revision": "2096d282df0cbfc9d56742b68f70b737db3a882b",
+			"revisionTime": "2016-10-11T14:23:08Z"
 		},
 		{
 			"checksumSHA1": "hiJXjkFEGy+sDFf6O58Ocdy9Rnk=",

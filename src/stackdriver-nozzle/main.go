@@ -14,6 +14,7 @@ import (
 	"github.com/cloudfoundry-community/go-cfclient"
 	"github.com/cloudfoundry/lager"
 	"github.com/kelseyhightower/envconfig"
+	"cloud.google.com/go/compute/metadata"
 )
 
 type config struct {
@@ -34,6 +35,20 @@ type config struct {
 	BoltDBPath         string `envconfig:"boltdb_path" default:"cached-app-metadata.db"`
 	ResolveAppMetadata bool   `envconfig:"resolve_app_metadata" default:"true"`
 	SubscriptionID     string `envconfig:"subscription_id" default:"stackdriver-nozzle"`
+}
+
+func (c *config) ensureProjectID() error {
+	if c.ProjectID != "" {
+		return nil
+	}
+
+	projectID, err := metadata.ProjectID()
+	if err != nil {
+		return err
+	}
+
+	c.ProjectID = projectID
+	return nil
 }
 
 func (c *config) toData() lager.Data {
@@ -61,6 +76,11 @@ func main() {
 	err := envconfig.Process("", &c)
 	if err != nil {
 		logger.Fatal("envconfig", err)
+	}
+
+	err = c.ensureProjectID()
+	if err != nil {
+		logger.Fatal("gcpProjectID", err)
 	}
 
 	logger.Info("arguments", c.toData())
