@@ -41,7 +41,7 @@ func main() {
 }
 
 func postMetric(m *monitoring.MetricClient, ctx context.Context, name string, value float64, labels map[string]string) error {
-	projectID := os.Getenv("PROJECT_ID")
+	projectID := os.Getenv("GCP_PROJECT_ID")
 	projectName := fmt.Sprintf("projects/%s", projectID)
 	metricType := path.Join("custom.googleapis.com", name)
 

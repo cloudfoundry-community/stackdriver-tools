@@ -12,10 +12,10 @@ import (
 func main() {
 	kingpin.Parse()
 
-	apiEndpoint := os.Getenv("API_ENDPOINT")
+	apiEndpoint := os.Getenv("FIREHOSE_ENDPOINT")
 	username := os.Getenv("FIREHOSE_USERNAME")
 	password := os.Getenv("FIREHOSE_PASSWORD")
-	_, skipSSLValidation := os.LookupEnv("SKIP_SSL_VALIDATION")
+	_, skipSSLValidation := os.LookupEnv("FIREHOSE_SKIP_SSL")
 
 	cfConfig := &cfclient.Config{
 		ApiAddress:        apiEndpoint,

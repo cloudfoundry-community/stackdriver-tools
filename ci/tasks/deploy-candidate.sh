@@ -57,10 +57,10 @@ jobs:
       release: bosh-gcp-tools
   properties:
     firehose:
-      api_endpoint: https://api.${vip_ip}.xip.io
+      endpoint: https://api.${vip_ip}.xip.io
       username: ${nozzle_user}
       password: ${nozzle_password}
-      skip_ssl_validation: true
+      skip_ssl: true
     gcp:
       project_id: ${project_id}
 
@@ -75,7 +75,6 @@ compilation:
     root_disk_type: pd-ssd
     preemptible: true
     service_account: ${cf_service_account}
-
 
 resource_pools:
   - name: common
