@@ -5,9 +5,7 @@ packages:
   - stackdriver-agent
 
 templates:
-  collectd.conf.tmpl: config/collectd.conf.tmpl
-  extractor.conf.tmpl: config/extractor.conf.tmpl
+  collectd-gcm.conf.tmpl: config/collectd-gcm.conf.tmpl
   stackdriver_collectd_ctl: bin/stackdriver_collectd_ctl
-  stackdriver_extractor_ctl: bin/stackdriver_extractor_ctl
 
 properties: {}

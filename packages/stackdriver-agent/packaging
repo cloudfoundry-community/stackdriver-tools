@@ -45,7 +45,15 @@ pushd ${BOSH_COMPILE_TARGET}/psutil-1.2.1
   ${BOSH_INSTALL_TARGET}/python/bin/python setup.py install --prefix=${BOSH_INSTALL_TARGET}/python
 popd
 
+# Install libyajl
+tar xzvf ${BOSH_COMPILE_TARGET}/libyajl/yajl-2.1.0.tar.gz
+mkdir -p ${BOSH_INSTALL_TARGET}/libyajl
+pushd ${BOSH_COMPILE_TARGET}/lloyd-yajl-66cb08c
+  ./configure -p ${BOSH_INSTALL_TARGET}/libyajl
+  make
+  make install 
+popd
+
 # Copy StackDriver agents
-tar xzvf ${BOSH_COMPILE_TARGET}/stackdriver-agent/stackdriver-agent-5.5.0-269.tgz
-tar xzvf ${BOSH_COMPILE_TARGET}/stackdriver-agent/stackdriver-extractor-92-1.tgz
+tar xzvf ${BOSH_COMPILE_TARGET}/stackdriver-agent/stackdriver-agent_5.5.2-347.tgz
 cp -a ${BOSH_COMPILE_TARGET}/stackdriver/* ${BOSH_INSTALL_TARGET}

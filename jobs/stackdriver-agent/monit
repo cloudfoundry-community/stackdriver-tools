@@ -3,9 +3,3 @@ check process stackdriver_collectd
   start program "/var/vcap/jobs/stackdriver_agent/bin/stackdriver_collectd_ctl start"
   stop program "/var/vcap/jobs/stackdriver_agent/bin/stackdriver_collectd_ctl stop"
   group vcap
-
-check process stackdriver_extractor
-  with pidfile /var/vcap/sys/run/stackdriver_agent/stackdriver_extractor.pid
-  start program "/var/vcap/jobs/stackdriver_agent/bin/stackdriver_extractor_ctl start"
-  stop program "/var/vcap/jobs/stackdriver_agent/bin/stackdriver_extractor_ctl stop"
-  group vcap

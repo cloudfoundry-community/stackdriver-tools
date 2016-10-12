@@ -7,5 +7,5 @@ files:
   - python/setuptools-20.4.tar.gz
   - python/netifaces-0.10.4.tar.gz
   - python/psutil-1.2.1.tar.gz
-  - stackdriver-agent/stackdriver-agent-5.5.0-269.tgz
-  - stackdriver-agent/stackdriver-extractor-92-1.tgz
+  - stackdriver-agent/stackdriver-agent_5.5.2-347.tgz
+  - libyajl/yajl-2.1.0.tar.gz

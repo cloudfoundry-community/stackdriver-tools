@@ -2,9 +2,9 @@
 
 This is a [BOSH](http://bosh.io/) release for [Google Cloud Platform](https://cloud.google.com/) Tools:
 
-* A job acting as a Syslog endpoint to send platform logs to [StackDriver Logging](https://cloud.google.com/logging/)
-* A job that forwards [Cloud Foundry Firehose](https://docs.cloudfoundry.org/loggregator/architecture.html#firehose) event data (including application logs) to [StackDriver Logging](https://cloud.google.com/logging/)
-* A job (to be collocated with other jobs) to send host metrics to [StackDriver Monitoring](https://cloud.google.com/monitoring/)
+* A job acting as a Syslog endpoint to send platform logs to [Stackdriver Logging](https://cloud.google.com/logging/)
+* A job that forwards [Cloud Foundry Firehose](https://docs.cloudfoundry.org/loggregator/architecture.html#firehose) event data (including application logs) to [Stackdriver Logging](https://cloud.google.com/logging/)
+* A job (to be collocated with other jobs) to send host metrics to [Stackdriver Monitoring](https://cloud.google.com/monitoring/)
 
 ## Disclaimer
 
@@ -16,10 +16,14 @@ This is NOT presently a production ready BOSH release. This is just a Proof of C
 
 The follow roles are required for the service account on each deployed instance:
 
- - `roles/logging.logWriter` to stream logs to StackDriver Logging
- - `roles/logging.configWriter` to setup CloudFoundry specific metrics on StackDriver Monitoring
+ - `roles/logging.logWriter` to stream logs to Stackdriver Logging
+ - `roles/logging.configWriter` to setup CloudFoundry specific metrics on Stackdriver Monitoring
 
 See the [access control documentation](https://cloud.google.com/logging/docs/access-control) for more information.
+
+## Enabled Services
+
+To use Stackdriver Monitoring ensure the [Stackdriver Monitoring API](https://console.developers.google.com/apis/api/monitoring.googleapis.com/overview) is enabled.
 
 ## Usage
 
@@ -32,7 +36,7 @@ bosh target BOSH_HOST
 bosh upload https://storage.googleapis.com/bosh-releases/gcp-tools-1.tgz
 ```
 
-### Deploying StackDriver Logging
+### Deploying Stackdriver Logging
 
 Create a deployment file (use the [gcp-tools.yml](https://github.com.evandbrown/gcp-tools-release/blob/master/manifests/gcp-tools.yml) example manifest file as a starting point).
 
@@ -44,9 +48,9 @@ bosh -n deploy
 ```
 
 Once deployed:
-* the `google_fluentd` will act as a Syslog endpoint and will forward logs to [StackDriver Logging](https://cloud.google.com/logging/)
+* the `google_fluentd` will act as a Syslog endpoint and will forward logs to [Stackdriver Logging](https://cloud.google.com/logging/)
 
-If you want to send all your Cloud Foundry component's logs to [StackDriver Logging](https://cloud.google.com/logging/), configure your Cloud Foundry manifest adding (or updating):
+If you want to send all your Cloud Foundry component's logs to [Stackdriver Logging](https://cloud.google.com/logging/), configure your Cloud Foundry manifest adding (or updating):
 
 ```
 properties:
@@ -57,15 +61,7 @@ properties:
     transport: udp
 ```
 
-### Deploying StackDriver Monitoring
-
-Set the `stackdriver-agent-key` metadata field with your StackDriver Agent API
-key. This can be found in the [StackDriver Agent
-Settings](https://app.google.stackdriver.com/settings/accounts/agent/).
-
-```
-gcloud compute project-info add-metadata --metadata stackdriver-agent-key=YOUR_STACKDRIVER_API_KEY
-```
+### Deploying Stackdriver Monitoring
 
 Add the `gcp-tools` release to the `release` section of your existing deployment manifest:
 
@@ -90,7 +86,7 @@ jobs:
         release: gcp-tools
 ```
 
-Once deployed, the `stackdriver_agent` on every instance will send host metrics to [StackDriver Monitoring](https://cloud.google.com/monitoring/).
+Once deployed, the `stackdriver_agent` on every instance will send host metrics to [Stackdriver Monitoring](https://cloud.google.com/monitoring/).
 
 ## Contributing
 
