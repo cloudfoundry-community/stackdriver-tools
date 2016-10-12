@@ -1,9 +1,9 @@
 package nozzle
 
 import (
+	"encoding/json"
 	"github.com/cloudfoundry-community/gcp-tools-release/src/stackdriver-nozzle/stackdriver"
 	"github.com/cloudfoundry/sonde-go/events"
-	"encoding/json"
 )
 
 func NewLogSink(labelMaker LabelMaker, logAdapter stackdriver.LogAdapter) Sink {

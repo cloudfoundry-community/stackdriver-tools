@@ -12,7 +12,7 @@ import (
 	. "github.com/onsi/gomega"
 )
 
-type mockUnitParser struct{
+type mockUnitParser struct {
 	lastInput string
 }
 
@@ -25,7 +25,7 @@ var _ = Describe("MetricSink", func() {
 	var (
 		subject       nozzle.Sink
 		metricAdapter *mocks.MetricAdapter
-		unitParser *mockUnitParser
+		unitParser    *mockUnitParser
 		labels        map[string]string
 	)
 
@@ -52,9 +52,9 @@ var _ = Describe("MetricSink", func() {
 		eventType := events.Envelope_ValueMetric
 		timeStamp := eventTime.UnixNano()
 		envelope := &events.Envelope{
-			EventType:    &eventType,
+			EventType:   &eventType,
 			ValueMetric: &event,
-			Timestamp:    &timeStamp,
+			Timestamp:   &timeStamp,
 		}
 
 		err := subject.Receive(envelope)

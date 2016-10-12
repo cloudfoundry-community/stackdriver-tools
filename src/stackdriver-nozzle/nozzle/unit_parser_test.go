@@ -54,7 +54,7 @@ var _ = Describe("UnitParser", func() {
 
 	It("translates units that do require translation", func() {
 		testCases := []struct {
-			input string
+			input  string
 			output string
 		}{
 			{"b", "bit"},
@@ -69,7 +69,7 @@ var _ = Describe("UnitParser", func() {
 
 	It("translates invalid units into annotations", func() {
 		testCases := []struct {
-			input string
+			input  string
 			output string
 		}{
 			{"count", "{count}"},
@@ -85,7 +85,7 @@ var _ = Describe("UnitParser", func() {
 
 	It("translates units with prefixes", func() {
 		testCases := []struct {
-			input string
+			input  string
 			output string
 		}{
 			{"mb", "mbit"},
@@ -100,7 +100,7 @@ var _ = Describe("UnitParser", func() {
 
 	It("translates units with expressions", func() {
 		testCases := []struct {
-			input string
+			input  string
 			output string
 		}{
 			{"mb/s", "mbit/s"},
@@ -115,7 +115,7 @@ var _ = Describe("UnitParser", func() {
 
 	It("translates units with annotations in expressions", func() {
 		testCases := []struct {
-			input string
+			input  string
 			output string
 		}{
 			{"req/s", "{req}/s"},

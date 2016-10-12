@@ -20,16 +20,17 @@ type Client interface {
 }
 
 type client struct {
-	cfConfig *cfclient.Config
-	cfClient *cfclient.Client
-	logger   lager.Logger
+	cfConfig       *cfclient.Config
+	cfClient       *cfclient.Client
+	logger         lager.Logger
+	subscriptionID string
 }
 
-func NewClient(cfConfig *cfclient.Config, cfClient *cfclient.Client, logger lager.Logger) Client {
+func NewClient(cfConfig *cfclient.Config, cfClient *cfclient.Client, logger lager.Logger, subscriptionID string) Client {
 	if cfConfig == nil || cfClient == nil {
 		logger.Fatal("firehoseClient", errors.New("cfClient and cfConfig required"))
 	}
-	return &client{cfConfig, cfClient, logger}
+	return &client{cfConfig, cfClient, logger, subscriptionID}
 }
 
 func (c *client) StartListening(fh FirehoseHandler) error {
@@ -41,7 +42,7 @@ func (c *client) StartListening(fh FirehoseHandler) error {
 	refresher := CfClientTokenRefresh{cfClient: c.cfClient}
 	cfConsumer.SetIdleTimeout(time.Duration(30) * time.Second)
 	cfConsumer.RefreshTokenFrom(&refresher)
-	messages, errs := cfConsumer.FirehoseWithoutReconnect("test", "")
+	messages, errs := cfConsumer.FirehoseWithoutReconnect(c.subscriptionID, "")
 
 	for {
 		select {

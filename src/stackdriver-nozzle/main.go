@@ -33,6 +33,7 @@ type config struct {
 	BatchDuration      int    `envconfig:"batch_duration" default:"1"`
 	BoltDBPath         string `envconfig:"boltdb_path" default:"cached-app-metadata.db"`
 	ResolveAppMetadata bool   `envconfig:"resolve_app_metadata" default:"true"`
+	SubscriptionID     string `envconfig:"subscription_id" default:"stackdriver-nozzle"`
 }
 
 func (c *config) toData() lager.Data {
@@ -48,6 +49,7 @@ func (c *config) toData() lager.Data {
 		"HeartbeatRate":      c.HeartbeatRate,
 		"BoltDBPath":         c.BoltDBPath,
 		"ResolveAppMetadata": c.ResolveAppMetadata,
+		"SubscriptionID":     c.SubscriptionID,
 	}
 }
 
@@ -69,7 +71,7 @@ func main() {
 		Password:          c.Password,
 		SkipSslValidation: c.SkipSSL}
 	cfClient := cfclient.NewClient(cfConfig)
-	input := firehose.NewClient(cfConfig, cfClient, logger)
+	input := firehose.NewClient(cfConfig, cfClient, logger, c.SubscriptionID)
 
 	var cachingClient caching.Caching
 	if c.ResolveAppMetadata {
