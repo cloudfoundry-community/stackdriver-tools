@@ -19,7 +19,7 @@ case $1 in
     mkdir -p $LOG_DIR
     chown -R vcap:vcap $LOG_DIR
 
-    export FIREHOSE_ENDPOINT=<%= p('firehose._endpoint') %>
+    export FIREHOSE_ENDPOINT=<%= p('firehose.endpoint') %>
     export FIREHOSE_USERNAME=<%= p('firehose.username') %>
     export FIREHOSE_PASSWORD=<%= p('firehose.password') %>
     export FIREHOSE_EVENTS=<%= p('firehose.events', 'LogMessage,Error') %>
