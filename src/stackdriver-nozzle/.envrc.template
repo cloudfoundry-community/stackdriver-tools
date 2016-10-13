@@ -1,7 +1,12 @@
 # http://direnv.net
 
 export FIREHOSE_ENDPOINT=https://api.bosh-lite.com
+export FIREHOSE_EVENTS=HttpStart,HttpStop,HttpStartStop,LogMessage,ValueMetric,CounterEvent,Error,ContainerMetric
 export FIREHOSE_USERNAME=admin
 export FIREHOSE_PASSWORD=admin
 export FIREHOSE_SKIP_SSL=true
-export GCP_PROJECT_ID=<fill in gcp project id>
+
+export GOOGLE_APPLICATION_CREDENTIALS=credentials.json
+export GCP_PROJECT_ID=some-project-id
+
+export HEARTBEAT_RATE=5
