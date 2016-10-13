@@ -5,6 +5,7 @@ set -u # report the usage of uninitialized variables
 
 RUN_DIR=/var/vcap/sys/run/google_fluentd
 LOG_DIR=/var/vcap/sys/log/google_fluentd
+POS_DIR=${RUN_DIR}/pos
 
 PIDFILE=${RUN_DIR}/google_fluentd.pid
 
@@ -15,7 +16,7 @@ case $1 in
   start)
     pid_guard ${PIDFILE} "google_fluentd"
 
-    mkdir -p ${RUN_DIR} ${LOG_DIR}
+    mkdir -p ${RUN_DIR} ${LOG_DIR} ${POS_DIR}
 
     export PATH=/var/vcap/packages/google-fluentd/bin:${PATH}
 
