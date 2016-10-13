@@ -14,6 +14,15 @@ jobs:
 
       - task: unit-tests
         file: gcp-tools-release/ci/tasks/unit-tests.yml
+        on_failure:
+          aggregate:
+            - put: slack-alert
+              params:
+                icon_emoji: ":robot_face:"
+                username: Build pipeline
+                channel: "#lambr-private"
+                text: "unit-tests failed"
+
 
   - name: build-candidate
     plan:
@@ -26,6 +35,14 @@ jobs:
 
       - task: build-release
         file: gcp-tools-release/ci/tasks/build-candidate.yml
+        on_failure:
+          aggregate:
+            - put: slack-alert
+              params:
+                icon_emoji: ":robot_face:"
+                username: Build pipeline
+                channel: "#lambr-private"
+                text: "build-release failed"
 
       - put: gcp-tools-release-artifacts
         params: {file: candidate/*.tgz}
@@ -41,6 +58,14 @@ jobs:
 
       - task: build-release
         file: gcp-tools-release/ci/tasks/deploy-candidate.yml
+        on_failure:
+          aggregate:
+            - put: slack-alert
+              params:
+                icon_emoji: ":robot_face:"
+                username: Build pipeline
+                channel: "#lambr-private"
+                text: "deploy-candidate failed"
         config:
           params:
             ssh_bastion_address     : {{ssh_bastion_address}}
@@ -95,8 +120,20 @@ resources:
       region:            US
       endpoint:          storage.googleapis.com
 
+  - name: slack-alert
+    type: slack-notification
+    source:
+      url: {{slack-hook}}
+
+
 resource_types:
   - name: gcs-resource
     type: docker-image
     source:
       repository: frodenas/gcs-resource
+
+  - name: slack-notification
+    type: docker-image
+    source:
+      repository: cfcommunity/slack-notification-resource
+      tag: latest

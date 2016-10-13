@@ -35,6 +35,9 @@ cf_service_account:      {{replace_me}}
 nozzle_user:             {{replace_me}}
 nozzle_password:         {{replace_me}}
 
+# Slack
+slack-hook: {{slack webhook to post to our channel}} # see https://api.slack.com/incoming-webhooks
+
 # GitHub
 github_deployment_key_bosh_google_cpi_release: | # GitHub deployment key for release artifacts
 github_pr_access_token: # An access token with repo:status access, used to test PRs
