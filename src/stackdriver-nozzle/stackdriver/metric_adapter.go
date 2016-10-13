@@ -9,6 +9,7 @@ import (
 	labelpb "google.golang.org/genproto/googleapis/api/label"
 	metricpb "google.golang.org/genproto/googleapis/api/metric"
 	monitoringpb "google.golang.org/genproto/googleapis/monitoring/v3"
+	"sync"
 )
 
 type Metric struct {
@@ -24,15 +25,17 @@ type MetricAdapter interface {
 }
 
 type metricAdapter struct {
-	projectID   string
-	client      MetricClient
-	descriptors map[string]struct{}
+	projectID             string
+	client                MetricClient
+	descriptors           map[string]struct{}
+	createDescriptorMutex *sync.Mutex
 }
 
 func NewMetricAdapter(projectID string, client MetricClient) (MetricAdapter, error) {
 	ma := &metricAdapter{
-		projectID: projectID,
-		client:    client,
+		projectID:             projectID,
+		client:                client,
+		createDescriptorMutex: &sync.Mutex{},
 	}
 
 	err := ma.fetchMetricDescriptorNames()
@@ -134,9 +137,15 @@ func (ma *metricAdapter) ensureMetricDescriptor(metric Metric) error {
 		return nil
 	}
 
-	ma.descriptors[metric.Name] = struct{}{}
+	ma.createDescriptorMutex.Lock()
+	defer ma.createDescriptorMutex.Unlock()
 
-	return ma.CreateMetricDescriptor(metric)
+	err := ma.CreateMetricDescriptor(metric)
+	if err != nil {
+		return err
+	}
+	ma.descriptors[metric.Name] = struct{}{}
+	return nil
 }
 
 func points(value float64, eventTime time.Time) []*monitoringpb.Point {

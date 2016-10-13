@@ -131,11 +131,39 @@ var _ = Describe("MetricAdapter", func() {
 
 		Expect(client.descriptorReqs).To(HaveLen(2))
 	})
+
+	It("handles concurrent metric descriptor creation", func() {
+		metrics := []stackdriver.Metric{
+			{
+				Name: "metricWithUnit",
+				Unit: "{foobar}",
+			},
+		}
+
+		callCount := 0
+		client.CreateMetricDescriptorFn = func(request *monitoringpb.CreateMetricDescriptorRequest) error {
+			callCount += 1
+			time.Sleep(100 * time.Millisecond)
+			return nil
+		}
+
+		go func() { subject.PostMetrics(metrics) }()
+		go func() { subject.PostMetrics(metrics) }()
+		go func() { subject.PostMetrics(metrics) }()
+		go func() { subject.PostMetrics(metrics) }()
+		go func() { subject.PostMetrics(metrics) }()
+
+		Eventually(func() int {
+			return callCount
+		}).Should(Equal(5))
+	})
 })
 
 type mockClient struct {
 	metricReqs     []*monitoringpb.CreateTimeSeriesRequest
 	descriptorReqs []*monitoringpb.CreateMetricDescriptorRequest
+
+	CreateMetricDescriptorFn func(request *monitoringpb.CreateMetricDescriptorRequest) error
 }
 
 func (mc *mockClient) Post(req *monitoringpb.CreateTimeSeriesRequest) error {
@@ -144,6 +172,9 @@ func (mc *mockClient) Post(req *monitoringpb.CreateTimeSeriesRequest) error {
 }
 
 func (mc *mockClient) CreateMetricDescriptor(request *monitoringpb.CreateMetricDescriptorRequest) error {
+	if mc.CreateMetricDescriptorFn != nil {
+		return mc.CreateMetricDescriptorFn(request)
+	}
 	mc.descriptorReqs = append(mc.descriptorReqs, request)
 	return nil
 }
