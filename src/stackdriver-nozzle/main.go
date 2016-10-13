@@ -121,11 +121,18 @@ func main() {
 		logger.Fatal("newMetricAdapter", err)
 	}
 
+	metricBuffer, errs := stackdriver.NewMetricsBuffer(c.BatchCount, metricAdapter)
+	go func() {
+		for err = range errs {
+			logger.Error("metricsBuffer", err)
+		}
+	}()
+
 	trigger := time.NewTicker(time.Duration(c.HeartbeatRate) * time.Second).C
 	heartbeater := heartbeat.NewHeartbeat(logger, trigger)
 	labelMaker := nozzle.NewLabelMaker(cachingClient)
 	logHandler := nozzle.NewLogSink(labelMaker, logAdapter)
-	metricHandler := nozzle.NewMetricSink(labelMaker, metricAdapter, nozzle.NewUnitParser())
+	metricHandler := nozzle.NewMetricSink(labelMaker, metricBuffer, nozzle.NewUnitParser())
 
 	output := nozzle.Nozzle{
 		LogHandler:    logHandler,

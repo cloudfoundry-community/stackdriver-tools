@@ -3,7 +3,6 @@ package nozzle_test
 import (
 	"time"
 
-	"errors"
 	"github.com/cloudfoundry-community/gcp-tools-release/src/stackdriver-nozzle/mocks"
 	"github.com/cloudfoundry-community/gcp-tools-release/src/stackdriver-nozzle/nozzle"
 	"github.com/cloudfoundry-community/gcp-tools-release/src/stackdriver-nozzle/stackdriver"
@@ -23,18 +22,19 @@ func (m *mockUnitParser) Parse(unit string) string {
 
 var _ = Describe("MetricSink", func() {
 	var (
-		subject       nozzle.Sink
-		metricAdapter *mocks.MetricAdapter
-		unitParser    *mockUnitParser
-		labels        map[string]string
+		subject      nozzle.Sink
+		metricBuffer *mocks.MetricsBuffer
+		unitParser   *mockUnitParser
+		labels       map[string]string
 	)
 
 	BeforeEach(func() {
 		labels = map[string]string{"foo": "bar"}
 		labelMaker := &mocks.LabelMaker{Labels: labels}
-		metricAdapter = &mocks.MetricAdapter{}
+		metricBuffer = &mocks.MetricsBuffer{}
 		unitParser = &mockUnitParser{}
-		subject = nozzle.NewMetricSink(labelMaker, metricAdapter, unitParser)
+
+		subject = nozzle.NewMetricSink(labelMaker, metricBuffer, unitParser)
 	})
 
 	It("creates metric for ValueMetric", func() {
@@ -60,7 +60,7 @@ var _ = Describe("MetricSink", func() {
 		err := subject.Receive(envelope)
 		Expect(err).To(BeNil())
 
-		metrics := metricAdapter.PostedMetrics
+		metrics := metricBuffer.PostedMetrics
 		Expect(metrics).To(ConsistOf(stackdriver.Metric{
 			"valueMetricName",
 			123.456,
@@ -104,7 +104,7 @@ var _ = Describe("MetricSink", func() {
 		err := subject.Receive(envelope)
 		Expect(err).To(BeNil())
 
-		metrics := metricAdapter.PostedMetrics
+		metrics := metricBuffer.PostedMetrics
 		Expect(metrics).To(HaveLen(6))
 
 		Expect(metrics).To(ContainElement(stackdriver.Metric{"diskBytesQuota", float64(1073741824), labels, eventTime, ""}))
@@ -136,7 +136,7 @@ var _ = Describe("MetricSink", func() {
 		err := subject.Receive(envelope)
 		Expect(err).To(BeNil())
 
-		metrics := metricAdapter.PostedMetrics
+		metrics := metricBuffer.PostedMetrics
 		Expect(metrics).To(ConsistOf(stackdriver.Metric{
 			"counterName",
 			float64(123456),
@@ -144,22 +144,6 @@ var _ = Describe("MetricSink", func() {
 			eventTime,
 			"",
 		}))
-	})
-
-	It("returns the error from the metric adapter", func() {
-		expectedErr := errors.New("fail")
-		metricAdapter.PostMetricError = expectedErr
-
-		eventType := events.Envelope_CounterEvent
-
-		event := events.CounterEvent{}
-		envelope := &events.Envelope{
-			EventType:    &eventType,
-			CounterEvent: &event,
-		}
-
-		err := subject.Receive(envelope)
-		Expect(err).To(Equal(expectedErr))
 	})
 
 	It("returns error when envelope contains unhandled event type", func() {

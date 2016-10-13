@@ -53,31 +53,13 @@ func (ma *metricAdapter) PostMetrics(metrics []Metric) error {
 			return err
 		}
 
-		eventTime := metric.EventTime
-		timeStamp := timestamp.Timestamp{
-			Seconds: eventTime.Unix(),
-			Nanos:   int32(eventTime.Nanosecond()),
-		}
-
 		metricType := path.Join("custom.googleapis.com", metric.Name)
 		timeSeries := monitoringpb.TimeSeries{
 			Metric: &metricpb.Metric{
 				Type:   metricType,
 				Labels: metric.Labels,
 			},
-			Points: []*monitoringpb.Point{
-				{
-					Interval: &monitoringpb.TimeInterval{
-						EndTime:   &timeStamp,
-						StartTime: &timeStamp,
-					},
-					Value: &monitoringpb.TypedValue{
-						Value: &monitoringpb.TypedValue_DoubleValue{
-							DoubleValue: metric.Value,
-						},
-					},
-				},
-			},
+			Points: points(metric.Value, metric.EventTime),
 		}
 		timeSerieses = append(timeSerieses, &timeSeries)
 	}
@@ -87,7 +69,12 @@ func (ma *metricAdapter) PostMetrics(metrics []Metric) error {
 		TimeSeries: timeSerieses,
 	}
 
-	return ma.client.Post(request)
+	err := ma.client.Post(request)
+	//if (err != nil) {
+	//	fmt.Printf("%v", timeSerieses)
+	//}
+	//TODO: join envelope with the error
+	return err
 }
 
 func (ma *metricAdapter) CreateMetricDescriptor(metric Metric) error {
@@ -150,4 +137,23 @@ func (ma *metricAdapter) ensureMetricDescriptor(metric Metric) error {
 	ma.descriptors[metric.Name] = struct{}{}
 
 	return ma.CreateMetricDescriptor(metric)
+}
+
+func points(value float64, eventTime time.Time) []*monitoringpb.Point {
+	timeStamp := timestamp.Timestamp{
+		Seconds: eventTime.Unix(),
+		Nanos:   int32(eventTime.Nanosecond()),
+	}
+	point := &monitoringpb.Point{
+		Interval: &monitoringpb.TimeInterval{
+			EndTime:   &timeStamp,
+			StartTime: &timeStamp,
+		},
+		Value: &monitoringpb.TypedValue{
+			Value: &monitoringpb.TypedValue_DoubleValue{
+				DoubleValue: value,
+			},
+		},
+	}
+	return []*monitoringpb.Point{point}
 }
