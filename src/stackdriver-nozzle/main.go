@@ -5,6 +5,7 @@ import (
 	"strings"
 	"time"
 
+	"cloud.google.com/go/compute/metadata"
 	"github.com/cloudfoundry-community/firehose-to-syslog/caching"
 	"github.com/cloudfoundry-community/gcp-tools-release/src/stackdriver-nozzle/filter"
 	"github.com/cloudfoundry-community/gcp-tools-release/src/stackdriver-nozzle/firehose"
@@ -13,80 +14,99 @@ import (
 	"github.com/cloudfoundry-community/gcp-tools-release/src/stackdriver-nozzle/stackdriver"
 	"github.com/cloudfoundry-community/go-cfclient"
 	"github.com/cloudfoundry/lager"
-	"gopkg.in/alecthomas/kingpin.v2"
+	"github.com/kelseyhightower/envconfig"
 )
 
-var (
-	apiEndpoint = kingpin.Flag("api-endpoint",
-		"CF API endpoint (use https://api.bosh-lite.com for BOSH Lite)").
-		OverrideDefaultFromEnvar("API_ENDPOINT").
-		Required().
-		String()
-	username = kingpin.Flag("username", "username").
-			Default("admin").
-			OverrideDefaultFromEnvar("FIREHOSE_USERNAME").
-			String()
-	password = kingpin.Flag("password", "password").
-			Default("admin").
-			OverrideDefaultFromEnvar("FIREHOSE_PASSWORD").
-			String()
-	eventsFilter = kingpin.Flag("events", "events to subscribe to from firehose (comma separated)").
-			Default("LogMessage,Error").
-			OverrideDefaultFromEnvar("FIREHOSE_EVENTS").
-			String()
-	skipSSLValidation = kingpin.Flag("skip-ssl-validation", "please don't").
-				Default("false").
-				OverrideDefaultFromEnvar("SKIP_SSL_VALIDATION").
-				Bool()
-	projectID = kingpin.Flag("project-id", "gcp project id").
-			OverrideDefaultFromEnvar("PROJECT_ID").
-			String() //maybe we can get this from gcp env...? research
-	batchCount = kingpin.Flag("batch-count", "maximum number of entries to buffer").
-			Default(stackdriver.DefaultBatchCount).
-			OverrideDefaultFromEnvar("BATCH_COUNT").
-			Int()
-	batchDuration = kingpin.Flag("batch-duration", "maximum amount of seconds to buffer").
-			Default(stackdriver.DefaultBatchDuration).
-			OverrideDefaultFromEnvar("BATCH_DURATION").
-			Duration()
-	boltDatabasePath = kingpin.Flag("boltdb-path", "bolt Database path").
-				Default("cached-app-metadata.db").
-				OverrideDefaultFromEnvar("BOLTDB_PATH").
-				String()
-	resolveCfMetadata = kingpin.Flag("resolve-cf-metadata", "resolve CloudFoundry app metadata (eg appName) in log output").
-				Default("true").
-				OverrideDefaultFromEnvar("RESOLVE_CF_METADATA").
-				Bool()
-)
+type config struct {
+	// Firehose config
+	APIEndpoint string `envconfig:"firehose_endpoint" required:"true"`
+	Events      string `envconfig:"firehose_events" required:"true"`
+	Username    string `envconfig:"firehose_username" default:"admin"`
+	Password    string `envconfig:"firehose_password" default:"admin"`
+	SkipSSL     bool   `envconfig:"firehose_skip_ssl" default:"false"`
+
+	// Stackdriver config
+	ProjectID string `envconfig:"gcp_project_id"`
+
+	// Nozzle config
+	HeartbeatRate      int    `envconfig:"heartbeat_rate" default:"30"`
+	BatchCount         int    `envconfig:"batch_count" default:"10"`
+	BatchDuration      int    `envconfig:"batch_duration" default:"1"`
+	BoltDBPath         string `envconfig:"boltdb_path" default:"cached-app-metadata.db"`
+	ResolveAppMetadata bool   `envconfig:"resolve_app_metadata" default:"true"`
+	SubscriptionID     string `envconfig:"subscription_id" default:"stackdriver-nozzle"`
+}
+
+func (c *config) ensureProjectID() error {
+	if c.ProjectID != "" {
+		return nil
+	}
+
+	projectID, err := metadata.ProjectID()
+	if err != nil {
+		return err
+	}
+
+	c.ProjectID = projectID
+	return nil
+}
+
+func (c *config) toData() lager.Data {
+	return lager.Data{
+		"APIEndpoint":        c.APIEndpoint,
+		"Username":           c.Username,
+		"Password":           "<redacted>",
+		"Events":             c.Events,
+		"SkipSSL":            c.SkipSSL,
+		"ProjectID":          c.ProjectID,
+		"BatchCount":         c.BatchCount,
+		"BatchDuration":      c.BatchDuration,
+		"HeartbeatRate":      c.HeartbeatRate,
+		"BoltDBPath":         c.BoltDBPath,
+		"ResolveAppMetadata": c.ResolveAppMetadata,
+		"SubscriptionID":     c.SubscriptionID,
+	}
+}
 
 func main() {
-	const triggerDuration = 30 * time.Second
-	kingpin.Parse()
-
 	logger := lager.NewLogger("stackdriver-nozzle")
 	logger.RegisterSink(lager.NewWriterSink(os.Stdout, lager.DEBUG))
-	logger.Info("arguments", lager.Data{
-		"resolveCfMetadata": resolveCfMetadata,
-		"events":            eventsFilter,
-	})
+
+	var c config
+	err := envconfig.Process("", &c)
+	if err != nil {
+		logger.Fatal("envconfig", err)
+	}
+
+	err = c.ensureProjectID()
+	if err != nil {
+		logger.Fatal("gcpProjectID", err)
+	}
+
+	logger.Info("arguments", c.toData())
 
 	cfConfig := &cfclient.Config{
-		ApiAddress:        *apiEndpoint,
-		Username:          *username,
-		Password:          *password,
-		SkipSslValidation: *skipSSLValidation}
+		ApiAddress:        c.APIEndpoint,
+		Username:          c.Username,
+		Password:          c.Password,
+		SkipSslValidation: c.SkipSSL}
 	cfClient := cfclient.NewClient(cfConfig)
-	input := firehose.NewClient(cfConfig, cfClient, logger)
+	input := firehose.NewClient(cfConfig, cfClient, logger, c.SubscriptionID)
 
 	var cachingClient caching.Caching
-	if *resolveCfMetadata {
-		cachingClient = caching.NewCachingBolt(cfClient, *boltDatabasePath)
+	if c.ResolveAppMetadata {
+		cachingClient = caching.NewCachingBolt(cfClient, c.BoltDBPath)
 	} else {
 		cachingClient = caching.NewCachingEmpty()
 	}
 	cachingClient.CreateBucket()
 
-	logAdapter, err := stackdriver.NewLogAdapter(*projectID, *batchCount, *batchDuration, logger)
+	logAdapter, err := stackdriver.NewLogAdapter(
+		c.ProjectID,
+		c.BatchCount,
+		time.Duration(c.BatchDuration)*time.Second,
+		logger,
+	)
 	if err != nil {
 		logger.Fatal("newLogAdapter", err)
 	}
@@ -96,12 +116,12 @@ func main() {
 		logger.Fatal("newMetricClient", err)
 	}
 
-	metricAdapter, err := stackdriver.NewMetricAdapter(*projectID, metricClient)
+	metricAdapter, err := stackdriver.NewMetricAdapter(c.ProjectID, metricClient)
 	if err != nil {
 		logger.Fatal("newMetricAdapter", err)
 	}
 
-	trigger := time.NewTicker(triggerDuration).C
+	trigger := time.NewTicker(time.Duration(c.HeartbeatRate) * time.Second).C
 	heartbeater := heartbeat.NewHeartbeat(logger, trigger)
 	labelMaker := nozzle.NewLabelMaker(cachingClient)
 	logHandler := nozzle.NewLogSink(labelMaker, logAdapter)
@@ -113,7 +133,7 @@ func main() {
 		Heartbeater:   heartbeater,
 	}
 
-	filteredOutput, err := filter.New(&output, strings.Split(*eventsFilter, ","))
+	filteredOutput, err := filter.New(&output, strings.Split(c.Events, ","))
 	if err != nil {
 		logger.Fatal("newFilter", err)
 	}

@@ -30,7 +30,7 @@ func (ie *invalidEvent) Error() string {
 	for _, name := range events.Envelope_EventType_name {
 		eventNames = append(eventNames, name)
 	}
-	validEvents := strings.Join(eventNames, ", ")
+	validEvents := strings.Join(eventNames, ",")
 
 	return fmt.Sprintf("invalid event '%s'; valid events: %s", ie.name, validEvents)
 }

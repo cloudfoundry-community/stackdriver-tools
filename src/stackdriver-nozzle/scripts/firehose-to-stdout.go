@@ -6,16 +6,13 @@ import (
 	"github.com/cloudfoundry-community/gcp-tools-release/src/stackdriver-nozzle/firehose"
 	"github.com/cloudfoundry-community/go-cfclient"
 	"github.com/cloudfoundry/sonde-go/events"
-	"gopkg.in/alecthomas/kingpin.v2"
 )
 
 func main() {
-	kingpin.Parse()
-
-	apiEndpoint := os.Getenv("API_ENDPOINT")
+	apiEndpoint := os.Getenv("FIREHOSE_ENDPOINT")
 	username := os.Getenv("FIREHOSE_USERNAME")
 	password := os.Getenv("FIREHOSE_PASSWORD")
-	_, skipSSLValidation := os.LookupEnv("SKIP_SSL_VALIDATION")
+	_, skipSSLValidation := os.LookupEnv("FIREHOSE_SKIP_SSL")
 
 	cfConfig := &cfclient.Config{
 		ApiAddress:        apiEndpoint,

@@ -8,13 +8,13 @@ packages:
   - common
 
 properties:
-  firehose.api_endpoint:
+  firehose.endpoint:
     description: CF API endpoint
   firehose.username:
     description: CF user (needs cloud_controller.admin or cloud_controller.admin_read_only)
   firehose.password:
     description: Password for firehose.username
-  firehose.skip_ssl_validation:
+  firehose.skip_ssl:
     description: Skip SSL validation (for self signed certs, useful in dev environments)
     default: false
   firehose.events:
@@ -22,4 +22,4 @@ properties:
     default: LogMessage,Error
 
   gcp.project_id:
-    description: Google Cloud Platform project ID
+    description: Google Cloud Platform project ID (optional if on GCP)

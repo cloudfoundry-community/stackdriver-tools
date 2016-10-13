@@ -19,13 +19,15 @@ case $1 in
     mkdir -p $LOG_DIR
     chown -R vcap:vcap $LOG_DIR
 
-    export API_ENDPOINT=<%= p('firehose.api_endpoint') %>
+    export FIREHOSE_ENDPOINT=<%= p('firehose.endpoint') %>
     export FIREHOSE_USERNAME=<%= p('firehose.username') %>
     export FIREHOSE_PASSWORD=<%= p('firehose.password') %>
     export FIREHOSE_EVENTS=<%= p('firehose.events', 'LogMessage,Error') %>
-    export SKIP_SSL_VALIDATION=<%= p('firehose.skip_ssl_validation', false) %>
+    export FIREHOSE_SKIP_SSL=<%= p('firehose.skip_ssl', false) %>
 
-    export PROJECT_ID=<%= p('gcp.project_id') %>
+    <% if_p('gcp.project_id') do |prop| %>
+    export GCP_PROJECT_ID=<%= prop %>
+    <% end %>
 
     echo $$ > $PIDFILE
 

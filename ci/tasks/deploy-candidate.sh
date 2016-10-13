@@ -22,7 +22,6 @@ check_param network
 check_param private_subnetwork
 
 # Google service account settings
-check_param project_id
 check_param cf_service_account
 check_param service_account_key_json
 check_param ssh_bastion_name
@@ -79,12 +78,10 @@ jobs:
       release: bosh-gcp-tools
   properties:
     firehose:
-      api_endpoint: https://api.${vip_ip}.xip.io
+      endpoint: https://api.${vip_ip}.xip.io
       username: ${nozzle_user}
       password: ${nozzle_password}
-      skip_ssl_validation: true
-    gcp:
-      project_id: ${project_id}
+      skip_ssl: true
 
 compilation:
   workers: 6
@@ -97,7 +94,6 @@ compilation:
     root_disk_type: pd-ssd
     preemptible: true
     service_account: ${cf_service_account}
-
 
 resource_pools:
   - name: common

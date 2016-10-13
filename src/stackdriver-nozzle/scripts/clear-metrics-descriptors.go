@@ -17,7 +17,7 @@ func main() {
 		panic(err)
 	}
 
-	projectID := os.Getenv("PROJECT_ID")
+	projectID := os.Getenv("GCP_PROJECT_ID")
 
 	req := &monitoringpb.ListMetricDescriptorsRequest{
 		Name:   fmt.Sprintf("projects/%s", projectID),

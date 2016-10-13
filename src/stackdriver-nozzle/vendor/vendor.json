@@ -17,8 +17,8 @@
 		{
 			"checksumSHA1": "ZLRh6zW4/DnVsGpgtt+ZiIaEFKc=",
 			"path": "cloud.google.com/go/compute/metadata",
-			"revision": "e9f84e95f791b227331b52e9e944e84f8030a365",
-			"revisionTime": "2016-09-29T17:04:08Z"
+			"revision": "2096d282df0cbfc9d56742b68f70b737db3a882b",
+			"revisionTime": "2016-10-11T14:23:08Z"
 		},
 		{
 			"checksumSHA1": "hiJXjkFEGy+sDFf6O58Ocdy9Rnk=",
@@ -269,6 +269,12 @@
 			"path": "github.com/gorilla/websocket",
 			"revision": "2f0289cc7945c4cb44a27c4514c5d5cdcbee790a",
 			"revisionTime": "2016-09-27T03:13:17Z"
+		},
+		{
+			"checksumSHA1": "h4g74tgdQOndlNYFFhY9vCxmThU=",
+			"path": "github.com/kelseyhightower/envconfig",
+			"revision": "13674b2d056fb658a00ba3f36e78043ced07c924",
+			"revisionTime": "2016-09-21T17:42:30Z"
 		},
 		{
 			"checksumSHA1": "dVJ9fegloWyzJUocDst1vFmgR18=",
@@ -756,12 +762,6 @@
 			"revisionTime": "2016-09-29T17:55:26Z"
 		},
 		{
-			"checksumSHA1": "SeYI7DRWrd0Ku+CLavuwIz3EEmQ=",
-			"path": "gopkg.in/alecthomas/kingpin.v2",
-			"revision": "e9044be3ab2a8e11d4e1f418d12f0790d57e8d70",
-			"revisionTime": "2016-08-29T10:30:05Z"
-		},
-		{
 			"checksumSHA1": "12GqsW8PiRPnezDDy0v4brZrndM=",
 			"path": "gopkg.in/yaml.v2",
 			"revision": "a5b47d31c556af34a302ce5d659e6fea44d90de0",
@@ -772,5 +772,5 @@
 			"revision": ""
 		}
 	],
-	"rootPath": "stackdriver-nozzle"
+	"rootPath": "github.com/cloudfoundry-community/gcp-tools-release/src/stackdriver-nozzle"
 }
