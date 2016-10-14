@@ -54,9 +54,10 @@ func (mb *metricsBuffer) addMetric(newMetric *Metric) {
 }
 
 func (mb *metricsBuffer) postMetrics(metrics []Metric) {
-	err := mb.adapter.PostMetrics(metrics)
-	if err != nil {
-		go func() { mb.errs <- err }()
-	}
-
+	go func() {
+		err := mb.adapter.PostMetrics(metrics)
+		if err != nil {
+			go func() { mb.errs <- err }()
+		}
+	}()
 }
