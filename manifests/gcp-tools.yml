@@ -55,9 +55,9 @@ resource_pools:
 jobs:
   - name: google-fluentd
     templates:
-      - name: google_fluentd
+      - name: google-fluentd
         release: gcp-tools
-      - name: stackdriver_agent
+      - name: stackdriver-agent
         release: gcp-tools
     instances: 1
     resource_pool: common

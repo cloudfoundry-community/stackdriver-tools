@@ -1,5 +1,5 @@
 ---
-name: stackdriver_agent
+name: stackdriver-agent
 
 packages:
   - stackdriver-agent

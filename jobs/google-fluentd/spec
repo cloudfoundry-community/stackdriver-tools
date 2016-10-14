@@ -1,12 +1,12 @@
 ---
-name: google_fluentd
+name: google-fluentd
 
 packages:
   - google-fluentd
 
 templates:
-  google_fluentd_ctl: bin/google_fluentd_ctl
-  google_fluentd.conf: config/google_fluentd.conf
+  google-fluentd-ctl: bin/google-fluentd-ctl
+  google-fluentd.conf: config/google-fluentd.conf
   fluentd.conf: config/config.d/fluentd.conf
   syslog.conf: config/config.d/syslog.conf
   syslog_endpoint.conf: config/config.d/syslog_endpoint.conf

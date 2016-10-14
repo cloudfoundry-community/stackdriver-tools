@@ -76,9 +76,9 @@ jobs:
   templates:
     - name: stackdriver-nozzle
       release: bosh-gcp-tools
-    - name: google_fluentd
+    - name: google-fluentd
       release: bosh-gcp-tools
-    - name: stackdriver_agent
+    - name: stackdriver-agent
       release: bosh-gcp-tools
   properties:
     firehose:

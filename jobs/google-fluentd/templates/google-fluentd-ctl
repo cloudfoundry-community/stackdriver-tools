@@ -3,11 +3,11 @@
 set -e # exit immediately if a simple command exits with a non-zero status
 set -u # report the usage of uninitialized variables
 
-RUN_DIR=/var/vcap/sys/run/google_fluentd
-LOG_DIR=/var/vcap/sys/log/google_fluentd
+RUN_DIR=/var/vcap/sys/run/google-fluentd
+LOG_DIR=/var/vcap/sys/log/google-fluentd
 POS_DIR=${RUN_DIR}/pos
 
-PIDFILE=${RUN_DIR}/google_fluentd.pid
+PIDFILE=${RUN_DIR}/google-fluentd.pid
 
 source /var/vcap/packages/google-fluentd/utils.sh
 
@@ -16,16 +16,16 @@ case $1 in
   start)
     mkdir -p ${RUN_DIR} ${LOG_DIR} ${POS_DIR}
 
-    pid_guard ${PIDFILE} "google_fluentd"
+    pid_guard ${PIDFILE} "google-fluentd"
     echo $$ > "${PIDFILE}"
 
     export PATH=/var/vcap/packages/google-fluentd/bin:${PATH}
 
     exec /var/vcap/packages/google-fluentd/bin/fluentd \
-      --config /var/vcap/jobs/google_fluentd/config/google_fluentd.conf \
+      --config /var/vcap/jobs/google-fluentd/config/google-fluentd.conf \
       --no-supervisor \
-      >>  ${LOG_DIR}/google_fluentd.stdout.log \
-      2>> ${LOG_DIR}/google_fluentd.stderr.log
+      >>  ${LOG_DIR}/google-fluentd.stdout.log \
+      2>> ${LOG_DIR}/google-fluentd.stderr.log
     ;;
 
   stop)
@@ -33,6 +33,6 @@ case $1 in
     ;;
 
   *)
-    echo "Usage: google_fluentd_ctl {start|stop}" ;;
+    echo "Usage: google-fluentd-ctl {start|stop}" ;;
 
 esac
