@@ -48,7 +48,7 @@ bosh -n deploy
 ```
 
 Once deployed:
-* the `google_fluentd` will act as a Syslog endpoint and will forward logs to [Stackdriver Logging](https://cloud.google.com/logging/)
+* the `google-fluentd` will act as a Syslog endpoint and will forward logs to [Stackdriver Logging](https://cloud.google.com/logging/)
 
 If you want to send all your Cloud Foundry component's logs to [Stackdriver Logging](https://cloud.google.com/logging/), configure your Cloud Foundry manifest adding (or updating):
 

@@ -1,5 +1,0 @@
-check process google_fluentd
-  with pidfile /var/vcap/sys/run/google_fluentd/google_fluentd.pid
-  start program "/var/vcap/jobs/google_fluentd/bin/google_fluentd_ctl start"
-  stop program "/var/vcap/jobs/google_fluentd/bin/google_fluentd_ctl stop"
-  group vcap
