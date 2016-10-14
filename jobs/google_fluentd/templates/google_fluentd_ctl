@@ -14,15 +14,15 @@ source /var/vcap/packages/google-fluentd/utils.sh
 case $1 in
 
   start)
-    pid_guard ${PIDFILE} "google_fluentd"
-
     mkdir -p ${RUN_DIR} ${LOG_DIR} ${POS_DIR}
+
+    pid_guard ${PIDFILE} "google_fluentd"
+    echo $$ > "${PIDFILE}"
 
     export PATH=/var/vcap/packages/google-fluentd/bin:${PATH}
 
     exec /var/vcap/packages/google-fluentd/bin/fluentd \
       --config /var/vcap/jobs/google_fluentd/config/google_fluentd.conf \
-      --daemon ${PIDFILE} \
       --no-supervisor \
       >>  ${LOG_DIR}/google_fluentd.stdout.log \
       2>> ${LOG_DIR}/google_fluentd.stderr.log

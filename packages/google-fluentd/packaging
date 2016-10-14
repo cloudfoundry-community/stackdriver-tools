@@ -23,7 +23,7 @@ pushd ${BOSH_COMPILE_TARGET}/ruby-2.3.0
   make install
 popd
 
-# Install Rubygemts
+# Install Rubygems
 tar xzfv ${BOSH_COMPILE_TARGET}/ruby/rubygems-2.6.2.tgz
 pushd ${BOSH_COMPILE_TARGET}/rubygems-2.6.2
   ${BOSH_INSTALL_TARGET}/bin/ruby setup.rb
@@ -32,9 +32,18 @@ popd
 # Install Bundler
 ${BOSH_INSTALL_TARGET}/bin/gem install ${BOSH_COMPILE_TARGET}/ruby/bundler-1.10.6.gem --no-ri --no-rdoc
 
+# Install Bundler cache
+pushd ${BOSH_COMPILE_TARGET}/google-fluentd-vendor
+  tar xvzf google-fluentd-vendor-0.14.tgz
+  mv vendor ${BOSH_INSTALL_TARGET}
+popd
+
 # Copy Google Fluentd
 cp -a ${BOSH_COMPILE_TARGET}/google-fluentd/* ${BOSH_INSTALL_TARGET}/
 
 # Install Google Fluentd
 cd ${BOSH_INSTALL_TARGET}
-${BOSH_INSTALL_TARGET}/bin/bundle install --local --deployment --binstubs --without development test
+
+echo "Running bundle"
+
+${BOSH_INSTALL_TARGET}/bin/bundle install --local --deployment --binstubs
