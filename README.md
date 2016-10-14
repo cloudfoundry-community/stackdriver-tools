@@ -72,7 +72,7 @@ release:
     version: "1"
 ```
 
-Collocate the `stackdriver_agent` job template in all job instances:
+Collocate the `stackdriver-agent` job template in all job instances:
 
 ```
 jobs:
@@ -82,11 +82,11 @@ jobs:
         release: cf
       - name: metron_agent
         release: cf
-      - name: stackdriver_agent
+      - name: stackdriver-agent
         release: gcp-tools
 ```
 
-Once deployed, the `stackdriver_agent` on every instance will send host metrics to [Stackdriver Monitoring](https://cloud.google.com/monitoring/).
+Once deployed, the `stackdriver-agent` on every instance will send host metrics to [Stackdriver Monitoring](https://cloud.google.com/monitoring/).
 
 ## Contributing
 

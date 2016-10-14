@@ -78,7 +78,7 @@ jobs:
       release: bosh-gcp-tools
     - name: google-fluentd
       release: bosh-gcp-tools
-    - name: stackdriver_agent
+    - name: stackdriver-agent
       release: bosh-gcp-tools
   properties:
     firehose:

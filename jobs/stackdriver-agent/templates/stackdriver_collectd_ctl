@@ -22,10 +22,10 @@
 # Description: The Stackdriver Agent is used with the Stackdriver monitoring SaaS service.
 ### END INIT INFO
 
-RUN_DIR=/var/vcap/sys/run/stackdriver_agent
-LOG_DIR=/var/vcap/sys/log/stackdriver_agent
+RUN_DIR=/var/vcap/sys/run/stackdriver-agent
+LOG_DIR=/var/vcap/sys/log/stackdriver-agent
 PKG_DIR=/var/vcap/packages/stackdriver-agent
-JOB_DIR=/var/vcap/jobs/stackdriver_agent
+JOB_DIR=/var/vcap/jobs/stackdriver-agent
 DETECT_GCM="yes"
 
 mkdir -p ${RUN_DIR} ${LOG_DIR}
