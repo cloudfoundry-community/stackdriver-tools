@@ -51,3 +51,7 @@ stackdriver-agent/stackdriver-agent_5.5.2-347.tgz:
   object_id: ba5064b6-9690-4757-8bc6-a1cf43d0f13f
   sha: 862df2ed4a2558086df9491231068075b2495026
   size: 1085047
+google-fluentd-vendor/google-fluentd-vendor-0.14.tgz:
+  object_id: 8e8f347b-208f-4d71-be3b-c347acccd833
+  sha: 9eb9504e3eef812eac7ea5e5f61a038c893544f4
+  size: 5099520
