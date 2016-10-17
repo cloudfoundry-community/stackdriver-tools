@@ -11,9 +11,7 @@ import (
 )
 
 const (
-	logId                = "cf_logs"
-	DefaultBatchCount    = "10"
-	DefaultBatchDuration = "1s"
+	logId = "cf_logs"
 )
 
 type LogAdapter interface {
@@ -41,16 +39,12 @@ func NewLogAdapter(projectID string, batchCount int, batchDuration time.Duration
 	)
 
 	return &logClient{
-		sdLogger:  sdLogger,
-		projectID: projectID,
-		logger:    logger,
+		sdLogger: sdLogger,
 	}, nil
 }
 
 type logClient struct {
-	sdLogger  *logging.Logger
-	projectID string
-	logger    lager.Logger
+	sdLogger *logging.Logger
 }
 
 func (s *logClient) PostLog(log *Log) {
