@@ -5,7 +5,6 @@ import (
 
 	"cloud.google.com/go/logging"
 	"github.com/cloudfoundry-community/gcp-tools-release/src/stackdriver-nozzle/version"
-	"github.com/cloudfoundry/lager"
 	"golang.org/x/net/context"
 	"google.golang.org/api/option"
 )
@@ -23,15 +22,13 @@ type Log struct {
 	Labels  map[string]string
 }
 
-func NewLogAdapter(projectID string, batchCount int, batchDuration time.Duration, logger lager.Logger) (LogAdapter, error) {
+func NewLogAdapter(projectID string, batchCount int, batchDuration time.Duration, onError func(error)) (LogAdapter, error) {
 	loggingClient, err := logging.NewClient(context.Background(), projectID, option.WithUserAgent(version.UserAgent))
 	if err != nil {
 		return nil, err
 	}
 
-	loggingClient.OnError = func(err error) {
-		logger.Fatal("stackdriverClientOnError", err)
-	}
+	loggingClient.OnError = onError
 
 	sdLogger := loggingClient.Logger(logId,
 		logging.EntryCountThreshold(batchCount),

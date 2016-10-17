@@ -33,7 +33,7 @@ func main() {
 		Password:          c.Password,
 		SkipSslValidation: c.SkipSSL}
 	cfClient := cfclient.NewClient(cfConfig)
-	fhClient := firehose.NewClient(cfConfig, cfClient, logger, c.SubscriptionID)
+	fhClient := firehose.NewClient(cfConfig, cfClient, c.SubscriptionID)
 
 	var cachingClient caching.Caching
 	if c.ResolveAppMetadata {
@@ -47,7 +47,7 @@ func main() {
 		c.ProjectID,
 		c.BatchCount,
 		time.Duration(c.BatchDuration)*time.Second,
-		logger,
+		func(err error) { logger.Fatal("stackdriverLogging", err) },
 	)
 	if err != nil {
 		logger.Fatal("newLogAdapter", err)

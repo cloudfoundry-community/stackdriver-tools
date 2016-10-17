@@ -4,10 +4,7 @@ import (
 	"crypto/tls"
 	"time"
 
-	"errors"
-
 	"github.com/cloudfoundry-community/go-cfclient"
-	"github.com/cloudfoundry/lager"
 	"github.com/cloudfoundry/noaa/consumer"
 	"github.com/cloudfoundry/sonde-go/events"
 )
@@ -23,15 +20,11 @@ type Client interface {
 type client struct {
 	cfConfig       *cfclient.Config
 	cfClient       *cfclient.Client
-	logger         lager.Logger
 	subscriptionID string
 }
 
-func NewClient(cfConfig *cfclient.Config, cfClient *cfclient.Client, logger lager.Logger, subscriptionID string) Client {
-	if cfConfig == nil || cfClient == nil {
-		logger.Fatal("firehoseClient", errors.New("cfClient and cfConfig required"))
-	}
-	return &client{cfConfig, cfClient, logger, subscriptionID}
+func NewClient(cfConfig *cfclient.Config, cfClient *cfclient.Client, subscriptionID string) Client {
+	return &client{cfConfig, cfClient, subscriptionID}
 }
 
 func (c *client) Connect() (<-chan *events.Envelope, <-chan error) {
