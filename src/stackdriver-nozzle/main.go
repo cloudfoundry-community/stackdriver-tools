@@ -14,22 +14,15 @@ import (
 	"github.com/cloudfoundry-community/gcp-tools-release/src/stackdriver-nozzle/stackdriver"
 	"github.com/cloudfoundry-community/go-cfclient"
 	"github.com/cloudfoundry/lager"
-	"github.com/kelseyhightower/envconfig"
 )
 
 func main() {
 	logger := lager.NewLogger("stackdriver-nozzle")
 	logger.RegisterSink(lager.NewWriterSink(os.Stdout, lager.DEBUG))
 
-	var c config.Config
-	err := envconfig.Process("", &c)
+	c, err := config.NewConfig()
 	if err != nil {
-		logger.Fatal("envconfig", err)
-	}
-
-	err = c.EnsureProjectID()
-	if err != nil {
-		logger.Fatal("gcpProjectID", err)
+		logger.Fatal("config", err)
 	}
 
 	logger.Info("arguments", c.ToData())

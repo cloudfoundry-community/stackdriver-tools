@@ -3,7 +3,23 @@ package config
 import (
 	"cloud.google.com/go/compute/metadata"
 	"github.com/cloudfoundry/lager"
+	"github.com/kelseyhightower/envconfig"
 )
+
+func NewConfig() (*Config, error) {
+	var c Config
+	err := envconfig.Process("", &c)
+	if err != nil {
+		return nil, err
+	}
+
+	err = c.ensureProjectID()
+	if err != nil {
+		return nil, err
+	}
+
+	return &c, nil
+}
 
 type Config struct {
 	// Firehose config
@@ -25,7 +41,7 @@ type Config struct {
 	SubscriptionID     string `envconfig:"subscription_id" default:"stackdriver-nozzle"`
 }
 
-func (c *Config) EnsureProjectID() error {
+func (c *Config) ensureProjectID() error {
 	if c.ProjectID != "" {
 		return nil
 	}
