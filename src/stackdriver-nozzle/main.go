@@ -55,12 +55,12 @@ func main() {
 
 	metricClient, err := stackdriver.NewMetricClient()
 	if err != nil {
-		logger.Fatal("newMetricClient", err)
+		logger.Fatal("metricClient", err)
 	}
 
 	metricAdapter, err := stackdriver.NewMetricAdapter(c.ProjectID, metricClient)
 	if err != nil {
-		logger.Fatal("newMetricAdapter", err)
+		logger.Fatal("metricAdapter", err)
 	}
 
 	metricBuffer, errs := stackdriver.NewMetricsBuffer(c.BatchCount, metricAdapter)
