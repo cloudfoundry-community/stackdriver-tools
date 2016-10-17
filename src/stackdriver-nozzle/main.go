@@ -43,15 +43,15 @@ func main() {
 	}
 	cachingClient.CreateBucket()
 
-	logAdapter, err := stackdriver.NewLogAdapter(
+	logAdapter, logErrs := stackdriver.NewLogAdapter(
 		c.ProjectID,
 		c.BatchCount,
 		time.Duration(c.BatchDuration)*time.Second,
-		func(err error) { logger.Fatal("stackdriverLogging", err) },
 	)
-	if err != nil {
-		logger.Fatal("newLogAdapter", err)
-	}
+	go func() {
+		err := <-logErrs
+		logger.Fatal("logAdapter", err)
+	}()
 
 	metricClient, err := stackdriver.NewMetricClient()
 	if err != nil {

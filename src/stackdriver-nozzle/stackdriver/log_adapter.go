@@ -22,13 +22,17 @@ type Log struct {
 	Labels  map[string]string
 }
 
-func NewLogAdapter(projectID string, batchCount int, batchDuration time.Duration, onError func(error)) (LogAdapter, error) {
+func NewLogAdapter(projectID string, batchCount int, batchDuration time.Duration) (LogAdapter, <-chan error) {
+	errs := make(chan error)
 	loggingClient, err := logging.NewClient(context.Background(), projectID, option.WithUserAgent(version.UserAgent))
 	if err != nil {
-		return nil, err
+		go func() { errs <- err }()
+		return nil, errs
 	}
 
-	loggingClient.OnError = onError
+	loggingClient.OnError = func(err error) {
+		errs <- err
+	}
 
 	sdLogger := loggingClient.Logger(logId,
 		logging.EntryCountThreshold(batchCount),
@@ -37,7 +41,7 @@ func NewLogAdapter(projectID string, batchCount int, batchDuration time.Duration
 
 	return &logClient{
 		sdLogger: sdLogger,
-	}, nil
+	}, errs
 }
 
 type logClient struct {
