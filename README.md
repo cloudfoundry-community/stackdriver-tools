@@ -86,9 +86,32 @@ jobs:
         release: gcp-tools
 ```
 
-Once deployed, the `stackdriver-agent` on every instance will send host metrics to [Stackdriver Monitoring](https://cloud.google.com/monitoring/).
+Once deployed, the `stackdriver-agent` on every instance will send host metrics to 
+[Stackdriver Monitoring](https://cloud.google.com/monitoring/).
 
-## Contributing
+## Development
+
+### Updating google-fluentd
+
+`google-fluentd` is versioned by the [Gemfile in src/google-fluentd][gemfile]. To update [fluentd][fluentd]:
+
+1. Update the version specifier in the Gemfile (if necessary)
+1. Update Gemfile.lock: `bundle update`
+1. Create a vendor cache from the Gemfile.lock: `bundle package`
+1. Tar and compress the vendor folder: `tar zvc vendor > google-fluentd-vendor-VERSION-NUMBER.tgz`
+1. Update the vendor version in the `google-fluentd` package [packaging][packaging] and [spec][spec]
+1. Add vendored cache to the BOSH blobstore: `bosh add blob google-fluentd-vendor-VERSION-NUMBER.tgz google-fluentd-vendor`
+1. [Create a dev release][dev-release] and deploy it to verify that all of the above worked
+1. Update the BOSH blobstore: `bosh upload blobs`
+1. Commit your changes
+
+[gemfile]: https://github.com/cloudfoundry-community/gcp-tools-release/blob/master/src/google-fluentd/Gemfile
+[fluentd]: https://github.com/fluent/fluentd
+[packaging]: https://github.com/cloudfoundry-community/gcp-tools-release/blob/master/packages/google-fluentd/packaging
+[spec]: https://github.com/cloudfoundry-community/gcp-tools-release/blob/master/packages/google-fluentd/spec
+[dev-release]: https://bosh.io/docs/create-release.html#dev-release
+
+### Contributing
 
 In the spirit of [free software](http://www.fsf.org/licensing/essays/free-sw.html), **everyone** is encouraged to help improve this project.
 

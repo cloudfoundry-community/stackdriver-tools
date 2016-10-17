@@ -78,10 +78,10 @@ PLATFORMS
   ruby
 
 DEPENDENCIES
-  fluent-plugin-google-cloud (~> 0.5)
-  fluentd (~> 0.14)
-  google-api-client (~> 0.9)
-  googleauth (~> 0.5)
+  fluent-plugin-google-cloud (~> 0.5.1)
+  fluentd (~> 0.14.8)
+  google-api-client (~> 0.9.15)
+  googleauth (~> 0.5.1)
 
 BUNDLED WITH
    1.13.3

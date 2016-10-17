@@ -1,6 +1,6 @@
 source 'https://rubygems.org'
 
-gem 'fluent-plugin-google-cloud', '~> 0.5'
-gem 'fluentd', '~> 0.14'
-gem 'google-api-client', '~> 0.9'
-gem 'googleauth', '~> 0.5'
+gem 'fluent-plugin-google-cloud', '~> 0.5.1'
+gem 'fluentd', '~> 0.14.8'
+gem 'google-api-client', '~> 0.9.15'
+gem 'googleauth', '~> 0.5.1'
