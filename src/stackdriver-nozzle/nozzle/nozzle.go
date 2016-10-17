@@ -21,7 +21,6 @@ func (e *PostMetricError) Error() string {
 }
 
 type Nozzle struct {
-	Firehose   firehose.Client
 	LogSink    Sink
 	MetricSink Sink
 
@@ -30,12 +29,12 @@ type Nozzle struct {
 	done chan struct{}
 }
 
-func (n *Nozzle) Start() (errs chan error, fhErrs <-chan error) {
+func (n *Nozzle) Start(fhClient firehose.Client) (errs chan error, fhErrs <-chan error) {
 	n.Heartbeater.Start()
 	n.done = make(chan struct{})
 
 	errs = make(chan error)
-	messages, fhErrs := n.Firehose.Connect()
+	messages, fhErrs := fhClient.Connect()
 	go func() {
 		for {
 			select {

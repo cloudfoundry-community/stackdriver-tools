@@ -28,12 +28,11 @@ var _ = Describe("Nozzle", func() {
 		heartbeater = &mockHeartbeater{}
 
 		subject = nozzle.Nozzle{
-			Firehose:    firehose,
 			LogSink:     logSink,
 			MetricSink:  metricSink,
 			Heartbeater: heartbeater,
 		}
-		errs, fhErrs = subject.Start()
+		errs, fhErrs = subject.Start(firehose)
 	})
 
 	It("starts the heartbeater", func() {
