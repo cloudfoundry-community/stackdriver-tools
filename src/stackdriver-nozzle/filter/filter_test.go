@@ -50,7 +50,6 @@ var _ = Describe("Filter", func() {
 		event := &events.Envelope{EventType: &eventType}
 		fhClient.Messages <- event
 		Eventually(messages).Should(Receive(Equal(event)))
-		Consistently(errs).ShouldNot(Receive())
 
 		go fhClient.SendEvents(
 			events.Envelope_HttpStart,
@@ -76,13 +75,11 @@ var _ = Describe("Filter", func() {
 		event := &events.Envelope{EventType: &eventType}
 		fhClient.Messages <- event
 		Eventually(messages).Should(Receive(Equal(event)))
-		Consistently(errs).ShouldNot(Receive())
 
 		eventType = events.Envelope_LogMessage
 		event = &events.Envelope{EventType: &eventType}
 		fhClient.Messages <- event
 		Eventually(messages).Should(Receive(Equal(event)))
-		Consistently(errs).ShouldNot(Receive())
 
 		go fhClient.SendEvents(
 			events.Envelope_HttpStart,
