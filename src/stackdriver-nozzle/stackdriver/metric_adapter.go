@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/golang/protobuf/ptypes/timestamp"
+	"github.com/pkg/errors"
 	labelpb "google.golang.org/genproto/googleapis/api/label"
 	metricpb "google.golang.org/genproto/googleapis/api/metric"
 	monitoringpb "google.golang.org/genproto/googleapis/monitoring/v3"
@@ -73,10 +74,7 @@ func (ma *metricAdapter) PostMetrics(metrics []Metric) error {
 	}
 
 	err := ma.client.Post(request)
-	//if (err != nil) {
-	//	fmt.Printf("%v", timeSerieses)
-	//}
-	//TODO: join envelope with the error
+	err = errors.Wrapf(err, "Request: %+v", request)
 	return err
 }
 
