@@ -23,6 +23,8 @@ func main() {
 	consumer := a.consumer()
 
 	errs, fhErrs := consumer.Start(producer)
+	defer consumer.Stop()
+
 	go func() {
 		for err := range errs {
 			a.logger.Error("nozzle", err)
@@ -31,7 +33,6 @@ func main() {
 
 	fatalErr := <-fhErrs
 	if fatalErr != nil {
-		consumer.Stop()
 		a.logger.Fatal("firehose", fatalErr)
 	}
 }
