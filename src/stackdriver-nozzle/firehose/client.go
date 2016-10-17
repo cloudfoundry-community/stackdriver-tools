@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"errors"
+
 	"github.com/cloudfoundry-community/go-cfclient"
 	"github.com/cloudfoundry/lager"
 	"github.com/cloudfoundry/noaa/consumer"
@@ -16,7 +17,7 @@ type FirehoseHandler interface {
 }
 
 type Client interface {
-	StartListening(FirehoseHandler) error
+	Connect() (<-chan *events.Envelope, <-chan error)
 }
 
 type client struct {
@@ -33,34 +34,22 @@ func NewClient(cfConfig *cfclient.Config, cfClient *cfclient.Client, logger lage
 	return &client{cfConfig, cfClient, logger, subscriptionID}
 }
 
-func (c *client) StartListening(fh FirehoseHandler) error {
+func (c *client) Connect() (<-chan *events.Envelope, <-chan error) {
 	cfConsumer := consumer.New(
 		c.cfClient.Endpoint.DopplerEndpoint,
 		&tls.Config{InsecureSkipVerify: c.cfConfig.SkipSslValidation},
 		nil)
 
-	refresher := CfClientTokenRefresh{cfClient: c.cfClient}
+	refresher := cfClientTokenRefresh{cfClient: c.cfClient}
 	cfConsumer.SetIdleTimeout(time.Duration(30) * time.Second)
 	cfConsumer.RefreshTokenFrom(&refresher)
-	messages, errs := cfConsumer.FirehoseWithoutReconnect(c.subscriptionID, "")
-
-	for {
-		select {
-		case envelope := <-messages:
-			err := fh.HandleEvent(envelope)
-			if err != nil {
-				c.logger.Error("handleEvent", err)
-			}
-		case err := <-errs:
-			return err
-		}
-	}
+	return cfConsumer.FirehoseWithoutReconnect(c.subscriptionID, "")
 }
 
-type CfClientTokenRefresh struct {
+type cfClientTokenRefresh struct {
 	cfClient *cfclient.Client
 }
 
-func (ct *CfClientTokenRefresh) RefreshAuthToken() (string, error) {
+func (ct *cfClientTokenRefresh) RefreshAuthToken() (string, error) {
 	return ct.cfClient.GetToken(), nil
 }

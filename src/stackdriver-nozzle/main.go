@@ -33,7 +33,7 @@ func main() {
 		Password:          c.Password,
 		SkipSslValidation: c.SkipSSL}
 	cfClient := cfclient.NewClient(cfConfig)
-	input := firehose.NewClient(cfConfig, cfClient, logger, c.SubscriptionID)
+	fhClient := firehose.NewClient(cfConfig, cfClient, logger, c.SubscriptionID)
 
 	var cachingClient caching.Caching
 	if c.ResolveAppMetadata {
@@ -76,22 +76,28 @@ func main() {
 	logHandler := nozzle.NewLogSink(labelMaker, logAdapter)
 	metricHandler := nozzle.NewMetricSink(labelMaker, metricBuffer, nozzle.NewUnitParser())
 
-	output := nozzle.Nozzle{
-		LogHandler:    logHandler,
-		MetricHandler: metricHandler,
-		Heartbeater:   heartbeater,
+	filteredFirehose, err := filter.New(fhClient, strings.Split(c.Events, ","))
+	if err != nil {
+		logger.Fatal("filter", err)
 	}
 
-	filteredOutput, err := filter.New(&output, strings.Split(c.Events, ","))
-	if err != nil {
-		logger.Fatal("newFilter", err)
+	nozz := nozzle.Nozzle{
+		Firehose:    filteredFirehose,
+		LogSink:     logHandler,
+		MetricSink:  metricHandler,
+		Heartbeater: heartbeater,
 	}
 
-	heartbeater.Start()
-	err = input.StartListening(filteredOutput)
-	heartbeater.Stop()
+	errs, fhErrs := nozz.Start()
+	go func() {
+		for err := range errs {
+			logger.Error("nozzle", err)
+		}
+	}()
 
-	if err != nil {
-		logger.Fatal("firehoseStart", err)
+	fatalErr := <-fhErrs
+	if fatalErr != nil {
+		nozz.Stop()
+		logger.Fatal("firehose", fatalErr)
 	}
 }
