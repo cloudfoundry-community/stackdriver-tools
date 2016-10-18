@@ -33,6 +33,15 @@ jobs:
       - put: version-semver
         params: {file: version-semver/number}
 
+      - task: make-semver-public
+        file: gcp-tools-release/ci/tasks/public-semver.yml
+        config:
+          params:
+            project_id: {{project_id}}
+            service_account_key_json: {{service_account_key_json}}
+            bucket_name: {{bucket_name}}
+            semver_key: beta/current-version
+
       - task: build-release
         file: gcp-tools-release/ci/tasks/build-candidate.yml
         on_failure:
@@ -101,19 +110,19 @@ resources:
     source:
       json_key: {{service_account_key_json}}
       bucket:   {{bucket_name}}
-      regexp:   gcp-tools-release([0-9]+\.[0-9]+\.[0-9]+)\.tgz
+      regexp:   beta/gcp-tools-release([0-9]+\.[0-9]+\.[0-9]+)\.tgz
 
   - name: gcp-tools-release-artifacts-sha1
     type: gcs-resource
     source:
       json_key: {{service_account_key_json}}
       bucket:   {{bucket_name}}
-      regexp:   gcp-tools-release([0-9]+\.[0-9]+\.[0-9]+)\.tgz.sha1
+      regexp:   beta/gcp-tools-release([0-9]+\.[0-9]+\.[0-9]+)\.tgz.sha1
 
   - name: version-semver
     type: semver
     source:
-      key:               current-version
+      key:               beta/current-version
       bucket:            {{bucket_name}}
       access_key_id:     {{bucket_access_key}}
       secret_access_key: {{bucket_secret_key}}
