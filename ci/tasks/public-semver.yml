@@ -5,6 +5,8 @@ image_resource:
   source:
     repository: lambr/gcp-tools
     tag: v3
+inputs:
+  - name: gcp-tools-release
 run:
   path: gcp-tools-release/ci/tasks/public-semver.sh
 params:
