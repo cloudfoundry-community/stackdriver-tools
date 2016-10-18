@@ -23,9 +23,7 @@ go get github.com/cloudfoundry-community/gcp-tools-release/src/stackdriver-nozzl
   valid events are `LogMessage`, `ValueMetric`, `CounterEvent`, `Error`,
   `ContainerMetric`, `HttpStart`, `HttpStop`, and `HttpStartStop`
 - `FIREHOSE_USERNAME` - CF username; defaults to `admin`
-  - requires
-    `scim.write,scim.read,openid,cloud_controller.admin_read_only,doppler.firehose`
-    permissions
+  - requires `doppler.firehose` and `cloud_controller.admin_read_only` permissions
 - `FIREHOSE_PASSWORD` - CF password; defaults to `password`
 - `FIREHOSE_SKIP_SSL` - whether to ignore SSL (please don't); defaults to
   `false`

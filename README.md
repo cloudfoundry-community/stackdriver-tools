@@ -94,7 +94,25 @@ jobs:
         release: gcp-tools
 ```
 
-Once deployed, the `stackdriver-agent` on every instance will send host metrics to [Stackdriver Monitoring][monitoring] s.
+Once deployed, the `stackdriver-agent` on every instance will send host metrics to [Stackdriver Monitoring][monitoring].
+
+### Deploying Stackdriver nozzle
+
+Create a new deployment manifest for the nozzle. See the [example manifest][tools-yaml] 
+for a full deployment and the `jobs.stackdriver-nozzle` section for the nozzle.
+
+To reduce message loss, operators should run a minimum of two instances. With two instances,
+updating stemcells and other destructive BOSH operations will still leave an instance
+draining logs.
+
+The [loggregator][loggregator] system will round-robin messages across multiple instances. If the
+nozzle can't handle the load, consider scaling to more than two nozzle instances.
+
+The [spec][spec] describes all the properties an operator should modify.
+
+
+[spec]: jobs/stackdriver-nozzle/spec
+[loggregator]: https://github.com/cloudfoundry/loggregator
 
 ## Development
 
@@ -106,7 +124,7 @@ Once deployed, the `stackdriver-agent` on every instance will send host metrics 
 1. Update Gemfile.lock: `bundle update`
 1. Create a vendor cache from the Gemfile.lock: `bundle package`
 1. Tar and compress the vendor folder: `tar zvc vendor > google-fluentd-vendor-VERSION-NUMBER.tgz`
-1. Update the vendor version in the `google-fluentd` package [packaging][packaging] and [spec][spec]
+1. Update the vendor version in the `google-fluentd` package [packaging][fluentd-packaging] and [spec][fluentd-spec]
 1. Add vendored cache to the BOSH blobstore: `bosh add blob google-fluentd-vendor-VERSION-NUMBER.tgz google-fluentd-vendor`
 1. [Create a dev release][dev-release] and deploy it to verify that all of the above worked
 1. Update the BOSH blobstore: `bosh upload blobs`
@@ -114,8 +132,8 @@ Once deployed, the `stackdriver-agent` on every instance will send host metrics 
 
 [gemfile]: https://github.com/cloudfoundry-community/gcp-tools-release/blob/master/src/google-fluentd/Gemfile
 [fluentd]: https://github.com/fluent/fluentd
-[packaging]: https://github.com/cloudfoundry-community/gcp-tools-release/blob/master/packages/google-fluentd/packaging
-[spec]: https://github.com/cloudfoundry-community/gcp-tools-release/blob/master/packages/google-fluentd/spec
+[fluentd-packaging]: https://github.com/cloudfoundry-community/gcp-tools-release/blob/master/packages/google-fluentd/packaging
+[fluentd-spec]: https://github.com/cloudfoundry-community/gcp-tools-release/blob/master/packages/google-fluentd/spec
 [dev-release]: https://bosh.io/docs/create-release.html#dev-release
 
 ### Contributing

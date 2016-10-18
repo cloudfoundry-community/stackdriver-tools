@@ -11,14 +11,14 @@ properties:
   firehose.endpoint:
     description: CF API endpoint
   firehose.username:
-    description: CF user (needs cloud_controller.admin or cloud_controller.admin_read_only)
+    description: CF user (requires doppler.firehose and cloud_controller.admin_read_only)
   firehose.password:
     description: Password for firehose.username
   firehose.skip_ssl:
     description: Skip SSL validation (for self signed certs, useful in dev environments)
     default: false
   firehose.events:
-    description: Whitelisted event types to send to Stackdriver (comma separated)
+    description: Whitelisted event types to send to Stackdriver (comma separated). Valid values include LogMessage,Error,HttpStartStop,CounterEvent,ValueMetric,ContainerMetric
     default: LogMessage,Error
 
   gcp.project_id:
