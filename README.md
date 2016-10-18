@@ -1,15 +1,18 @@
 # Google Cloud Platform Tools BOSH Release
 
-This is a [BOSH](http://bosh.io/) release for [Google Cloud Platform](https://cloud.google.com/) Tools:
+This is a [BOSH](http://bosh.io/) release for [Google Cloud Platform](https://cloud.google.com/) Tools. This release
+contains the following templates:
 
-* A template (collocate with other jobs) that forwards syslog messages to [Stackdriver Logging][logging] via [Fluentd][fluentd]
-* A template (collocate with other jobs) that sends VM health metrics to [Stackdriver Monitoring][monitoring] using the Stackdriver Agent
-* A job that forwards [Cloud Foundry Firehose][firehose] data to Stackdriver
+* [Fluentd][fluentd] for forwarding syslog and template logs to [Stackdriver Logging][logging]
+* The [Stackdriver Monitoring Agent][monitoring-agent] for sending VM health metrics to [Stackdriver Monitoring][monitoring]
+* A [stackdriver-nozzle][nozzle] for forwarding [Cloud Foundry Firehose][firehose] data to Stackdriver
 
 [monitoring]: https://cloud.google.com/monitoring/
 [fluentd]: http://www.fluentd.org/
+[monitoring-agent]: https://cloud.google.com/monitoring/agent/
 [logging]: https://cloud.google.com/logging/
 [firehose]: https://docs.cloudfoundry.org/loggregator/architecture.html#firehose
+[nozzle]: src/stackdriver-nozzle
 
 ## Disclaimer
 
@@ -17,7 +20,7 @@ This project is currently in **BETA**. Use in production at your own risk.
 
 ## Access Control
 
-The follow roles are required for the service account on each deployed instance:
+The following roles are required for the service account on each deployed instance:
 
  - `roles/logging.logWriter` to stream logs to Stackdriver Logging
  - `roles/logging.configWriter` to setup CloudFoundry specific metrics on Stackdriver Monitoring
@@ -32,8 +35,6 @@ To use Stackdriver Monitoring ensure the [Stackdriver Monitoring API][stackdrive
 
 ## Usage
 
-### Upload the BOSH release
-
 To use this BOSH release, first upload it to your BOSH:
 
 ```
@@ -41,16 +42,17 @@ bosh target BOSH_HOST
 bosh upload https://storage.googleapis.com/bosh-releases/gcp-tools-1.tgz
 ```
 
-### Deploying Stackdriver Logging
-
-Create a deployment file (use the [gcp-tools.yml][tools-yaml] example manifest file as a starting point).
-
-Using the previous created deployment manifest, now deploy it:
+See [manifests/gcp-tools.yml][tools-yaml] for a sample deployment manifest that can be used as a starting point.
 
 ```
-bosh deployment path/to/deployment.yml
+bosh deployment manifests/gcp-tools.yml 
 bosh -n deploy
 ```
+
+This will create a self-contained deployment that collects VM data from itself and CF data from the Firehose into
+Stackdriver.
+
+### Stackdriver Logging
 
 Once deployed:
 * the `google-fluentd` will act as a Syslog endpoint and will forward logs to [Stackdriver Logging][logging]
@@ -69,7 +71,7 @@ properties:
 
 [tools-yaml]: manifests/gcp-tools.yml
 
-### Deploying Stackdriver Monitoring
+### Stackdriver Monitoring
 
 Add the `gcp-tools` release to the `release` section of your existing deployment manifest:
 
@@ -96,7 +98,7 @@ jobs:
 
 Once deployed, the `stackdriver-agent` on every instance will send host metrics to [Stackdriver Monitoring][monitoring].
 
-### Deploying Stackdriver nozzle
+### stackdriver-nozzle
 
 Create a new deployment manifest for the nozzle. See the [example manifest][tools-yaml] 
 for a full deployment and the `jobs.stackdriver-nozzle` section for the nozzle.
@@ -109,7 +111,6 @@ The [loggregator][loggregator] system will round-robin messages across multiple 
 nozzle can't handle the load, consider scaling to more than two nozzle instances.
 
 The [spec][spec] describes all the properties an operator should modify.
-
 
 [spec]: jobs/stackdriver-nozzle/spec
 [loggregator]: https://github.com/cloudfoundry/loggregator
