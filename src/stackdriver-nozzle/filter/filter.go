@@ -2,41 +2,14 @@ package filter
 
 import (
 	"fmt"
-
 	"strings"
 
 	"github.com/cloudfoundry-community/gcp-tools-release/src/stackdriver-nozzle/firehose"
 	"github.com/cloudfoundry/sonde-go/events"
 )
 
-type filter struct {
-	dest    firehose.FirehoseHandler
-	enabled map[events.Envelope_EventType]bool
-}
-
-type invalidEvent struct {
-	name string
-}
-
-func parseEventName(name string) (events.Envelope_EventType, error) {
-	if eventId, ok := events.Envelope_EventType_value[name]; ok {
-		return events.Envelope_EventType(eventId), nil
-	}
-	return events.Envelope_Error, &invalidEvent{name: name}
-}
-
-func (ie *invalidEvent) Error() string {
-	eventNames := []string{}
-	for _, name := range events.Envelope_EventType_name {
-		eventNames = append(eventNames, name)
-	}
-	validEvents := strings.Join(eventNames, ",")
-
-	return fmt.Sprintf("invalid event '%s'; valid events: %s", ie.name, validEvents)
-}
-
-func New(dest firehose.FirehoseHandler, eventNames []string) (firehose.FirehoseHandler, error) {
-	f := filter{dest: dest, enabled: make(map[events.Envelope_EventType]bool)}
+func New(client firehose.Client, eventNames []string) (firehose.Client, error) {
+	f := filter{client: client, enabled: make(map[events.Envelope_EventType]bool)}
 
 	for _, eventName := range eventNames {
 		eventType, err := parseEventName(eventName)
@@ -51,9 +24,43 @@ func New(dest firehose.FirehoseHandler, eventNames []string) (firehose.FirehoseH
 	return &f, nil
 }
 
-func (f *filter) HandleEvent(envelope *events.Envelope) error {
-	if !f.enabled[envelope.GetEventType()] {
-		return nil
+type filter struct {
+	client  firehose.Client
+	enabled map[events.Envelope_EventType]bool
+}
+
+func (f *filter) Connect() (<-chan *events.Envelope, <-chan error) {
+	filteredMessages := make(chan *events.Envelope)
+	messages, errs := f.client.Connect()
+
+	go func() {
+		for envelope := range messages {
+			if f.enabled[envelope.GetEventType()] {
+				filteredMessages <- envelope
+			}
+		}
+	}()
+
+	return filteredMessages, errs
+}
+
+func parseEventName(name string) (events.Envelope_EventType, error) {
+	if eventId, ok := events.Envelope_EventType_value[name]; ok {
+		return events.Envelope_EventType(eventId), nil
 	}
-	return f.dest.HandleEvent(envelope)
+	return events.Envelope_Error, &invalidEvent{name: name}
+}
+
+type invalidEvent struct {
+	name string
+}
+
+func (ie *invalidEvent) Error() string {
+	eventNames := []string{}
+	for _, name := range events.Envelope_EventType_name {
+		eventNames = append(eventNames, name)
+	}
+	validEvents := strings.Join(eventNames, ",")
+
+	return fmt.Sprintf("invalid event '%s'; valid events: %s", ie.name, validEvents)
 }

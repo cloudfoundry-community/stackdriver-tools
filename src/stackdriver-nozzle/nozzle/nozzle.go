@@ -3,6 +3,7 @@ package nozzle
 import (
 	"strings"
 
+	"github.com/cloudfoundry-community/gcp-tools-release/src/stackdriver-nozzle/firehose"
 	"github.com/cloudfoundry-community/gcp-tools-release/src/stackdriver-nozzle/heartbeat"
 	"github.com/cloudfoundry/sonde-go/events"
 )
@@ -20,17 +21,48 @@ func (e *PostMetricError) Error() string {
 }
 
 type Nozzle struct {
-	LogHandler    Sink
-	MetricHandler Sink
-	Heartbeater   heartbeat.Heartbeater
+	LogSink    Sink
+	MetricSink Sink
+
+	Heartbeater heartbeat.Heartbeater
+
+	done chan struct{}
 }
 
-func (n *Nozzle) HandleEvent(envelope *events.Envelope) error {
+func (n *Nozzle) Start(fhClient firehose.Client) (errs chan error, fhErrs <-chan error) {
+	n.Heartbeater.Start()
+	n.done = make(chan struct{})
+
+	errs = make(chan error)
+	messages, fhErrs := fhClient.Connect()
+	go func() {
+		for {
+			select {
+			case envelope := <-messages:
+				err := n.handleEvent(envelope)
+				if err != nil {
+					errs <- err
+				}
+			case <-n.done:
+				return
+			}
+		}
+	}()
+
+	return errs, fhErrs
+}
+
+func (n *Nozzle) Stop() {
+	n.Heartbeater.Stop()
+	n.done <- struct{}{}
+}
+
+func (n *Nozzle) handleEvent(envelope *events.Envelope) error {
 	var handler Sink
 	if isLog(envelope) {
-		handler = n.LogHandler
+		handler = n.LogSink
 	} else {
-		handler = n.MetricHandler
+		handler = n.MetricSink
 	}
 
 	n.Heartbeater.AddCounter()

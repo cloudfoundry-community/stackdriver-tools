@@ -2,7 +2,7 @@ package filter_test
 
 import (
 	"github.com/cloudfoundry-community/gcp-tools-release/src/stackdriver-nozzle/filter"
-	"github.com/cloudfoundry-community/gcp-tools-release/src/stackdriver-nozzle/firehose"
+	"github.com/cloudfoundry-community/gcp-tools-release/src/stackdriver-nozzle/mocks"
 	"github.com/cloudfoundry/sonde-go/events"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -10,83 +10,94 @@ import (
 
 var _ = Describe("Filter", func() {
 	var (
-		mockFirehoseHandler MockFirehoseHandler
+		fhClient *mocks.FirehoseClient
 	)
 
 	BeforeEach(func() {
-		mockFirehoseHandler = MockFirehoseHandler{}
+		fhClient = mocks.NewFirehoseClient()
 	})
 
 	It("can accept an empty filter and blocks all events", func() {
 		emptyFilter := []string{}
-		f, err := filter.New(&mockFirehoseHandler, emptyFilter)
+		f, err := filter.New(fhClient, emptyFilter)
 		Expect(err).To(BeNil())
 		Expect(f).NotTo(BeNil())
+		messages, errs := f.Connect()
 
-		SendAllEvents(f)
-		Expect(mockFirehoseHandler.HandleEventCalls).To(Equal(0))
+		go fhClient.SendEvents(
+			events.Envelope_HttpStart,
+			events.Envelope_HttpStop,
+			events.Envelope_HttpStartStop,
+			events.Envelope_LogMessage,
+			events.Envelope_ValueMetric,
+			events.Envelope_CounterEvent,
+			events.Envelope_Error,
+			events.Envelope_ContainerMetric,
+		)
+
+		Consistently(messages).ShouldNot(Receive())
+		Consistently(errs).ShouldNot(Receive())
 	})
 
 	It("can accept a single event to filter", func() {
 		singleFilter := []string{"Error"}
-		f, err := filter.New(&mockFirehoseHandler, singleFilter)
+		f, err := filter.New(fhClient, singleFilter)
 		Expect(err).To(BeNil())
 		Expect(f).NotTo(BeNil())
+		messages, errs := f.Connect()
 
-		mockFirehoseHandler.HandleEventFn = func(envelope *events.Envelope) error {
-			Expect(envelope.GetEventType()).To(Equal(events.Envelope_Error))
-			return nil
-		}
+		eventType := events.Envelope_Error
+		event := &events.Envelope{EventType: &eventType}
+		fhClient.Messages <- event
+		Eventually(messages).Should(Receive(Equal(event)))
 
-		SendAllEvents(f)
-		Expect(mockFirehoseHandler.HandleEventCalls).To(Equal(1))
+		go fhClient.SendEvents(
+			events.Envelope_HttpStart,
+			events.Envelope_HttpStop,
+			events.Envelope_HttpStartStop,
+			events.Envelope_LogMessage,
+			events.Envelope_ValueMetric,
+			events.Envelope_CounterEvent,
+			events.Envelope_ContainerMetric,
+		)
+		Consistently(messages).ShouldNot(Receive())
+		Consistently(errs).ShouldNot(Receive())
 	})
 
 	It("can accept multiple events to filter", func() {
 		multiFilter := []string{"Error", "LogMessage"}
-		multiFilterTyped := []events.Envelope_EventType{events.Envelope_Error, events.Envelope_LogMessage}
-		f, err := filter.New(&mockFirehoseHandler, multiFilter)
+		f, err := filter.New(fhClient, multiFilter)
 		Expect(err).To(BeNil())
 		Expect(f).NotTo(BeNil())
+		messages, errs := f.Connect()
 
-		mockFirehoseHandler.HandleEventFn = func(envelope *events.Envelope) error {
-			Expect(multiFilterTyped).To(ContainElement(envelope.GetEventType()))
-			return nil
-		}
+		eventType := events.Envelope_Error
+		event := &events.Envelope{EventType: &eventType}
+		fhClient.Messages <- event
+		Eventually(messages).Should(Receive(Equal(event)))
 
-		SendAllEvents(f)
-		Expect(mockFirehoseHandler.HandleEventCalls).To(Equal(2))
+		eventType = events.Envelope_LogMessage
+		event = &events.Envelope{EventType: &eventType}
+		fhClient.Messages <- event
+		Eventually(messages).Should(Receive(Equal(event)))
+
+		go fhClient.SendEvents(
+			events.Envelope_HttpStart,
+			events.Envelope_HttpStop,
+			events.Envelope_HttpStartStop,
+			events.Envelope_ValueMetric,
+			events.Envelope_CounterEvent,
+			events.Envelope_ContainerMetric,
+		)
+		Consistently(messages).ShouldNot(Receive())
+		Consistently(errs).ShouldNot(Receive())
+
 	})
 
 	It("rejects invalid events", func() {
 		invalidFilter := []string{"Error", "FakeEvent111"}
-		f, err := filter.New(&mockFirehoseHandler, invalidFilter)
+		f, err := filter.New(fhClient, invalidFilter)
 		Expect(err).NotTo(BeNil())
 		Expect(f).To(BeNil())
 	})
 })
-
-func SendAllEvents(filter firehose.FirehoseHandler) {
-	for _, val := range events.Envelope_EventType_value {
-		eventType := events.Envelope_EventType(val)
-		event := events.Envelope{}
-		event.EventType = &eventType
-
-		filter.HandleEvent(&event)
-	}
-}
-
-type MockFirehoseHandler struct {
-	HandleEventFn    func(envelope *events.Envelope) error
-	HandleEventCalls int
-}
-
-func (mfh *MockFirehoseHandler) HandleEvent(envelope *events.Envelope) error {
-	mfh.HandleEventCalls += 1
-	if mfh.HandleEventFn != nil {
-		return mfh.HandleEventFn(envelope)
-	} else {
-		Fail("Unexpected call to HandleEvent")
-	}
-	return nil
-}

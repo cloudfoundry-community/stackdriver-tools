@@ -17,6 +17,27 @@ import (
 )
 
 func main() {
+	a := newApp()
+
+	producer := a.producer()
+	consumer := a.consumer()
+
+	errs, fhErrs := consumer.Start(producer)
+	defer consumer.Stop()
+
+	go func() {
+		for err := range errs {
+			a.logger.Error("nozzle", err)
+		}
+	}()
+
+	fatalErr := <-fhErrs
+	if fatalErr != nil {
+		a.logger.Fatal("firehose", fatalErr)
+	}
+}
+
+func newApp() *app {
 	logger := lager.NewLogger("stackdriver-nozzle")
 	logger.RegisterSink(lager.NewWriterSink(os.Stdout, lager.DEBUG))
 
@@ -33,7 +54,6 @@ func main() {
 		Password:          c.Password,
 		SkipSslValidation: c.SkipSSL}
 	cfClient := cfclient.NewClient(cfConfig)
-	input := firehose.NewClient(cfConfig, cfClient, logger, c.SubscriptionID)
 
 	var cachingClient caching.Caching
 	if c.ResolveAppMetadata {
@@ -42,56 +62,78 @@ func main() {
 		cachingClient = caching.NewCachingEmpty()
 	}
 	cachingClient.CreateBucket()
+	labelMaker := nozzle.NewLabelMaker(cachingClient)
 
-	logAdapter, err := stackdriver.NewLogAdapter(
-		c.ProjectID,
-		c.BatchCount,
-		time.Duration(c.BatchDuration)*time.Second,
-		logger,
-	)
+	return &app{
+		logger:     logger,
+		c:          c,
+		cfConfig:   cfConfig,
+		cfClient:   cfClient,
+		labelMaker: labelMaker,
+	}
+}
+
+type app struct {
+	logger     lager.Logger
+	c          *config.Config
+	cfConfig   *cfclient.Config
+	cfClient   *cfclient.Client
+	labelMaker nozzle.LabelMaker
+}
+
+func (a *app) producer() firehose.Client {
+	fhClient := firehose.NewClient(a.cfConfig, a.cfClient, a.c.SubscriptionID)
+
+	producer, err := filter.New(fhClient, strings.Split(a.c.Events, ","))
 	if err != nil {
-		logger.Fatal("newLogAdapter", err)
+		a.logger.Fatal("filter", err)
 	}
 
+	return producer
+}
+
+func (a *app) consumer() *nozzle.Nozzle {
+	trigger := time.NewTicker(time.Duration(a.c.HeartbeatRate) * time.Second).C
+	heartbeater := heartbeat.NewHeartbeat(a.logger, trigger)
+
+	return &nozzle.Nozzle{
+		LogSink:     a.logSink(),
+		MetricSink:  a.metricSink(),
+		Heartbeater: heartbeater,
+	}
+}
+
+func (a *app) logSink() nozzle.Sink {
+	logAdapter, logErrs := stackdriver.NewLogAdapter(
+		a.c.ProjectID,
+		a.c.BatchCount,
+		time.Duration(a.c.BatchDuration)*time.Second,
+	)
+	go func() {
+		err := <-logErrs
+		a.logger.Fatal("logAdapter", err)
+	}()
+
+	return nozzle.NewLogSink(a.labelMaker, logAdapter)
+}
+
+func (a *app) metricSink() nozzle.Sink {
 	metricClient, err := stackdriver.NewMetricClient()
 	if err != nil {
-		logger.Fatal("newMetricClient", err)
+		a.logger.Fatal("metricClient", err)
 	}
 
-	metricAdapter, err := stackdriver.NewMetricAdapter(c.ProjectID, metricClient)
+	metricAdapter, err := stackdriver.NewMetricAdapter(a.c.ProjectID, metricClient)
 	if err != nil {
-		logger.Fatal("newMetricAdapter", err)
+		a.logger.Fatal("metricAdapter", err)
 	}
 
-	metricBuffer, errs := stackdriver.NewMetricsBuffer(c.BatchCount, metricAdapter)
+	metricBuffer, errs := stackdriver.NewMetricsBuffer(a.c.BatchCount, metricAdapter)
 	go func() {
 		for err = range errs {
-			logger.Error("metricsBuffer", err)
+			a.logger.Error("metricsBuffer", err)
 		}
 	}()
 
-	trigger := time.NewTicker(time.Duration(c.HeartbeatRate) * time.Second).C
-	heartbeater := heartbeat.NewHeartbeat(logger, trigger)
-	labelMaker := nozzle.NewLabelMaker(cachingClient)
-	logHandler := nozzle.NewLogSink(labelMaker, logAdapter)
-	metricHandler := nozzle.NewMetricSink(labelMaker, metricBuffer, nozzle.NewUnitParser())
-
-	output := nozzle.Nozzle{
-		LogHandler:    logHandler,
-		MetricHandler: metricHandler,
-		Heartbeater:   heartbeater,
-	}
-
-	filteredOutput, err := filter.New(&output, strings.Split(c.Events, ","))
-	if err != nil {
-		logger.Fatal("newFilter", err)
-	}
-
-	heartbeater.Start()
-	err = input.StartListening(filteredOutput)
-	heartbeater.Stop()
-
-	if err != nil {
-		logger.Fatal("firehoseStart", err)
-	}
+	return nozzle.NewMetricSink(a.labelMaker, metricBuffer, nozzle.NewUnitParser())
 }
