@@ -10,5 +10,6 @@ templates:
   fluentd.conf: config/config.d/fluentd.conf
   syslog.conf: config/config.d/syslog.conf
   syslog_endpoint.conf: config/config.d/syslog_endpoint.conf
+  vcap.conf: config/config.d/vcap.conf
 
 properties: {}
