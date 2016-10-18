@@ -2,15 +2,18 @@
 
 This is a [BOSH](http://bosh.io/) release for [Google Cloud Platform](https://cloud.google.com/) Tools:
 
-* A job acting as a Syslog endpoint to send platform logs to [Stackdriver Logging](https://cloud.google.com/logging/)
-* A job that forwards [Cloud Foundry Firehose](https://docs.cloudfoundry.org/loggregator/architecture.html#firehose) event data (including application logs) to [Stackdriver Logging](https://cloud.google.com/logging/)
-* A job (to be collocated with other jobs) to send host metrics to [Stackdriver Monitoring](https://cloud.google.com/monitoring/)
+* A template (collocate with other jobs) that forwards syslog messages to [Stackdriver Logging][logging] via [Fluentd][fluentd]
+* A template (collocate with other jobs) that sends VM health metrics to [Stackdriver Monitoring][monitoring] using the Stackdriver Agent
+* A job that forwards [Cloud Foundry Firehose][firehose] data to Stackdriver
+
+[monitoring]: https://cloud.google.com/monitoring/
+[fluentd]: http://www.fluentd.org/
+[logging]: https://cloud.google.com/logging/
+[firehose]: https://docs.cloudfoundry.org/loggregator/architecture.html#firehose
 
 ## Disclaimer
 
-** This BOSH release can only be deployed to [Google Cloud Platform](https://cloud.google.com/)**
-
-This is NOT presently a production ready BOSH release. This is just a Proof of Concept. It is suitable for experimentation and may not become supported in the future.
+This project is currently in **BETA**. Use in production at your own risk.
 
 ## Access Control
 
@@ -23,7 +26,9 @@ See the [access control documentation](https://cloud.google.com/logging/docs/acc
 
 ## Enabled Services
 
-To use Stackdriver Monitoring ensure the [Stackdriver Monitoring API](https://console.developers.google.com/apis/api/monitoring.googleapis.com/overview) is enabled.
+To use Stackdriver Monitoring ensure the [Stackdriver Monitoring API][stackdriver_api] is enabled.
+
+[stackdriver_api]: https://console.developers.google.com/apis/api/monitoring.googleapis.com/overview
 
 ## Usage
 
@@ -38,7 +43,7 @@ bosh upload https://storage.googleapis.com/bosh-releases/gcp-tools-1.tgz
 
 ### Deploying Stackdriver Logging
 
-Create a deployment file (use the [gcp-tools.yml](https://github.com.evandbrown/gcp-tools-release/blob/master/manifests/gcp-tools.yml) example manifest file as a starting point).
+Create a deployment file (use the [gcp-tools.yml][tools-yaml] example manifest file as a starting point).
 
 Using the previous created deployment manifest, now deploy it:
 
@@ -48,9 +53,10 @@ bosh -n deploy
 ```
 
 Once deployed:
-* the `google-fluentd` will act as a Syslog endpoint and will forward logs to [Stackdriver Logging](https://cloud.google.com/logging/)
+* the `google-fluentd` will act as a Syslog endpoint and will forward logs to [Stackdriver Logging][logging]
 
-If you want to send all your Cloud Foundry component's logs to [Stackdriver Logging](https://cloud.google.com/logging/), configure your Cloud Foundry manifest adding (or updating):
+If you want to send all your Cloud Foundry component's logs to [Stackdriver Logging][logging], configure your Cloud
+Foundry manifest adding (or updating):
 
 ```
 properties:
@@ -60,6 +66,8 @@ properties:
     port: 514
     transport: udp
 ```
+
+[tools-yaml]: manifests/gcp-tools.yml
 
 ### Deploying Stackdriver Monitoring
 
@@ -86,8 +94,7 @@ jobs:
         release: gcp-tools
 ```
 
-Once deployed, the `stackdriver-agent` on every instance will send host metrics to 
-[Stackdriver Monitoring](https://cloud.google.com/monitoring/).
+Once deployed, the `stackdriver-agent` on every instance will send host metrics to [Stackdriver Monitoring][monitoring] s.
 
 ## Development
 
@@ -113,23 +120,29 @@ Once deployed, the `stackdriver-agent` on every instance will send host metrics 
 
 ### Contributing
 
-In the spirit of [free software](http://www.fsf.org/licensing/essays/free-sw.html), **everyone** is encouraged to help improve this project.
+In the spirit of [free software][free-sw], **everyone** is encouraged to help improve this project.
+
+[free-sw]: http://www.fsf.org/licensing/essays/free-sw.html
 
 Here are some ways *you* can contribute:
 
-* by using alpha, beta, and prerelease versions
+* by using alpha, beta, and pre-release versions
 * by reporting bugs
 * by suggesting new features
 * by writing or editing documentation
-* by writing specifications
+* by writing tests
 * by writing code (**no patch is too small**: fix typos, add comments, clean up inconsistent whitespace)
-* by refactoring code
-* by closing [issues](https://github.com.evandbrown/gcp-tools-release/issues)
 * by reviewing patches
 
 ### Submitting an Issue
 
-We use the [GitHub issue tracker](https://github.com.evandbrown/gcp-tools-release/issues) to track bugs and features. Before submitting a bug report or feature request, check to make sure it hasn't already been submitted. You can indicate support for an existing issue by voting it up. When submitting a bug report, please include a [Gist](http://gist.github.com/) that includes a stack trace and any details that may be necessary to reproduce the bug,. Ideally, a bug report should include a pull request with failing specs.
+We use the [GitHub issue tracker][issues] to track bugs and features. Before submitting a bug report or feature request,
+check to make sure it hasn't already been submitted. You can indicate support for an existing issue by voting it up.
+When submitting a bug report, please include a [Gist](http://gist.github.com/) that includes a stack trace and any
+details that may be necessary to reproduce the bug,. Ideally, a bug report should include a pull request with failing
+specs.
+
+[issues]: https://github.com/cloudfoundry-community/gcp-tools-release/issues
 
 ### Submitting a Pull Request
 
