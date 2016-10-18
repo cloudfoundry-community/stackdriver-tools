@@ -19,8 +19,8 @@ import (
 func main() {
 	a := newApp()
 
-	producer := a.producer()
-	consumer := a.consumer()
+	producer := a.newProducer()
+	consumer := a.newConsumer()
 
 	errs, fhErrs := consumer.Start(producer)
 	defer consumer.Stop()
@@ -81,7 +81,7 @@ type app struct {
 	labelMaker nozzle.LabelMaker
 }
 
-func (a *app) producer() firehose.Client {
+func (a *app) newProducer() firehose.Client {
 	fhClient := firehose.NewClient(a.cfConfig, a.cfClient, a.c.SubscriptionID)
 
 	producer, err := filter.New(fhClient, strings.Split(a.c.Events, ","))
@@ -92,18 +92,18 @@ func (a *app) producer() firehose.Client {
 	return producer
 }
 
-func (a *app) consumer() *nozzle.Nozzle {
+func (a *app) newConsumer() *nozzle.Nozzle {
 	trigger := time.NewTicker(time.Duration(a.c.HeartbeatRate) * time.Second).C
 	heartbeater := heartbeat.NewHeartbeat(a.logger, trigger)
 
 	return &nozzle.Nozzle{
-		LogSink:     a.logSink(),
-		MetricSink:  a.metricSink(),
+		LogSink:     a.newLogSink(),
+		MetricSink:  a.newMetricSink(),
 		Heartbeater: heartbeater,
 	}
 }
 
-func (a *app) logSink() nozzle.Sink {
+func (a *app) newLogSink() nozzle.Sink {
 	logAdapter, logErrs := stackdriver.NewLogAdapter(
 		a.c.ProjectID,
 		a.c.BatchCount,
@@ -117,7 +117,7 @@ func (a *app) logSink() nozzle.Sink {
 	return nozzle.NewLogSink(a.labelMaker, logAdapter)
 }
 
-func (a *app) metricSink() nozzle.Sink {
+func (a *app) newMetricSink() nozzle.Sink {
 	metricClient, err := stackdriver.NewMetricClient()
 	if err != nil {
 		a.logger.Fatal("metricClient", err)
@@ -125,7 +125,7 @@ func (a *app) metricSink() nozzle.Sink {
 
 	metricAdapter, err := stackdriver.NewMetricAdapter(a.c.ProjectID, metricClient)
 	if err != nil {
-		a.logger.Fatal("metricAdapter", err)
+		a.logger.Error("metricAdapter", err)
 	}
 
 	metricBuffer, errs := stackdriver.NewMetricsBuffer(a.c.BatchCount, metricAdapter)

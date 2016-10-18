@@ -3,6 +3,7 @@ package stackdriver_test
 import (
 	"time"
 
+	"errors"
 	"github.com/cloudfoundry-community/gcp-tools-release/src/stackdriver-nozzle/stackdriver"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -157,11 +158,20 @@ var _ = Describe("MetricAdapter", func() {
 			return callCount
 		}).Should(Equal(5))
 	})
+
+	It("returns the adapter even if we fail to list the metric descriptors", func() {
+		expectedErr := errors.New("fail")
+		client.listErr = expectedErr
+		subject, err := stackdriver.NewMetricAdapter("my-awesome-project", client)
+		Expect(subject).To(Not(BeNil()))
+		Expect(err).To(Equal(expectedErr))
+	})
 })
 
 type mockClient struct {
 	metricReqs     []*monitoringpb.CreateTimeSeriesRequest
 	descriptorReqs []*monitoringpb.CreateMetricDescriptorRequest
+	listErr        error
 
 	CreateMetricDescriptorFn func(request *monitoringpb.CreateMetricDescriptorRequest) error
 }
@@ -180,6 +190,9 @@ func (mc *mockClient) CreateMetricDescriptor(request *monitoringpb.CreateMetricD
 }
 
 func (mc *mockClient) ListMetricDescriptors(request *monitoringpb.ListMetricDescriptorsRequest) ([]*metricpb.MetricDescriptor, error) {
+	if mc.listErr != nil {
+		return nil, mc.listErr
+	}
 	return []*metricpb.MetricDescriptor{
 		{Name: "anExistingMetric"},
 	}, nil

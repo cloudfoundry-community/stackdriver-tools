@@ -5,12 +5,13 @@ import (
 	"path"
 	"time"
 
+	"sync"
+
 	"github.com/golang/protobuf/ptypes/timestamp"
 	"github.com/pkg/errors"
 	labelpb "google.golang.org/genproto/googleapis/api/label"
 	metricpb "google.golang.org/genproto/googleapis/api/metric"
 	monitoringpb "google.golang.org/genproto/googleapis/monitoring/v3"
-	"sync"
 )
 
 type Metric struct {
@@ -37,14 +38,11 @@ func NewMetricAdapter(projectID string, client MetricClient) (MetricAdapter, err
 		projectID:             projectID,
 		client:                client,
 		createDescriptorMutex: &sync.Mutex{},
+		descriptors:           map[string]struct{}{},
 	}
 
 	err := ma.fetchMetricDescriptorNames()
-	if err != nil {
-		return nil, err
-	}
-
-	return ma, nil
+	return ma, err
 }
 
 func (ma *metricAdapter) PostMetrics(metrics []Metric) error {
@@ -119,7 +117,6 @@ func (ma *metricAdapter) fetchMetricDescriptorNames() error {
 		return err
 	}
 
-	ma.descriptors = map[string]struct{}{}
 	for _, descriptor := range descriptors {
 		ma.descriptors[descriptor.Name] = struct{}{}
 	}
