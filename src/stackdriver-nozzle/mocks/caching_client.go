@@ -31,7 +31,7 @@ func (c *CachingClient) GetAllApp() []caching.App {
 }
 
 func (c *CachingClient) GetAppInfo(appGuid string) caching.App {
-	return c.AppInfo[appGuid]
+	panic("unexpected")
 }
 
 func (c *CachingClient) Close() {
@@ -39,5 +39,5 @@ func (c *CachingClient) Close() {
 }
 
 func (c *CachingClient) GetAppInfoCache(appGuid string) caching.App {
-	panic("unexpected")
+	return c.AppInfo[appGuid]
 }

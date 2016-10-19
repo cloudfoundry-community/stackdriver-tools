@@ -58,7 +58,7 @@ func (lm *labelMaker) getApplicationId(envelope *events.Envelope) string {
 }
 
 func (lm *labelMaker) buildAppMetadataLabels(appId string, labels map[string]string, envelope *events.Envelope) {
-	app := lm.cachingClient.GetAppInfo(appId)
+	app := lm.cachingClient.GetAppInfoCache(appId)
 
 	if app.Name != "" {
 		labels["appName"] = app.Name

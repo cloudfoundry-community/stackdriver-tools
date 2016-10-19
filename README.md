@@ -36,6 +36,18 @@ Monitoring][monitoring_api] APIs are enabled.
 [logging_api]:    https://console.developers.google.com/apis/api/logging.googleapis.com/overview
 [monitoring_api]: https://console.developers.google.com/apis/api/monitoring.googleapis.com/overview
 
+#### Quotas
+
+Depending on the size of the cloud foundry deployment and which events the nozzle is forwarding,
+it can be quite easy to reach the default Stackdriver quotas:
+
+* [Monitoring Quota](https://cloud.google.com/monitoring/quota-policy)
+* [Logging Quota](https://cloud.google.com/logging/quota-policy)
+
+Google quotas can be viewed and managed on the [API Quotas Page](https://console.cloud.google.com/iam-admin/quotas).
+An operator can increase the default quota up to a limit; exceeding that, use the contact
+links to request even higher quotas.
+
 ### Create and configure service accounts
 
 All of the jobs in this release authenticate to Stackdriver Logging and
@@ -233,7 +245,7 @@ bosh deploy
 
 ## Contributing
 For detailes on how to contribute to this project - including filing bug reports
-and contributing code changes - pleasee see [CONTRIBUTING.md].
+and contributing code changes - please see [CONTRIBUTING.md].
 
 ## Copyright
 Copyright (c) 2016 Ferran Rodenas. See
