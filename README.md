@@ -179,6 +179,32 @@ jobs:
   ...
 ```
 
+## Deploying as a BOSH addon
+Specify the jobs as addons in your [runtime config](https://bosh.io/docs/runtime-config.html) to deploy Stackdriver Monitoring and Logging agents on all instances in your deployment. Do not specify the jobs as part of your deployment manifest if you are using the runtime config.
+
+```
+# runtime.yml
+---
+releases:
+  - name: bosh-gcp-tools
+    version: latest
+
+addons:
+- name: gcp-tools
+  jobs:
+  - name: google-fluentd
+    release: bosh-gcp-tools
+  - name: stackdriver-agent
+    release: bosh-gcp-tools
+```
+
+To deploy the runtime config:
+
+```
+bosh update runtime-config runtime.yml
+bosh deploy
+```
+
 ## Development
 
 ### Updating google-fluentd
