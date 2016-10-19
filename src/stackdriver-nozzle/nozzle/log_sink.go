@@ -51,6 +51,7 @@ func (ls *logSink) buildPayload(envelope *events.Envelope) interface{} {
 			// fields we pass to Stackdriver are camelCased. We arbitrarily chose
 			// to remain consistent with the protobuf.
 			logMessageMap["message_type"] = logMessage.GetMessageType().String()
+			logMessageMap["message"] = string(logMessage.GetMessage())
 			envelopeMap["logMessage"] = logMessageMap
 		}
 	case events.Envelope_HttpStartStop:
