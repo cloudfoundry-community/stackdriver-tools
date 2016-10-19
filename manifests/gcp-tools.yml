@@ -9,7 +9,7 @@ zone = ""
 network_name = ""
 subnetwork_name = ""
 %>
-name: stackdriver-nozzle-wtf
+name: stackdriver-nozzle
 director_uuid: <%= director_uuid %>
 
 releases:
