@@ -44,59 +44,59 @@ bosh upload https://storage.googleapis.com/bosh-releases/gcp-tools-1.tgz
 
 See [manifests/gcp-tools.yml][tools-yaml] for a sample deployment manifest that can be used as a starting point.
 
+[tools-yaml]: manifests/gcp-tools.yml
+
 ```
 bosh deployment manifests/gcp-tools.yml 
 bosh -n deploy
 ```
 
-This will create a self-contained deployment that collects VM data from itself and CF data from the Firehose into
+This will create a self-contained deployment that sends VM data from itself and CF data from the Firehose into
 Stackdriver.
 
-### Stackdriver Logging
+### Co-locating Jobs
 
-Once deployed:
-* the `google-fluentd` will act as a Syslog endpoint and will forward logs to [Stackdriver Logging][logging]
+The [google-fluentd][google-fluentd] and [stackdriver-agent][stackdriver-agent] template jobs both need to be co-located
+with other jobs in a BOSH deployment so that VM instances will send all their metrics and logs to Stackdriver.
 
-If you want to send all your Cloud Foundry component's logs to [Stackdriver Logging][logging], configure your Cloud
-Foundry manifest adding (or updating):
+[google-fluentd]: jobs/google-fluentd
+[stackdriver-agent]: jobs/stackdriver-agent
+
+This requires the `bosh-gcp-tools` release to be included in the deployment manifest:
 
 ```
-properties:
+releases:
   ...
-  syslog_daemon_config:
-    address: <google-fluentd job instance IP address>
-    port: 514
-    transport: udp
+  - name: bosh-gcp-tools
+    version: latest
+  ...
 ```
 
-[tools-yaml]: manifests/gcp-tools.yml
-
-### Stackdriver Monitoring
-
-Add the `gcp-tools` release to the `release` section of your existing deployment manifest:
-
-```
-release:
-   ...
-  - name: gcp-tools
-    version: "1"
-```
-
-Collocate the `stackdriver-agent` job template in all job instances:
+Job instances will need both templates to be added for co-location. For example:
 
 ```
 jobs:
+  ...
   - name: nats
     templates:
       - name: nats
         release: cf
       - name: metron_agent
         release: cf
+      - name: google-fluentd
+        release: bosh-gcp-tools
       - name: stackdriver-agent
-        release: gcp-tools
+        release: bosh-gcp-tools
+  ...
 ```
 
-Once deployed, the `stackdriver-agent` on every instance will send host metrics to [Stackdriver Monitoring][monitoring].
+### Details
+
+The [google-fluentd][google-fluentd] template uses [Fluentd][fluentd] to send both syslog and template logs (assuming
+that template jobs are writing logs into `/var/vcap/sys/log/*/*.log`) to [Stackdriver Logging][logging].
+
+The [stackdriver-agent][stackdriver-agent] template uses the [Stackdriver Monitoring Agent][monitoring-agent] to collect
+VM metrics to send to [Stackdriver Monitoring][monitoring].
 
 ### stackdriver-nozzle
 
