@@ -34,7 +34,7 @@ jobs:
       endpoint: <%= firehose_endpoint %>
       username: <%= firehose_username %>
       password: <%= firehose_password %>
-      skip_ssl: true
+      skip_ssl: false
 
 compilation:
   workers: 3
