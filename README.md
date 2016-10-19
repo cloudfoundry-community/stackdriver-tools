@@ -31,7 +31,7 @@ maintained by Google.
 ### Enable Stackdriver APIs
 
 Ensure the [Stackdriver Logging][logging_api] and [Stackdriver
-Monitoring][monitoring_api] APIs are enabled:
+Monitoring][monitoring_api] APIs are enabled.
 
 [logging_api]:    https://console.developers.google.com/apis/api/logging.googleapis.com/overview
 [monitoring_api]: https://console.developers.google.com/apis/api/monitoring.googleapis.com/overview
@@ -54,7 +54,7 @@ describes how to set the `service_account` for a resource pool.
 
 You may also read the [access control
 documentation](https://cloud.google.com/logging/docs/access-control) for more
-general information about how authentication and authentication work for
+general information about how authentication and authorization work for
 Stackdriver.
 
 ## General usage
