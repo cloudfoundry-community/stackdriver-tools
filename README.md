@@ -1,11 +1,15 @@
 # Google Cloud Platform Tools BOSH Release
 
-This is a [BOSH](http://bosh.io/) release for [Google Cloud Platform](https://cloud.google.com/) Tools. This release
-contains the following templates:
+This release provides Cloud Foundry and BOSH integration with Google Cloud
+Platform's [Stackdriver Logging](https://cloud.google.com/logging/) and
+[Monitoring](https://cloud.google.com/monitoring/).
 
-* [Fluentd][fluentd] for forwarding syslog and template logs to [Stackdriver Logging][logging]
-* The [Stackdriver Monitoring Agent][monitoring-agent] for sending VM health metrics to [Stackdriver Monitoring][monitoring]
-* A [stackdriver-nozzle][nozzle] for forwarding [Cloud Foundry Firehose][firehose] data to Stackdriver
+Functionality is provided by 3 jobs in this release:
+
+* A [nozzle][nozzle] job for forwarding [Cloud Foundry Firehose][firehose] data to Stackdriver
+* A [Fluentd][fluentd] job for forwarding syslog and template logs to [Stackdriver Logging][logging]
+* A [Stackdriver Monitoring Agent][monitoring-agent] job for sending VM health
+  metrics to [Stackdriver Monitoring][monitoring]
 
 [monitoring]: https://cloud.google.com/monitoring/
 [fluentd]: http://www.fluentd.org/
@@ -14,55 +18,105 @@ contains the following templates:
 [firehose]: https://docs.cloudfoundry.org/loggregator/architecture.html#firehose
 [nozzle]: src/stackdriver-nozzle
 
-## Disclaimer
+## Project Status
 
-This project is currently in **BETA**. Use in production at your own risk.
+This is currently a beta release. It should be used in production environments
+with an abundance of caution, and only after being vetted in dev environment.
 
-## Access Control
+The project was developed in partnership with Google and Pivotal and is actively
+maintained by Google.
 
-The following roles are required for the service account on each deployed instance:
+## Getting started
 
- - `roles/logging.logWriter` to stream logs to Stackdriver Logging
- - `roles/logging.configWriter` to setup CloudFoundry specific metrics on Stackdriver Monitoring
+### Enable Stackdriver APIs
 
-See the [access control documentation](https://cloud.google.com/logging/docs/access-control) for more information.
+Ensure the [Stackdriver Logging][logging_api] and [Stackdriver
+Monitoring][monitoring_api] APIs are enabled:
 
-## Enabled Services
+[logging_api]:    https://console.developers.google.com/apis/api/logging.googleapis.com/overview
+[monitoring_api]: https://console.developers.google.com/apis/api/monitoring.googleapis.com/overview
 
-To use Stackdriver Monitoring ensure the [Stackdriver Monitoring API][stackdriver_api] is enabled.
+### Create and configure service accounts
 
-[stackdriver_api]: https://console.developers.google.com/apis/api/monitoring.googleapis.com/overview
+All of the jobs in this release authenticate to Stackdriver Logging and
+Monitoring via [Service
+Accounts](https://cloud.google.com/compute/docs/access/create-enable-service-accounts-for-instances).
+You must create a service account with the following roles:
 
-## Usage
+- `roles/logging.logWriter` to stream logs to Stackdriver Logging
+- `roles/logging.configWriter` to setup CloudFoundry specific metrics on
+  Stackdriver Monitoring
 
-To use this BOSH release, first upload it to your BOSH:
+The BOSH resource pool you deploy the job(s) to must use that service account
+by specifying it in `cloud_properties`. The [BOSH Google CPI
+documentation](https://cloud.google.com/compute/docs/access/create-enable-service-accounts-for-instances)
+describes how to set the `service_account` for a resource pool.
+
+You may also read the [access control
+documentation](https://cloud.google.com/logging/docs/access-control) for more
+general information about how authentication and authentication work for
+Stackdriver.
+
+## General usage
+
+To use any of the jobs in this BOSH release, first upload it to your BOSH
+director:
 
 ```
+beta_release=https://storage.googleapis.com/bosh-gcp/beta/bosh-gcp-tools-$(curl -s https://storage.googleapis.com/bosh-gcp/beta/current-version).tgz
 bosh target BOSH_HOST
-bosh upload https://storage.googleapis.com/bosh-releases/gcp-tools-1.tgz
+bosh upload ${beta_release}
 ```
 
-See [manifests/gcp-tools.yml][tools-yaml] for a sample deployment manifest that can be used as a starting point.
+The [gcp-tools.yml][tools-yaml] sample deployment manifest illustrates how to
+use all 3 jobs in this release (nozzle, host logging, and host monitoring). You
+can deploy the sample with:
 
 [tools-yaml]: manifests/gcp-tools.yml
+
 
 ```
 bosh deployment manifests/gcp-tools.yml 
 bosh -n deploy
 ```
 
-This will create a self-contained deployment that sends VM data from itself and CF data from the Firehose into
-Stackdriver.
+This will create a self-contained deployment that sends Cloud Foundry firehose
+data, host logs, and host metrics to Stackdriver. 
 
-### Co-locating Jobs
+Deploying each job individually is described in detail below.
 
-The [google-fluentd][google-fluentd] and [stackdriver-agent][stackdriver-agent] template jobs both need to be co-located
-with other jobs in a BOSH deployment so that VM instances will send all their metrics and logs to Stackdriver.
+## Deploying the nozzle
+
+Create a new deployment manifest for the nozzle. See the [example
+manifest][tools-yaml] for a full deployment and the `jobs.stackdriver-nozzle`
+section for the nozzle.
+
+To reduce message loss, operators should run a minimum of two instances. With
+two instances, updating stemcells and other destructive BOSH operations will
+still leave an instance draining logs.
+
+The [loggregator][loggregator] system will round-robin messages across multiple
+instances. If the nozzle can't handle the load, consider scaling to more than
+two nozzle instances.
+
+The [spec][spec] describes all the properties an operator should modify.
+
+[spec]: jobs/stackdriver-nozzle/spec
+[loggregator]: https://github.com/cloudfoundry/loggregator
+
+## Deploying host logging
+The [google-fluentd][google-fluentd] template uses [Fluentd][fluentd] to send
+both syslog and template logs (assuming that template jobs are writing logs into
+`/var/vcap/sys/log/*/*.log`) to [Stackdriver Logging][logging].
+
+To forward host logs from BOSH VMs to Stackdriver, co-locate the
+[google-fluentd] template with an existing job whose host logs should be
+forwarded.
 
 [google-fluentd]: jobs/google-fluentd
 [stackdriver-agent]: jobs/stackdriver-agent
 
-This requires the `bosh-gcp-tools` release to be included in the deployment manifest:
+Include the `bosh-gcp-tools` release in your existing deployment manifest:
 
 ```
 releases:
@@ -72,7 +126,7 @@ releases:
   ...
 ```
 
-Job instances will need both templates to be added for co-location. For example:
+Add the [google-fluentd] template to your job:
 
 ```
 jobs:
@@ -85,35 +139,45 @@ jobs:
         release: cf
       - name: google-fluentd
         release: bosh-gcp-tools
+  ...
+```
+
+## Deploying host monitoring
+The [stackdriver-agent][stackdriver-agent] template uses the [Stackdriver
+Monitoring Agent][monitoring-agent] to collect VM metrics to send to
+[Stackdriver Monitoring][monitoring].
+
+To forward host metrics forwarding from BOSH VMs to Stackdriver, co-locate the
+[stackdriver-agent] template with an existing job whose host metrics should be
+forwarded.
+
+[stackdriver-agent]: jobs/stackdriver-agent
+
+Include the `bosh-gcp-tools` release in your existing deployment manifest:
+
+```
+releases:
+  ...
+  - name: bosh-gcp-tools
+    version: latest
+  ...
+```
+
+Add the [stackdriver-agent] template to your job:
+
+```
+jobs:
+  ...
+  - name: nats
+    templates:
+      - name: nats
+        release: cf
+      - name: metron_agent
+        release: cf
       - name: stackdriver-agent
         release: bosh-gcp-tools
   ...
 ```
-
-### Details
-
-The [google-fluentd][google-fluentd] template uses [Fluentd][fluentd] to send both syslog and template logs (assuming
-that template jobs are writing logs into `/var/vcap/sys/log/*/*.log`) to [Stackdriver Logging][logging].
-
-The [stackdriver-agent][stackdriver-agent] template uses the [Stackdriver Monitoring Agent][monitoring-agent] to collect
-VM metrics to send to [Stackdriver Monitoring][monitoring].
-
-### stackdriver-nozzle
-
-Create a new deployment manifest for the nozzle. See the [example manifest][tools-yaml] 
-for a full deployment and the `jobs.stackdriver-nozzle` section for the nozzle.
-
-To reduce message loss, operators should run a minimum of two instances. With two instances,
-updating stemcells and other destructive BOSH operations will still leave an instance
-draining logs.
-
-The [loggregator][loggregator] system will round-robin messages across multiple instances. If the
-nozzle can't handle the load, consider scaling to more than two nozzle instances.
-
-The [spec][spec] describes all the properties an operator should modify.
-
-[spec]: jobs/stackdriver-nozzle/spec
-[loggregator]: https://github.com/cloudfoundry/loggregator
 
 ## Development
 
@@ -124,10 +188,14 @@ The [spec][spec] describes all the properties an operator should modify.
 1. Update the version specifier in the Gemfile (if necessary)
 1. Update Gemfile.lock: `bundle update`
 1. Create a vendor cache from the Gemfile.lock: `bundle package`
-1. Tar and compress the vendor folder: `tar zvc vendor > google-fluentd-vendor-VERSION-NUMBER.tgz`
-1. Update the vendor version in the `google-fluentd` package [packaging][fluentd-packaging] and [spec][fluentd-spec]
-1. Add vendored cache to the BOSH blobstore: `bosh add blob google-fluentd-vendor-VERSION-NUMBER.tgz google-fluentd-vendor`
-1. [Create a dev release][dev-release] and deploy it to verify that all of the above worked
+1. Tar and compress the vendor folder: `tar zvc vendor >
+   google-fluentd-vendor-VERSION-NUMBER.tgz`
+1. Update the vendor version in the `google-fluentd` package
+   [packaging][fluentd-packaging] and [spec][fluentd-spec]
+1. Add vendored cache to the BOSH blobstore: `bosh add blob
+   google-fluentd-vendor-VERSION-NUMBER.tgz google-fluentd-vendor`
+1. [Create a dev release][dev-release] and deploy it to verify that all of the
+   above worked
 1. Update the BOSH blobstore: `bosh upload blobs`
 1. Commit your changes
 
@@ -137,40 +205,13 @@ The [spec][spec] describes all the properties an operator should modify.
 [fluentd-spec]: https://github.com/cloudfoundry-community/gcp-tools-release/blob/master/packages/google-fluentd/spec
 [dev-release]: https://bosh.io/docs/create-release.html#dev-release
 
-### Contributing
-
-In the spirit of [free software][free-sw], **everyone** is encouraged to help improve this project.
-
-[free-sw]: http://www.fsf.org/licensing/essays/free-sw.html
-
-Here are some ways *you* can contribute:
-
-* by using alpha, beta, and pre-release versions
-* by reporting bugs
-* by suggesting new features
-* by writing or editing documentation
-* by writing tests
-* by writing code (**no patch is too small**: fix typos, add comments, clean up inconsistent whitespace)
-* by reviewing patches
-
-### Submitting an Issue
-
-We use the [GitHub issue tracker][issues] to track bugs and features. Before submitting a bug report or feature request,
-check to make sure it hasn't already been submitted. You can indicate support for an existing issue by voting it up.
-When submitting a bug report, please include a [Gist](http://gist.github.com/) that includes a stack trace and any
-details that may be necessary to reproduce the bug,. Ideally, a bug report should include a pull request with failing
-specs.
-
-[issues]: https://github.com/cloudfoundry-community/gcp-tools-release/issues
-
-### Submitting a Pull Request
-
-1. Fork the project.
-2. Create a topic branch.
-3. Implement your feature or bug fix.
-4. Commit and push your changes.
-5. Submit a pull request.
+## Contributing
+For detailes on how to contribute to this project - including filing bug reports
+and contributing code changes - pleasee see [CONTRIBUTING.md].
 
 ## Copyright
+Copyright (c) 2016 Ferran Rodenas. See
+[LICENSE](https://github.com.evandbrown/gcp-tools-release/blob/master/LICENSE)
+for details.
 
-Copyright (c) 2016 Ferran Rodenas. See [LICENSE](https://github.com.evandbrown/gcp-tools-release/blob/master/LICENSE) for details.
+[CONTRIBUTING.md]: CONTRIBUTING.md
