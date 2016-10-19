@@ -83,6 +83,7 @@ jobs:
   properties:
     firehose:
       endpoint: https://api.${vip_ip}.xip.io
+      events:   LogMessage,Error,HttpStartStop,CounterEvent,ValueMetric,ContainerMetric
       username: ${nozzle_user}
       password: ${nozzle_password}
       skip_ssl: true
