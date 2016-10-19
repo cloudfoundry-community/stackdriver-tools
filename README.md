@@ -233,7 +233,7 @@ bosh deploy
 
 ## Contributing
 For detailes on how to contribute to this project - including filing bug reports
-and contributing code changes - pleasee see [CONTRIBUTING.md].
+and contributing code changes - please see [CONTRIBUTING.md].
 
 ## Copyright
 Copyright (c) 2016 Ferran Rodenas. See
