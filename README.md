@@ -90,6 +90,30 @@ jobs:
   ...
 ```
 
+Specify the jobs as addons in your [runtime config](https://bosh.io/docs/runtime-config.html) to deploy Stackdriver Monitoring and Logging agents on all instances in your deployment. You will need to update the `LATEST_VERSION` value to the release version you have uploaded. Do not specify the jobs in as part of your deployment manifest if you are using the runtime config.
+
+```
+# runtime.yml
+---
+releases:
+  - name: bosh-gcp-tools
+    version: LATEST_VERSION
+
+addons:
+- name: gcp-tools
+  jobs:
+  - name: google-fluentd
+    release: bosh-gcp-tools
+  - name: stackdriver-agent
+    release: bosh-gcp-tools
+```
+
+To deploy the runtime config:
+```
+bosh update runtime-config runtime.yml
+bosh deploy
+```
+
 ### Details
 
 The [google-fluentd][google-fluentd] template uses [Fluentd][fluentd] to send both syslog and template logs (assuming
