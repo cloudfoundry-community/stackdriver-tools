@@ -108,7 +108,7 @@ var _ = Describe("LogSink", func() {
 
 			event := events.LogMessage{
 				MessageType: &messageType,
-				Message: []byte("19400: Success: Go"),
+				Message:     []byte("19400: Success: Go"),
 			}
 			envelope := &events.Envelope{
 				EventType:  &eventType,
@@ -124,7 +124,7 @@ var _ = Describe("LogSink", func() {
 				"eventType": eventType.String(),
 				"logMessage": map[string]interface{}{
 					"message_type": "OUT",
-					"message": "19400: Success: Go",
+					"message":      "19400: Success: Go",
 				},
 			}))
 		})

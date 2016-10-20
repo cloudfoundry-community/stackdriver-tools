@@ -134,11 +134,13 @@ var _ = Describe("MetricAdapter", func() {
 	})
 
 	It("handles concurrent metric descriptor creation", func() {
-		metrics := []stackdriver.Metric{
-			{
-				Name: "metricWithUnit",
-				Unit: "{foobar}",
-			},
+		metricsWithName := func(name string) []stackdriver.Metric {
+			return []stackdriver.Metric{
+				{
+					Name: name,
+					Unit: "{foobar}",
+				},
+			}
 		}
 
 		callCount := 0
@@ -148,15 +150,15 @@ var _ = Describe("MetricAdapter", func() {
 			return nil
 		}
 
-		go func() { subject.PostMetrics(metrics) }()
-		go func() { subject.PostMetrics(metrics) }()
-		go func() { subject.PostMetrics(metrics) }()
-		go func() { subject.PostMetrics(metrics) }()
-		go func() { subject.PostMetrics(metrics) }()
+		go func() { subject.PostMetrics(metricsWithName("a")) }()
+		go func() { subject.PostMetrics(metricsWithName("b")) }()
+		go func() { subject.PostMetrics(metricsWithName("a")) }()
+		go func() { subject.PostMetrics(metricsWithName("c")) }()
+		go func() { subject.PostMetrics(metricsWithName("b")) }()
 
 		Eventually(func() int {
 			return callCount
-		}).Should(Equal(5))
+		}).Should(Equal(3))
 	})
 
 	It("returns the adapter even if we fail to list the metric descriptors", func() {

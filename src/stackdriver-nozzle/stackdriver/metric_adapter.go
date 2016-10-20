@@ -128,12 +128,12 @@ func (ma *metricAdapter) ensureMetricDescriptor(metric Metric) error {
 		return nil
 	}
 
+	ma.createDescriptorMutex.Lock()
+	defer ma.createDescriptorMutex.Unlock()
+
 	if _, ok := ma.descriptors[metric.Name]; ok {
 		return nil
 	}
-
-	ma.createDescriptorMutex.Lock()
-	defer ma.createDescriptorMutex.Unlock()
 
 	err := ma.CreateMetricDescriptor(metric)
 	if err != nil {

@@ -111,7 +111,7 @@ func (a *app) newLogSink() nozzle.Sink {
 	)
 	go func() {
 		err := <-logErrs
-		a.logger.Fatal("logAdapter", err)
+		a.logger.Error("logAdapter", err)
 	}()
 
 	return nozzle.NewLogSink(a.labelMaker, logAdapter)
