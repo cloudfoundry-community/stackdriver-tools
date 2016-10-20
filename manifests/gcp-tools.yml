@@ -1,13 +1,18 @@
 ---
 <%
 director_uuid = ""
+# Endpoint for the Cloud Foundry API (eg: https://api.cf.example.org/)
 firehose_endpoint = ""
 firehose_username = ""
 firehose_password = ""
+# Log/Metric Events to send to Stackdriver
+firehose_events = "LogMessage,Error,HttpStartStop,CounterEvent,ValueMetric,ContainerMetric"
 service_account = ""
 zone = ""
 network_name = ""
 subnetwork_name = ""
+# Skip SSL validation, shortcut for evaluating, do not use in production
+skip_ssl = false
 %>
 name: stackdriver-nozzle
 director_uuid: <%= director_uuid %>
@@ -34,7 +39,8 @@ jobs:
       endpoint: <%= firehose_endpoint %>
       username: <%= firehose_username %>
       password: <%= firehose_password %>
-      skip_ssl: false
+      skip_ssl: <%= skip_ssl %> 
+      events: <%= firehose_events %>
 
 compilation:
   workers: 3
