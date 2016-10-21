@@ -115,16 +115,18 @@ var _ = Describe("MetricSink", func() {
 		Expect(metrics).To(ContainElement(stackdriver.Metric{"memoryBytesQuota", float64(33554432), labels, eventTime, ""}))
 	})
 
-	It("creates metric for CounterEvent", func() {
+	It("creates total and delta metrics for CounterEvent", func() {
 		eventTime := time.Now()
 
 		eventType := events.Envelope_CounterEvent
 		name := "counterName"
+		delta := uint64(654321)
 		total := uint64(123456)
 		timeStamp := eventTime.UnixNano()
 
 		event := events.CounterEvent{
 			Name:  &name,
+			Delta: &delta,
 			Total: &total,
 		}
 		envelope := &events.Envelope{
@@ -137,13 +139,22 @@ var _ = Describe("MetricSink", func() {
 		Expect(err).To(BeNil())
 
 		metrics := metricBuffer.PostedMetrics
-		Expect(metrics).To(ConsistOf(stackdriver.Metric{
-			"counterName",
-			float64(123456),
-			labels,
-			eventTime,
-			"",
-		}))
+		Expect(metrics).To(ConsistOf(
+			stackdriver.Metric{
+				"counterName.delta",
+				float64(654321),
+				labels,
+				eventTime,
+				"",
+			},
+			stackdriver.Metric{
+				"counterName.total",
+				float64(123456),
+				labels,
+				eventTime,
+				"",
+			},
+		))
 	})
 
 	It("returns error when envelope contains unhandled event type", func() {
