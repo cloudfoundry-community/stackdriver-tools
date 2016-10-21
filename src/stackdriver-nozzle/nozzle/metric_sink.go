@@ -54,12 +54,20 @@ func (ms *metricSink) Receive(envelope *events.Envelope) error {
 		}
 	case events.Envelope_CounterEvent:
 		counterEvent := envelope.GetCounterEvent()
-		metrics = []stackdriver.Metric{{
-			Name:      counterEvent.GetName(),
-			Value:     float64(counterEvent.GetTotal()),
-			EventTime: eventTime,
-			Labels:    labels,
-		}}
+		metrics = []stackdriver.Metric{
+			{
+				Name:      fmt.Sprintf("%v.delta", counterEvent.GetName()),
+				Value:     float64(counterEvent.GetDelta()),
+				EventTime: eventTime,
+				Labels:    labels,
+			},
+			{
+				Name:      fmt.Sprintf("%v.total", counterEvent.GetName()),
+				Value:     float64(counterEvent.GetTotal()),
+				EventTime: eventTime,
+				Labels:    labels,
+			},
+		}
 	default:
 		return fmt.Errorf("unknown event type: %v", envelope.EventType)
 	}
