@@ -16,6 +16,7 @@ const (
 
 type LogAdapter interface {
 	PostLog(*Log)
+	Flush()
 }
 
 type Log struct {
@@ -60,4 +61,8 @@ func (s *logAdapter) PostLog(log *Log) {
 		Severity: log.Severity,
 	}
 	s.sdLogger.Log(entry)
+}
+
+func (s* logAdapter) Flush() {
+	s.sdLogger.Flush()
 }

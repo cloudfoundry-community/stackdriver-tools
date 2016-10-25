@@ -24,6 +24,10 @@ case $1 in
     export FIREHOSE_PASSWORD=<%= p('firehose.password') %>
     export FIREHOSE_EVENTS=<%= p('firehose.events', 'LogMessage,Error') %>
     export FIREHOSE_SKIP_SSL=<%= p('firehose.skip_ssl', false) %>
+    export FIREHOSE_SUBSCRIPTION_ID=<%= p('firehose.subscription_id', 'stackdriver-nozzle') %>
+
+    export DEBUG_NOZZLE=<%= p('nozzle.debug', 'false') %>
+    export RESOLVE_APP_METADATA=<%= p('nozzle.resolve_app_metadata', 'true') %>
 
     <% if_p('gcp.project_id') do |prop| %>
     export GCP_PROJECT_ID=<%= prop %>

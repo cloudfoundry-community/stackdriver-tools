@@ -5,8 +5,11 @@ export FIREHOSE_EVENTS=HttpStart,HttpStop,HttpStartStop,LogMessage,ValueMetric,C
 export FIREHOSE_USERNAME=admin
 export FIREHOSE_PASSWORD=admin
 export FIREHOSE_SKIP_SSL=true
+export FIREHOSE_SUBSCRIPTION_ID=stackdriver-nozzle-dev
 
 export GOOGLE_APPLICATION_CREDENTIALS=credentials.json
 export GCP_PROJECT_ID=some-project-id
 
 export HEARTBEAT_RATE=5
+export DEBUG_NOZZLE=true
+export RESOLVE_APP_METADATA=true

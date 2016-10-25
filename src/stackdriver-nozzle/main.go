@@ -2,9 +2,11 @@ package main
 
 import (
 	"os"
+	"runtime"
 	"strings"
 	"time"
 
+	"cloud.google.com/go/logging"
 	"github.com/cloudfoundry-community/firehose-to-syslog/caching"
 	"github.com/cloudfoundry-community/gcp-tools-release/src/stackdriver-nozzle/config"
 	"github.com/cloudfoundry-community/gcp-tools-release/src/stackdriver-nozzle/filter"
@@ -12,12 +14,15 @@ import (
 	"github.com/cloudfoundry-community/gcp-tools-release/src/stackdriver-nozzle/heartbeat"
 	"github.com/cloudfoundry-community/gcp-tools-release/src/stackdriver-nozzle/nozzle"
 	"github.com/cloudfoundry-community/gcp-tools-release/src/stackdriver-nozzle/stackdriver"
+	"github.com/cloudfoundry-community/gcp-tools-release/src/stackdriver-nozzle/version"
 	"github.com/cloudfoundry-community/go-cfclient"
 	"github.com/cloudfoundry/lager"
 )
 
 func main() {
 	a := newApp()
+
+	defer handleFatalError(a)
 
 	producer := a.newProducer()
 	consumer := a.newConsumer()
@@ -34,6 +39,44 @@ func main() {
 	fatalErr := <-fhErrs
 	if fatalErr != nil {
 		a.logger.Fatal("firehose", fatalErr)
+	}
+}
+
+func handleFatalError(a *app) {
+	if !a.c.DebugNozzle {
+		return
+	}
+
+	if e := recover(); e != nil {
+		stack := make([]byte, 1<<16)
+		stackSize := runtime.Stack(stack, true)
+		stackTrace := string(stack[:stackSize])
+
+		payload := map[string]interface{}{
+			"serviceContext": map[string]interface{}{
+				"service": version.Name,
+				"version": version.Release,
+			},
+			"message": stackTrace,
+		}
+
+		log := &stackdriver.Log{
+			Payload:  payload,
+			Labels:   map[string]string{},
+			Severity: logging.Error,
+		}
+
+		logAdapter, err := a.newLogAdapter()
+		if err == nil {
+			logAdapter.PostLog(log)
+			logAdapter.Flush()
+		} else {
+			a.logger.Error("error getting logAdapter", lager.Data{"err": err})
+		}
+
+		// Re-throw the error, we want to ensure it's logged directly to
+		// stackdriver but we are not in a recoverable state.
+		panic(e)
 	}
 }
 
@@ -106,18 +149,22 @@ func (a *app) newConsumer() *nozzle.Nozzle {
 }
 
 func (a *app) newLogSink() nozzle.Sink {
-	logAdapter, logErrs := stackdriver.NewLogAdapter(
-		a.c.ProjectID,
-		a.c.BatchCount,
-		time.Duration(a.c.BatchDuration)*time.Second,
-		a.heartbeater,
-	)
+	logAdapter, logErrs := a.newLogAdapter()
 	go func() {
 		err := <-logErrs
 		a.logger.Error("logAdapter", err)
 	}()
 
 	return nozzle.NewLogSink(a.labelMaker, logAdapter)
+}
+
+func (a *app) newLogAdapter() (stackdriver.LogAdapter, <-chan error) {
+	return stackdriver.NewLogAdapter(
+		a.c.ProjectID,
+		a.c.BatchCount,
+		time.Duration(a.c.BatchDuration)*time.Second,
+		a.heartbeater,
+	)
 }
 
 func (a *app) newMetricSink() nozzle.Sink {

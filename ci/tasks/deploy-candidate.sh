@@ -87,6 +87,8 @@ jobs:
       username: ${nozzle_user}
       password: ${nozzle_password}
       skip_ssl: true
+    nozzle:
+      debug: true
 
 compilation:
   workers: 6

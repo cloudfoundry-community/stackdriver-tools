@@ -20,6 +20,17 @@ properties:
   firehose.events:
     description: Whitelisted event types to send to Stackdriver (comma separated). Valid values include LogMessage,Error,HttpStartStop,CounterEvent,ValueMetric,ContainerMetric
     default: LogMessage,Error
+  firehose.subscription_id:
+    description: Subscription ID for the firehose nozzle
+    default: stackdriver-nozzle
 
   gcp.project_id:
     description: Google Cloud Platform project ID (optional if on GCP)
+
+  nozzle.debug:
+    description: Enable debug features for the stackdriver-nozzle for development or troubleshooting
+    default: false
+
+  nozzle.resolve_app_metadata:
+    description: Enable resolution of app metadata from appGuid
+    default: true

@@ -9,3 +9,6 @@ type LogAdapter struct {
 func (la *LogAdapter) PostLog(log *stackdriver.Log) {
 	la.PostedLogs = append(la.PostedLogs, *log)
 }
+
+func (la *LogAdapter) Flush() {
+}
