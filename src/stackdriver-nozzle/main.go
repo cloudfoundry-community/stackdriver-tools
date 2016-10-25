@@ -66,13 +66,9 @@ func handleFatalError(a *app) {
 			Severity: logging.Error,
 		}
 
-		logAdapter, err := a.newLogAdapter()
-		if err == nil {
-			logAdapter.PostLog(log)
-			logAdapter.Flush()
-		} else {
-			a.logger.Error("error getting logAdapter", lager.Data{"err": err})
-		}
+		logAdapter, _ := a.newLogAdapter()
+		logAdapter.PostLog(log)
+		logAdapter.Flush()
 
 		// Re-throw the error, we want to ensure it's logged directly to
 		// stackdriver but we are not in a recoverable state.
