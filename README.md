@@ -243,6 +243,16 @@ bosh deploy
 [fluentd-spec]: https://github.com/cloudfoundry-community/gcp-tools-release/blob/master/packages/google-fluentd/spec
 [dev-release]: https://bosh.io/docs/create-release.html#dev-release
 
+### bosh-lite
+
+Both the nozzle and the fluentd jobs can run on [bosh-lite][bosh-lite]. To generate a working manifest, start from
+the [bosh-lite-example-manifest][bosh-lite-example-manifest]. Note the `application_default_credentials`
+property, which should be filled in with the contents of a [Google service account key][google-service-account-key].
+
+[bosh-lite]: https://github.com/cloudfoundry/bosh-lite
+[bosh-lite-example-manifest]: manifests/gcp-tools-bosh-lite.yml
+[google-service-account-key]: https://cloud.google.com/compute/docs/access/create-enable-service-accounts-for-instances
+
 ## Contributing
 For detailes on how to contribute to this project - including filing bug reports
 and contributing code changes - please see [CONTRIBUTING.md].

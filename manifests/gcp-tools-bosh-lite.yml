@@ -1,0 +1,98 @@
+---
+<%
+director_uuid = "REPLACE_ME"
+
+firehose_endpoint = "https://api.bosh-lite.com"
+firehose_username = "admin"
+firehose_password = "admin"
+%>
+name: gcp-tools-lite
+director_uuid: <%= director_uuid %>
+
+releases:
+- name: gcp-tools
+  version: latest
+
+jobs:
+- name: stackdriver-nozzle
+  instances: 2
+  networks:
+  - name: nozzle_network
+  resource_pool: nozzle_pool
+  templates:
+  - name: stackdriver-nozzle
+    release: gcp-tools
+  - name: google-fluentd
+    release: gcp-tools
+  properties:
+    credentials:
+      application_default_credentials: |
+        {json here}
+    firehose:
+      endpoint: <%= firehose_endpoint %>
+      username: <%= firehose_username %>
+      password: <%= firehose_password %>
+      skip_ssl: true
+
+networks:
+- name: nozzle_network
+  subnets:
+  - cloud_properties:
+      name: random
+    range: 10.244.15.0/24
+    reserved:
+    - 10.244.15.1
+    static:
+    - 10.244.15.2 - 10.244.15.20
+  type: manual
+
+properties:
+  firehose:
+    endpoint: <%= firehose_endpoint %>
+    username: <%= firehose_username %>
+    password: <%= firehose_password %>
+    skip_ssl: true
+
+iaas_settings:
+  compilation_cloud_properties: {}
+  resource_pool_cloud_properties:
+  - cloud_properties: {}
+    name: nozzle_network
+  - cloud_properties: {}
+    name: nozzle_network
+  stemcell:
+    name: bosh-warden-boshlite-ubuntu-trusty-go_agent
+    version: latest
+  subnet_configs:
+  - name: nozzle_network
+    subnets:
+    - cloud_properties:
+        name: random
+      range: 10.244.15.0/24
+      reserved:
+      - 10.244.15.1
+      static:
+      - 10.244.15.2 - 10.244.15.20
+  watch_time: 10000-120000
+
+compilation:
+  cloud_properties: {}
+  network: nozzle_network
+  reuse_compilation_vms: true
+  workers: 4
+
+
+resource_pools:
+- cloud_properties: {}
+  name: nozzle_pool
+  network: nozzle_network
+  stemcell:
+    name: bosh-warden-boshlite-ubuntu-trusty-go_agent
+    version: latest
+
+update:
+  canaries: 1
+  canary_watch_time: 10000-120000
+  max_in_flight: 1
+  serial: true
+  update_watch_time: 10000-120000
