@@ -2,12 +2,12 @@ package stackdriver_test
 
 import (
 	"errors"
+	"time"
 
 	"github.com/cloudfoundry-community/gcp-tools-release/src/stackdriver-nozzle/mocks"
 	"github.com/cloudfoundry-community/gcp-tools-release/src/stackdriver-nozzle/stackdriver"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
-	"time"
 )
 
 var _ = Describe("MetricsBuffer", func() {
@@ -101,13 +101,17 @@ var _ = Describe("MetricsBuffer", func() {
 		Expect(err).To(Equal(expectedErr))
 	})
 
-	It("posts individual metric when it is a duplicate", func() {
+	It("posts current batch when encounters a duplicate", func() {
 		subject.PostMetric(&stackdriver.Metric{Name: "a", Value: 1})
+		subject.PostMetric(&stackdriver.Metric{Name: "b", Value: 2})
 		subject.PostMetric(&stackdriver.Metric{Name: "a", Value: 2})
 		Eventually(func() int {
 			return len(metricAdapter.PostedMetrics)
-		}).Should(Equal(1))
-		Expect(metricAdapter.PostedMetrics[0].Value).To(Equal(float64(2)))
+		}).Should(Equal(2))
+		Expect(metricAdapter.PostedMetrics).To(Equal([]stackdriver.Metric{
+			{Name: "a", Value: 1},
+			{Name: "b", Value: 2},
+		}))
 
 		subject.PostMetric(&stackdriver.Metric{Name: "b", Value: 3})
 		subject.PostMetric(&stackdriver.Metric{Name: "c"})
@@ -115,7 +119,15 @@ var _ = Describe("MetricsBuffer", func() {
 		subject.PostMetric(&stackdriver.Metric{Name: "e"})
 		Eventually(func() int {
 			return len(metricAdapter.PostedMetrics)
-		}).Should(Equal(6))
-		Expect(metricAdapter.PostedMetrics[1].Value).To(Equal(float64(1)))
+		}).Should(Equal(7))
+		Expect(metricAdapter.PostedMetrics).To(Equal([]stackdriver.Metric{
+			{Name: "a", Value: 1},
+			{Name: "b", Value: 2},
+			{Name: "a", Value: 2},
+			{Name: "b", Value: 3},
+			{Name: "c"},
+			{Name: "d"},
+			{Name: "e"},
+		}))
 	})
 })

@@ -46,10 +46,11 @@ func (mb *metricsBuffer) addMetric(newMetric *Metric) {
 		/*
 			Stack driver API does not let us have multiple time series with the same name/label
 			in a single request. Furthermore, within each time series, we cannot have multiple points.
-			Due to this, if we encounter a metric with same name/labels, we will send it individually
-			and not buffer it (╯°□°）╯︵ ┻━┻
+			Due to this, if we encounter a metric with same name/labels, we will send the current buffer
+			and make a new buffer with the duplicate metric (╯°□°）╯︵ ┻━┻
 		*/
-		mb.postMetrics([]Metric{*newMetric})
+		mb.postMetrics(mb.metrics)
+		mb.metrics = []Metric{*newMetric}
 	}
 }
 

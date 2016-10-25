@@ -5,11 +5,12 @@ import (
 	"strings"
 
 	"github.com/cloudfoundry-community/gcp-tools-release/src/stackdriver-nozzle/firehose"
+	"github.com/cloudfoundry-community/gcp-tools-release/src/stackdriver-nozzle/heartbeat"
 	"github.com/cloudfoundry/sonde-go/events"
 )
 
-func New(client firehose.Client, eventNames []string) (firehose.Client, error) {
-	f := filter{client: client, enabled: make(map[events.Envelope_EventType]bool)}
+func New(client firehose.Client, eventNames []string, heartbeater heartbeat.Heartbeater) (firehose.Client, error) {
+	f := filter{client: client, enabled: make(map[events.Envelope_EventType]bool), heartbeater: heartbeater}
 
 	for _, eventName := range eventNames {
 		eventType, err := parseEventName(eventName)
@@ -25,8 +26,9 @@ func New(client firehose.Client, eventNames []string) (firehose.Client, error) {
 }
 
 type filter struct {
-	client  firehose.Client
-	enabled map[events.Envelope_EventType]bool
+	client      firehose.Client
+	enabled     map[events.Envelope_EventType]bool
+	heartbeater heartbeat.Heartbeater
 }
 
 func (f *filter) Connect() (<-chan *events.Envelope, <-chan error) {
@@ -35,6 +37,7 @@ func (f *filter) Connect() (<-chan *events.Envelope, <-chan error) {
 
 	go func() {
 		for envelope := range messages {
+			f.heartbeater.Increment("filter.events")
 			if f.enabled[envelope.GetEventType()] {
 				filteredMessages <- envelope
 			}

@@ -1,9 +1,10 @@
 package stackdriver_test
 
 import (
+	"errors"
 	"time"
 
-	"errors"
+	"github.com/cloudfoundry-community/gcp-tools-release/src/stackdriver-nozzle/mocks"
 	"github.com/cloudfoundry-community/gcp-tools-release/src/stackdriver-nozzle/stackdriver"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -14,13 +15,15 @@ import (
 
 var _ = Describe("MetricAdapter", func() {
 	var (
-		subject stackdriver.MetricAdapter
-		client  *mockClient
+		subject     stackdriver.MetricAdapter
+		client      *mockClient
+		heartbeater *mocks.Heartbeater
 	)
 
 	BeforeEach(func() {
 		client = &mockClient{}
-		subject, _ = stackdriver.NewMetricAdapter("my-awesome-project", client)
+		heartbeater = mocks.New()
+		subject, _ = stackdriver.NewMetricAdapter("my-awesome-project", client, heartbeater)
 	})
 
 	It("takes metrics and posts a time series", func() {
@@ -164,9 +167,34 @@ var _ = Describe("MetricAdapter", func() {
 	It("returns the adapter even if we fail to list the metric descriptors", func() {
 		expectedErr := errors.New("fail")
 		client.listErr = expectedErr
-		subject, err := stackdriver.NewMetricAdapter("my-awesome-project", client)
+		subject, err := stackdriver.NewMetricAdapter("my-awesome-project", client, heartbeater)
 		Expect(subject).To(Not(BeNil()))
 		Expect(err).To(Equal(expectedErr))
+	})
+
+	It("increments metrics counters", func() {
+		metrics := []stackdriver.Metric{
+			{
+				Name: "metricWithUnit",
+				Unit: "{foobar}",
+			},
+			{
+				Name: "metricWithUnitToo",
+				Unit: "{barfoo}",
+			},
+			{
+				Name: "anExistingMetric",
+				Unit: "{lalala}",
+			},
+		}
+
+		subject.PostMetrics(metrics)
+		Expect(heartbeater.Counters["metrics.count"]).To(Equal(3))
+		Expect(heartbeater.Counters["metrics.requests"]).To(Equal(1))
+
+		subject.PostMetrics(metrics)
+		Expect(heartbeater.Counters["metrics.count"]).To(Equal(6))
+		Expect(heartbeater.Counters["metrics.requests"]).To(Equal(2))
 	})
 })
 

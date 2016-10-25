@@ -11,7 +11,7 @@ import (
 	. "github.com/onsi/gomega"
 )
 
-var _ = Describe("Heartbeat", func() {
+var _ = Describe("Heartbeater", func() {
 	var (
 		subject heartbeat.Heartbeater
 		logger  *mocks.MockLogger
@@ -22,7 +22,7 @@ var _ = Describe("Heartbeat", func() {
 		logger = &mocks.MockLogger{}
 		trigger = make(chan time.Time)
 
-		subject = heartbeat.NewHeartbeat(logger, trigger)
+		subject = heartbeat.NewHeartbeater(logger, trigger)
 		subject.Start()
 	})
 
@@ -33,16 +33,16 @@ var _ = Describe("Heartbeat", func() {
 			return logger.LastLog()
 		}).Should(Equal(mocks.Log{
 			Level:  lager.INFO,
-			Action: "counter",
+			Action: "heartbeater",
 			Datas: []lager.Data{
-				{"eventCount": 0},
+				{"counters": map[string]uint{}},
 			},
 		}))
 	})
 
 	It("should count events", func() {
 		for i := 0; i < 10; i++ {
-			subject.AddCounter()
+			subject.Increment("foo")
 		}
 
 		trigger <- time.Now()
@@ -51,22 +51,22 @@ var _ = Describe("Heartbeat", func() {
 			return logger.LastLog()
 		}).Should(Equal(mocks.Log{
 			Level:  lager.INFO,
-			Action: "counter",
+			Action: "heartbeater",
 			Datas: []lager.Data{
-				{"eventCount": 10},
+				{"counters": map[string]uint{"foo": 10}},
 			},
 		}))
 	})
 
-	It("should reset the counter on triggers", func() {
+	It("should reset the heartbeater on triggers", func() {
 		for i := 0; i < 10; i++ {
-			subject.AddCounter()
+			subject.Increment("foo")
 		}
 
 		trigger <- time.Now()
 
 		for i := 0; i < 5; i++ {
-			subject.AddCounter()
+			subject.Increment("foo")
 		}
 
 		trigger <- time.Now()
@@ -75,16 +75,16 @@ var _ = Describe("Heartbeat", func() {
 			return logger.LastLog()
 		}).Should(Equal(mocks.Log{
 			Level:  lager.INFO,
-			Action: "counter",
+			Action: "heartbeater",
 			Datas: []lager.Data{
-				{"eventCount": 5},
+				{"counters": map[string]uint{"foo": 5}},
 			},
 		}))
 	})
 
 	It("should stop counting", func() {
 		for i := 0; i < 5; i++ {
-			subject.AddCounter()
+			subject.Increment("foo")
 		}
 		subject.Stop()
 
@@ -92,17 +92,42 @@ var _ = Describe("Heartbeat", func() {
 			return logger.LastLog()
 		}).Should(Equal(mocks.Log{
 			Level:  lager.INFO,
-			Action: "counterStopped",
+			Action: "heartbeater",
 			Datas: []lager.Data{
-				{"remainingCount": 5},
+				{"counters": map[string]uint{"foo": 5}},
 			},
 		}))
 
-		subject.AddCounter()
+		subject.Increment("foo")
 		Expect(logger.LastLog()).To(Equal(mocks.Log{
 			Level:  lager.ERROR,
-			Action: "addCounter",
-			Err:    errors.New("attempted to add to counter without starting heartbeat"),
+			Action: "heartbeater",
+			Err:    errors.New("attempted to increment counter without starting heartbeater"),
+		}))
+	})
+
+	It("can count multiple events", func() {
+		for i := 0; i < 10; i++ {
+			subject.Increment("foo")
+		}
+
+		for i := 0; i < 5; i++ {
+			subject.Increment("bar")
+		}
+
+		trigger <- time.Now()
+
+		Eventually(func() mocks.Log {
+			return logger.LastLog()
+		}).Should(Equal(mocks.Log{
+			Level:  lager.INFO,
+			Action: "heartbeater",
+			Datas: []lager.Data{
+				{"counters": map[string]uint{
+					"foo": 10,
+					"bar": 5,
+				}},
+			},
 		}))
 	})
 })

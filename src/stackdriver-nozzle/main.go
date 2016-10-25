@@ -48,6 +48,9 @@ func newApp() *app {
 
 	logger.Info("arguments", c.ToData())
 
+	trigger := time.NewTicker(time.Duration(c.HeartbeatRate) * time.Second).C
+	heartbeater := heartbeat.NewHeartbeater(logger, trigger)
+
 	cfConfig := &cfclient.Config{
 		ApiAddress:        c.APIEndpoint,
 		Username:          c.Username,
@@ -65,26 +68,28 @@ func newApp() *app {
 	labelMaker := nozzle.NewLabelMaker(cachingClient)
 
 	return &app{
-		logger:     logger,
-		c:          c,
-		cfConfig:   cfConfig,
-		cfClient:   cfClient,
-		labelMaker: labelMaker,
+		logger:      logger,
+		c:           c,
+		cfConfig:    cfConfig,
+		cfClient:    cfClient,
+		labelMaker:  labelMaker,
+		heartbeater: heartbeater,
 	}
 }
 
 type app struct {
-	logger     lager.Logger
-	c          *config.Config
-	cfConfig   *cfclient.Config
-	cfClient   *cfclient.Client
-	labelMaker nozzle.LabelMaker
+	logger      lager.Logger
+	c           *config.Config
+	cfConfig    *cfclient.Config
+	cfClient    *cfclient.Client
+	labelMaker  nozzle.LabelMaker
+	heartbeater heartbeat.Heartbeater
 }
 
 func (a *app) newProducer() firehose.Client {
 	fhClient := firehose.NewClient(a.cfConfig, a.cfClient, a.c.SubscriptionID)
 
-	producer, err := filter.New(fhClient, strings.Split(a.c.Events, ","))
+	producer, err := filter.New(fhClient, strings.Split(a.c.Events, ","), a.heartbeater)
 	if err != nil {
 		a.logger.Fatal("filter", err)
 	}
@@ -93,13 +98,10 @@ func (a *app) newProducer() firehose.Client {
 }
 
 func (a *app) newConsumer() *nozzle.Nozzle {
-	trigger := time.NewTicker(time.Duration(a.c.HeartbeatRate) * time.Second).C
-	heartbeater := heartbeat.NewHeartbeat(a.logger, trigger)
-
 	return &nozzle.Nozzle{
 		LogSink:     a.newLogSink(),
 		MetricSink:  a.newMetricSink(),
-		Heartbeater: heartbeater,
+		Heartbeater: a.heartbeater,
 	}
 }
 
@@ -108,6 +110,7 @@ func (a *app) newLogSink() nozzle.Sink {
 		a.c.ProjectID,
 		a.c.BatchCount,
 		time.Duration(a.c.BatchDuration)*time.Second,
+		a.heartbeater,
 	)
 	go func() {
 		err := <-logErrs
@@ -123,7 +126,7 @@ func (a *app) newMetricSink() nozzle.Sink {
 		a.logger.Fatal("metricClient", err)
 	}
 
-	metricAdapter, err := stackdriver.NewMetricAdapter(a.c.ProjectID, metricClient)
+	metricAdapter, err := stackdriver.NewMetricAdapter(a.c.ProjectID, metricClient, a.heartbeater)
 	if err != nil {
 		a.logger.Error("metricAdapter", err)
 	}

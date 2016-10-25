@@ -16,7 +16,7 @@ var _ = Describe("Nozzle", func() {
 		firehose    *mocks.FirehoseClient
 		logSink     *mocks.Sink
 		metricSink  *mocks.Sink
-		heartbeater *mockHeartbeater
+		heartbeater *mocks.Heartbeater
 		errs        chan error
 		fhErrs      <-chan error
 	)
@@ -25,7 +25,7 @@ var _ = Describe("Nozzle", func() {
 		firehose = mocks.NewFirehoseClient()
 		logSink = &mocks.Sink{}
 		metricSink = &mocks.Sink{}
-		heartbeater = &mockHeartbeater{}
+		heartbeater = mocks.New()
 
 		subject = nozzle.Nozzle{
 			LogSink:     logSink,
@@ -36,7 +36,7 @@ var _ = Describe("Nozzle", func() {
 	})
 
 	It("starts the heartbeater", func() {
-		Expect(heartbeater.started).To(Equal(true))
+		Expect(heartbeater.Started).To(Equal(true))
 	})
 
 	It("updates the heartbeater", func() {
@@ -46,12 +46,14 @@ var _ = Describe("Nozzle", func() {
 			firehose.Messages <- &event
 		}
 
-		Eventually(heartbeater.getCounter).Should(Equal(len(events.Envelope_EventType_value)))
+		Eventually(func() int {
+			return heartbeater.Counters["nozzle.events"]
+		}).Should(Equal(len(events.Envelope_EventType_value)))
 	})
 
 	It("stops the heartbeater", func() {
 		subject.Stop()
-		Expect(heartbeater.started).To(Equal(false))
+		Expect(heartbeater.Started).To(Equal(false))
 	})
 
 	It("does not receive errors", func() {
@@ -140,24 +142,3 @@ var _ = Describe("Nozzle", func() {
 		Eventually(fhErrs).Should(Receive(Equal(err)))
 	})
 })
-
-type mockHeartbeater struct {
-	started bool
-	counter int
-}
-
-func (mh *mockHeartbeater) Start() {
-	mh.started = true
-}
-
-func (mh *mockHeartbeater) AddCounter() {
-	mh.counter += 1
-}
-
-func (mh *mockHeartbeater) Stop() {
-	mh.started = false
-}
-
-func (mh *mockHeartbeater) getCounter() int {
-	return mh.counter
-}

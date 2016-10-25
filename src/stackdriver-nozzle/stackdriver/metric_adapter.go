@@ -3,10 +3,10 @@ package stackdriver
 import (
 	"fmt"
 	"path"
+	"sync"
 	"time"
 
-	"sync"
-
+	"github.com/cloudfoundry-community/gcp-tools-release/src/stackdriver-nozzle/heartbeat"
 	"github.com/golang/protobuf/ptypes/timestamp"
 	"github.com/pkg/errors"
 	labelpb "google.golang.org/genproto/googleapis/api/label"
@@ -31,14 +31,16 @@ type metricAdapter struct {
 	client                MetricClient
 	descriptors           map[string]struct{}
 	createDescriptorMutex *sync.Mutex
+	heartbeater           heartbeat.Heartbeater
 }
 
-func NewMetricAdapter(projectID string, client MetricClient) (MetricAdapter, error) {
+func NewMetricAdapter(projectID string, client MetricClient, heartbeater heartbeat.Heartbeater) (MetricAdapter, error) {
 	ma := &metricAdapter{
 		projectID:             projectID,
 		client:                client,
 		createDescriptorMutex: &sync.Mutex{},
 		descriptors:           map[string]struct{}{},
+		heartbeater:           heartbeater,
 	}
 
 	err := ma.fetchMetricDescriptorNames()
@@ -50,6 +52,8 @@ func (ma *metricAdapter) PostMetrics(metrics []Metric) error {
 	var timeSerieses []*monitoringpb.TimeSeries
 
 	for _, metric := range metrics {
+		ma.heartbeater.Increment("metrics.count")
+
 		err := ma.ensureMetricDescriptor(metric)
 		if err != nil {
 			return err
@@ -71,7 +75,11 @@ func (ma *metricAdapter) PostMetrics(metrics []Metric) error {
 		TimeSeries: timeSerieses,
 	}
 
+	ma.heartbeater.Increment("metrics.requests")
 	err := ma.client.Post(request)
+	if err != nil {
+		ma.heartbeater.Increment("metrics.errors")
+	}
 	err = errors.Wrapf(err, "Request: %+v", request)
 	return err
 }
