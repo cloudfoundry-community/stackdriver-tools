@@ -19,8 +19,9 @@ type LogAdapter interface {
 }
 
 type Log struct {
-	Payload interface{}
-	Labels  map[string]string
+	Payload  interface{}
+	Labels   map[string]string
+	Severity logging.Severity
 }
 
 func NewLogAdapter(projectID string, batchCount int, batchDuration time.Duration, heartbeater heartbeat.Heartbeater) (LogAdapter, <-chan error) {
@@ -54,8 +55,9 @@ type logAdapter struct {
 func (s *logAdapter) PostLog(log *Log) {
 	s.heartBeater.Increment("logs.count")
 	entry := logging.Entry{
-		Payload: log.Payload,
-		Labels:  log.Labels,
+		Payload:  log.Payload,
+		Labels:   log.Labels,
+		Severity: log.Severity,
 	}
 	s.sdLogger.Log(entry)
 }

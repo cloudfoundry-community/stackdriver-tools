@@ -3,6 +3,8 @@ package nozzle_test
 import (
 	"time"
 
+	"cloud.google.com/go/logging"
+
 	"github.com/cloudfoundry-community/gcp-tools-release/src/stackdriver-nozzle/mocks"
 	"github.com/cloudfoundry-community/gcp-tools-release/src/stackdriver-nozzle/nozzle"
 	"github.com/cloudfoundry/sonde-go/events"
@@ -126,7 +128,53 @@ var _ = Describe("LogSink", func() {
 					"message_type": "OUT",
 					"message":      "19400: Success: Go",
 				},
+				"message": "19400: Success: Go",
 			}))
+			Expect(postedLog.Severity).To(Equal(logging.Default))
+		})
+
+		It("has resolved severity for a LogMessage from an Error", func() {
+			eventType := events.Envelope_LogMessage
+			messageType := events.LogMessage_ERR
+
+			event := events.LogMessage{
+				MessageType: &messageType,
+			}
+			envelope := &events.Envelope{
+				EventType:  &eventType,
+				LogMessage: &event,
+			}
+
+			subject.Receive(envelope)
+
+			postedLog := logAdapter.PostedLogs[0]
+
+			Expect(postedLog.Severity).To(Equal(logging.Error))
+		})
+
+		It("has severity and message for Error event types", func() {
+			eventType := events.Envelope_Error
+			source := "cf-source"
+			code := int32(-1)
+			message := "some error message"
+			event := events.Error{
+				Source:  &source,
+				Code:    &code,
+				Message: &message,
+			}
+			envelope := &events.Envelope{
+				EventType: &eventType,
+				Error:     &event,
+			}
+
+			subject.Receive(envelope)
+
+			postedLog := logAdapter.PostedLogs[0]
+
+			payload, ok := postedLog.Payload.(map[string]interface{})
+			Expect(ok).To(BeTrue())
+			Expect(payload["message"]).To(Equal("some error message"))
+			Expect(postedLog.Severity).To(Equal(logging.Error))
 		})
 	})
 })
