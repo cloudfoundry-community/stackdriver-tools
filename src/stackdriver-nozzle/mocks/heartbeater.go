@@ -25,3 +25,10 @@ func (h *Heartbeater) Increment(name string) {
 func (h *Heartbeater) Stop() {
 	h.Started = false
 }
+
+func (h *Heartbeater) GetCount(name string) int {
+	h.mutex.Lock()
+	defer h.mutex.Unlock()
+
+	return h.Counters[name]
+}

@@ -26,7 +26,7 @@ var _ = Describe("Filter", func() {
 		Expect(f).NotTo(BeNil())
 		messages, errs := f.Connect()
 
-		go fhClient.SendEvents(
+		fhClient.SendEvents(
 			events.Envelope_HttpStart,
 			events.Envelope_HttpStop,
 			events.Envelope_HttpStartStop,
@@ -53,7 +53,7 @@ var _ = Describe("Filter", func() {
 		fhClient.Messages <- event
 		Eventually(messages).Should(Receive(Equal(event)))
 
-		go fhClient.SendEvents(
+		fhClient.SendEvents(
 			events.Envelope_HttpStart,
 			events.Envelope_HttpStop,
 			events.Envelope_HttpStartStop,
@@ -83,7 +83,7 @@ var _ = Describe("Filter", func() {
 		fhClient.Messages <- event
 		Eventually(messages).Should(Receive(Equal(event)))
 
-		go fhClient.SendEvents(
+		fhClient.SendEvents(
 			events.Envelope_HttpStart,
 			events.Envelope_HttpStop,
 			events.Envelope_HttpStartStop,
@@ -107,26 +107,27 @@ var _ = Describe("Filter", func() {
 		f, _ := filter.New(fhClient, multiFilter, heartbeater)
 		messages, _ := f.Connect()
 
-		go func() {
-			for range messages {
-			}
-		}()
-
 		fhClient.SendEvents(
 			events.Envelope_HttpStart,
 			events.Envelope_HttpStop,
 			events.Envelope_HttpStartStop,
 		)
 
-		Expect(heartbeater.Counters["filter.events"]).To(Equal(3))
+		Eventually(func() int {
+			return heartbeater.GetCount("filter.events")
+		}).Should(Equal(3))
 
-		fhClient.SendEvents(
+		go fhClient.SendEvents(
 			events.Envelope_LogMessage,
 			events.Envelope_ValueMetric,
 			events.Envelope_CounterEvent,
 			events.Envelope_ContainerMetric,
 		)
 
-		Expect(heartbeater.Counters["filter.events"]).To(Equal(7))
+		<-messages
+
+		Eventually(func() int {
+			return heartbeater.GetCount("filter.events")
+		}).Should(Equal(7))
 	})
 })
