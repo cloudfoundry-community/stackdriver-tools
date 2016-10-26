@@ -29,6 +29,7 @@ type Config struct {
 	Password       string `envconfig:"firehose_password" default:"admin"`
 	SkipSSL        bool   `envconfig:"firehose_skip_ssl" default:"false"`
 	SubscriptionID string `envconfig:"firehose_subscription_id"`
+	NewlineToken   string `envconfig:"firehose_newline_token"`
 
 	// Stackdriver config
 	ProjectID string `envconfig:"gcp_project_id"`
@@ -71,5 +72,6 @@ func (c *Config) ToData() lager.Data {
 		"ResolveAppMetadata": c.ResolveAppMetadata,
 		"SubscriptionID":     c.SubscriptionID,
 		"DebugNozzle":        c.DebugNozzle,
+		"NewlineToken":       c.NewlineToken,
 	}
 }

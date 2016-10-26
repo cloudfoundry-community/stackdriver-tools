@@ -153,7 +153,7 @@ func (a *app) newLogSink() nozzle.Sink {
 		a.logger.Error("logAdapter", err)
 	}()
 
-	return nozzle.NewLogSink(a.labelMaker, logAdapter)
+	return nozzle.NewLogSink(a.labelMaker, logAdapter, a.c.NewlineToken)
 }
 
 func (a *app) newLogAdapter() (stackdriver.LogAdapter, <-chan error) {

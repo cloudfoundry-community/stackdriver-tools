@@ -6,15 +6,21 @@ import (
 	"cloud.google.com/go/logging"
 	"github.com/cloudfoundry-community/gcp-tools-release/src/stackdriver-nozzle/stackdriver"
 	"github.com/cloudfoundry/sonde-go/events"
+	"strings"
 )
 
-func NewLogSink(labelMaker LabelMaker, logAdapter stackdriver.LogAdapter) Sink {
-	return &logSink{labelMaker: labelMaker, logAdapter: logAdapter}
+func NewLogSink(labelMaker LabelMaker, logAdapter stackdriver.LogAdapter, newlineToken string) Sink {
+	return &logSink{
+		labelMaker:   labelMaker,
+		logAdapter:   logAdapter,
+		newlineToken: newlineToken,
+	}
 }
 
 type logSink struct {
-	labelMaker LabelMaker
-	logAdapter stackdriver.LogAdapter
+	labelMaker   LabelMaker
+	logAdapter   stackdriver.LogAdapter
+	newlineToken string
 }
 
 func (lh *logSink) Receive(envelope *events.Envelope) error {
@@ -53,15 +59,18 @@ func (ls *logSink) parseEnvelope(envelope *events.Envelope) (interface{}, loggin
 		logMessage := envelope.GetLogMessage()
 		logMessageMap := structToMap(logMessage)
 		if logMessageMap != nil {
+			message := ls.parseMessage(logMessage.GetMessage())
+
 			// This is snake_cased to match the field in the protobuf. The other
 			// fields we pass to Stackdriver are camelCased. We arbitrarily chose
 			// to remain consistent with the protobuf.
 			logMessageMap["message_type"] = logMessage.GetMessageType().String()
 			severity = parseSeverity(logMessage.GetMessageType())
-			logMessageMap["message"] = string(logMessage.GetMessage())
+			logMessageMap["message"] = message
 			envelopeMap["logMessage"] = logMessageMap
+
 			// Duplicate the message payload where stackdriver expects it
-			envelopeMap["message"] = string(logMessage.GetMessage())
+			envelopeMap["message"] = message
 		}
 	case events.Envelope_Error:
 		errorMessage := envelope.GetError().GetMessage()
@@ -78,6 +87,14 @@ func (ls *logSink) parseEnvelope(envelope *events.Envelope) (interface{}, loggin
 	}
 
 	return envelopeMap, severity
+}
+
+func (ls *logSink) parseMessage(rawMessage []byte) string {
+	message := string(rawMessage)
+	if ls.newlineToken != "" {
+		message = strings.Replace(message, ls.newlineToken, "\n", -1)
+	}
+	return message
 }
 
 func parseSeverity(messageType events.LogMessage_MessageType) logging.Severity {

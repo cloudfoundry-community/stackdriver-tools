@@ -25,7 +25,8 @@ var _ = Describe("LogSink", func() {
 		labelMaker = &mocks.LabelMaker{Labels: labels}
 		logAdapter = &mocks.LogAdapter{}
 
-		subject = nozzle.NewLogSink(labelMaker, logAdapter)
+		newlineToken := ""
+		subject = nozzle.NewLogSink(labelMaker, logAdapter, newlineToken)
 	})
 
 	It("passes fields through to the adapter", func() {
@@ -175,6 +176,39 @@ var _ = Describe("LogSink", func() {
 			Expect(ok).To(BeTrue())
 			Expect(payload["message"]).To(Equal("some error message"))
 			Expect(postedLog.Severity).To(Equal(logging.Error))
+		})
+
+		It("translates newline tokens when one is passed in", func() {
+			subject = nozzle.NewLogSink(labelMaker, logAdapter, "∴")
+
+			eventType := events.Envelope_LogMessage
+			messageType := events.LogMessage_OUT
+
+			event := events.LogMessage{
+				MessageType: &messageType,
+				Message:     []byte("Line one∴  Line two∴  Linethree"),
+			}
+			envelope := &events.Envelope{
+				EventType:  &eventType,
+				LogMessage: &event,
+			}
+
+			subject.Receive(envelope)
+
+			postedLog := logAdapter.PostedLogs[0]
+			payload := (postedLog.Payload).(map[string]interface{})
+
+			expectedMessage := `Line one
+  Line two
+  Linethree`
+			Expect(payload).To(Equal(map[string]interface{}{
+				"eventType": eventType.String(),
+				"logMessage": map[string]interface{}{
+					"message_type": "OUT",
+					"message": expectedMessage,
+				},
+				"message": expectedMessage,
+			}))
 		})
 	})
 })
