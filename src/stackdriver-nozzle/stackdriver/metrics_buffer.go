@@ -58,7 +58,7 @@ func (mb *metricsBuffer) postMetrics(metrics []Metric) {
 	go func() {
 		err := mb.adapter.PostMetrics(metrics)
 		if err != nil {
-			go func() { mb.errs <- err }()
+			mb.errs <- err
 		}
 	}()
 }

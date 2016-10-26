@@ -12,7 +12,7 @@ import (
 
 var _ = Describe("Nozzle", func() {
 	var (
-		subject     nozzle.Nozzle
+		subject     *nozzle.Nozzle
 		firehose    *mocks.FirehoseClient
 		logSink     *mocks.Sink
 		metricSink  *mocks.Sink
@@ -25,9 +25,9 @@ var _ = Describe("Nozzle", func() {
 		firehose = mocks.NewFirehoseClient()
 		logSink = &mocks.Sink{}
 		metricSink = &mocks.Sink{}
-		heartbeater = mocks.New()
+		heartbeater = mocks.NewHeartbeater()
 
-		subject = nozzle.Nozzle{
+		subject = &nozzle.Nozzle{
 			LogSink:     logSink,
 			MetricSink:  metricSink,
 			Heartbeater: heartbeater,
@@ -36,7 +36,7 @@ var _ = Describe("Nozzle", func() {
 	})
 
 	It("starts the heartbeater", func() {
-		Expect(heartbeater.Started).To(Equal(true))
+		Expect(heartbeater.IsRunning()).To(Equal(true))
 	})
 
 	It("updates the heartbeater", func() {
@@ -47,13 +47,13 @@ var _ = Describe("Nozzle", func() {
 		}
 
 		Eventually(func() int {
-			return heartbeater.Counters["nozzle.events"]
+			return heartbeater.GetCount("nozzle.events")
 		}).Should(Equal(len(events.Envelope_EventType_value)))
 	})
 
 	It("stops the heartbeater", func() {
 		subject.Stop()
-		Expect(heartbeater.Started).To(Equal(false))
+		Expect(heartbeater.IsRunning()).To(Equal(false))
 	})
 
 	It("does not receive errors", func() {

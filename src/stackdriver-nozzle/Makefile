@@ -39,7 +39,7 @@ vet:
 
 # Runs the unit tests with coverage
 test: get-deps clean fmt lint vet build
-	ginkgo -r -skipPackage=integration .
+	ginkgo -r -skipPackage=integration -race .
 
 newb: get-deps
 	go get -u github.com/kardianos/govendor
