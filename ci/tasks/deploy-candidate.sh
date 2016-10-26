@@ -87,6 +87,7 @@ jobs:
       username: ${nozzle_user}
       password: ${nozzle_password}
       skip_ssl: true
+      newline_token: ∴
     nozzle:
       debug: true
 
