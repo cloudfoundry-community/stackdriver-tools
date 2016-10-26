@@ -66,6 +66,8 @@ func handleFatalError(a *app) {
 			Severity: logging.Error,
 		}
 
+		// Purposefully get a new log adapter here since there
+		// were issues re-using the one that the nozzle uses.
 		logAdapter, _ := a.newLogAdapter()
 		logAdapter.PostLog(log)
 		logAdapter.Flush()
