@@ -116,6 +116,55 @@ The [spec][spec] describes all the properties an operator should modify.
 [spec]: jobs/stackdriver-nozzle/spec
 [loggregator]: https://github.com/cloudfoundry/loggregator
 
+
+### Stackdriver Error Reporting
+
+Stackdriver can automatically detect and report errors from stack traces in logs.
+However, this does not automatically work with Loggregator because it sends each
+line from app output as a separate log message to the nozzle. To enable this feature 
+of Stackdriver, apps will need to manually encode stacktraces on a single line so 
+that the stackdriver-nozzle can send them as single messages to Stackdriver.
+
+This is accomplished by replacing newlines in stacktraces with a unique character,
+which is set using the `firehose.newline_token` template variable in the nozzle
+so that the nozzle can reconstruct the stacktrace on multiple lines.
+
+For example, if `firehose.newline_token` is set to `∴`, a Go app would need to
+implement something like the following:
+
+```go
+const newlineToken = "∴"
+
+func main() {
+    ...
+    defer handlePanic()
+    ...
+}
+
+func handlePanic() {
+    	e := recover()
+    	if e == nil {
+    		return
+    	}
+    
+    	stack := make([]byte, 1<<16)
+    	stackSize := runtime.Stack(stack, true)
+    	out := string(stack[:stackSize])
+    
+    	fmt.Fprintf(os.Stderr, "panic: %v", e)
+    	fmt.Fprintf(os.Stderr, strings.Replace(out, "\n", newlineToken, -1))
+    	os.Exit(1)
+}
+```
+
+This outputs the stacktrace separately from the panic so that the panic remains in
+the logs and the stacktrace is logged by itself. This allows Stackdriver to detect
+the stacktrace as an error.
+
+For an example in Java, see [this section of the Loggregator documentation][multi-line-java].
+
+[multi-line-java]: https://github.com/cloudfoundry/loggregator#multi-line-java-message-workaround
+
 ## Deploying host logging
 The [google-fluentd][google-fluentd] template uses [Fluentd][fluentd] to send
 both syslog and template logs (assuming that template jobs are writing logs into
