@@ -4,7 +4,7 @@ import (
 	"os"
 	"time"
 
-	"github.com/cloudfoundry-community/gcp-tools-release/src/stackdriver-nozzle/firehose"
+	"github.com/cloudfoundry-community/gcp-tools-release/src/stackdriver-nozzle/cloudfoundry"
 	"github.com/cloudfoundry-community/gcp-tools-release/src/stackdriver-nozzle/heartbeat"
 	"github.com/cloudfoundry-community/go-cfclient"
 	"github.com/cloudfoundry/lager"
@@ -24,7 +24,7 @@ func main() {
 
 	cfClient := cfclient.NewClient(cfConfig)
 
-	client := firehose.NewClient(cfConfig, cfClient, "firehose-rate-script")
+	client := cloudfoundry.NewFirehose(cfConfig, cfClient, "firehose-rate-script")
 
 	messages, _ := client.Connect()
 

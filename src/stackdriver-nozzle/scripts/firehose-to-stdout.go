@@ -3,7 +3,7 @@ package main
 import (
 	"os"
 
-	"github.com/cloudfoundry-community/gcp-tools-release/src/stackdriver-nozzle/firehose"
+	"github.com/cloudfoundry-community/gcp-tools-release/src/stackdriver-nozzle/cloudfoundry"
 	"github.com/cloudfoundry-community/go-cfclient"
 	"github.com/cloudfoundry/sonde-go/events"
 )
@@ -22,7 +22,7 @@ func main() {
 
 	cfClient := cfclient.NewClient(cfConfig)
 
-	client := firehose.NewClient(cfConfig, cfClient, nil)
+	client := cloudfoundry.NewFirehose(cfConfig, cfClient, nil)
 
 	err := client.StartListening(&StdOut{})
 	if err != nil {

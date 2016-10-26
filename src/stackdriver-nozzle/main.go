@@ -8,9 +8,9 @@ import (
 
 	"cloud.google.com/go/logging"
 	"github.com/cloudfoundry-community/firehose-to-syslog/caching"
+	"github.com/cloudfoundry-community/gcp-tools-release/src/stackdriver-nozzle/cloudfoundry"
 	"github.com/cloudfoundry-community/gcp-tools-release/src/stackdriver-nozzle/config"
 	"github.com/cloudfoundry-community/gcp-tools-release/src/stackdriver-nozzle/filter"
-	"github.com/cloudfoundry-community/gcp-tools-release/src/stackdriver-nozzle/firehose"
 	"github.com/cloudfoundry-community/gcp-tools-release/src/stackdriver-nozzle/heartbeat"
 	"github.com/cloudfoundry-community/gcp-tools-release/src/stackdriver-nozzle/nozzle"
 	"github.com/cloudfoundry-community/gcp-tools-release/src/stackdriver-nozzle/stackdriver"
@@ -127,10 +127,10 @@ type app struct {
 	heartbeater heartbeat.Heartbeater
 }
 
-func (a *app) newProducer() firehose.Client {
-	fhClient := firehose.NewClient(a.cfConfig, a.cfClient, a.c.SubscriptionID)
+func (a *app) newProducer() cloudfoundry.Firehose {
+	firehose := cloudfoundry.NewFirehose(a.cfConfig, a.cfClient, a.c.SubscriptionID)
 
-	producer, err := filter.New(fhClient, strings.Split(a.c.Events, ","), a.heartbeater)
+	producer, err := filter.New(firehose, strings.Split(a.c.Events, ","), a.heartbeater)
 	if err != nil {
 		a.logger.Fatal("filter", err)
 	}
