@@ -2,21 +2,24 @@
 name: gcp-tools
 label: 'Some tools what for logging and monitoring'
 description: A Nozzle and some other stuff
+icon_file: gcp_logo.png
 packages:
 - name: gcp-tools
   type: bosh-release
-  path: https://storage.googleapis.com/bosh-gcp/beta/bosh-gcp-tools-latest.tgz
+  path: https://storage.googleapis.com/bosh-gcp/beta/gcp-tools-release/latest.tgz
   jobs:
-    - name: google-fluentd
-      templates:
-      - name: google-fluentd-ctl
-      lifecycle: errand
-      post_deploy: true
-    - name: stackdriver-agent
-      templates:
-      - name: stackdriver_collectd_ctl
-      lifecycle: errand
-      post_deploy: true
+  - name: google-fluentd
+    templates:
+    - name: google-fluentd-ctl
+    lifecycle: errand
+    post_deploy: true
+    properties:
+  - name: stackdriver-agent
+    templates:
+    - name: stackdriver_collectd_ctl
+    lifecycle: errand
+    post_deploy: true
+    properties:
 
 
 forms:
