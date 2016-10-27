@@ -60,7 +60,6 @@ type Config struct {
 	HeartbeatRate      int    `envconfig:"heartbeat_rate" default:"30"`
 	BatchCount         int    `envconfig:"batch_count" default:"10"`
 	BatchDuration      int    `envconfig:"batch_duration" default:"1"`
-	BoltDBPath         string `envconfig:"boltdb_path" default:"cached-app-metadata.db"`
 	ResolveAppMetadata bool   `envconfig:"resolve_app_metadata"`
 	DebugNozzle        bool   `envconfig:"debug_nozzle"`
 }
@@ -106,7 +105,6 @@ func (c *Config) ToData() lager.Data {
 		"BatchCount":         c.BatchCount,
 		"BatchDuration":      c.BatchDuration,
 		"HeartbeatRate":      c.HeartbeatRate,
-		"BoltDBPath":         c.BoltDBPath,
 		"ResolveAppMetadata": c.ResolveAppMetadata,
 		"SubscriptionID":     c.SubscriptionID,
 		"DebugNozzle":        c.DebugNozzle,
