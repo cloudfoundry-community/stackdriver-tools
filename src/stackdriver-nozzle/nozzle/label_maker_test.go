@@ -19,9 +19,11 @@ package nozzle_test
 import (
 	"time"
 
-	"github.com/cloudfoundry-community/firehose-to-syslog/caching"
+
+	"github.com/cloudfoundry-community/gcp-tools-release/src/stackdriver-nozzle/cloudfoundry"
 	"github.com/cloudfoundry-community/stackdriver-tools/src/stackdriver-nozzle/mocks"
 	"github.com/cloudfoundry-community/stackdriver-tools/src/stackdriver-nozzle/nozzle"
+
 	"github.com/cloudfoundry/sonde-go/events"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -34,7 +36,7 @@ var _ = Describe("LabelMaker", func() {
 	)
 
 	BeforeEach(func() {
-		subject = nozzle.NewLabelMaker(caching.NewCachingEmpty())
+		subject = nozzle.NewLabelMaker(cloudfoundry.NullAppInfoRepository())
 	})
 
 	It("makes labels from envelopes", func() {
@@ -202,14 +204,14 @@ var _ = Describe("LabelMaker", func() {
 
 		Context("application metadata", func() {
 			var (
-				cachingClient *mocks.CachingClient
+				appInfoRepository *mocks.AppInfoRepository
 			)
 
 			BeforeEach(func() {
-				cachingClient = &mocks.CachingClient{}
-				cachingClient.AppInfo = make(map[string]caching.App)
-
-				subject = nozzle.NewLabelMaker(cachingClient)
+				appInfoRepository = &mocks.AppInfoRepository{
+					AppInfoMap: map[string]cloudfoundry.AppInfo{},
+				}
+				subject = nozzle.NewLabelMaker(appInfoRepository)
 			})
 
 			Context("for a LogMessage", func() {
@@ -232,24 +234,23 @@ var _ = Describe("LabelMaker", func() {
 				})
 
 				It("adds fields for a resolved app", func() {
-					app := caching.App{
-						Name:      "MyApp",
-						Guid:      appGuid,
+					app := cloudfoundry.AppInfo{
+						AppName:   "MyApp",
 						SpaceName: "MySpace",
-						SpaceGuid: spaceGuid,
+						SpaceGUID: spaceGuid,
 						OrgName:   "MyOrg",
-						OrgGuid:   orgGuid,
+						OrgGUID:   orgGuid,
 					}
 
-					cachingClient.AppInfo[appGuid] = app
+					appInfoRepository.AppInfoMap[appGuid] = app
 
 					labels := subject.Build(envelope)
 
-					Expect(labels).To(HaveKeyWithValue("appName", app.Name))
+					Expect(labels).To(HaveKeyWithValue("appName", app.AppName))
 					Expect(labels).To(HaveKeyWithValue("spaceName", app.SpaceName))
-					Expect(labels).To(HaveKeyWithValue("spaceGuid", app.SpaceGuid))
+					Expect(labels).To(HaveKeyWithValue("spaceGuid", app.SpaceGUID))
 					Expect(labels).To(HaveKeyWithValue("orgName", app.OrgName))
-					Expect(labels).To(HaveKeyWithValue("orgGuid", app.OrgGuid))
+					Expect(labels).To(HaveKeyWithValue("orgGuid", app.OrgGUID))
 				})
 
 				It("doesn't add fields for an unresolved app", func() {

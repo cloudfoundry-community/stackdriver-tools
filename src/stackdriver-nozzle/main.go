@@ -9,7 +9,6 @@ import (
 	"time"
 
 	"cloud.google.com/go/logging"
-	"github.com/cloudfoundry-community/firehose-to-syslog/caching"
 	"github.com/cloudfoundry-community/go-cfclient"
 	"github.com/cloudfoundry-community/stackdriver-tools/src/stackdriver-nozzle/config"
 	"github.com/cloudfoundry-community/stackdriver-tools/src/stackdriver-nozzle/filter"
@@ -106,14 +105,13 @@ func newApp() *app {
 		SkipSslValidation: c.SkipSSL}
 	cfClient := cfclient.NewClient(cfConfig)
 
-	var cachingClient caching.Caching
+	var appInfoRepository cloudfoundry.AppInfoRepository
 	if c.ResolveAppMetadata {
-		cachingClient = caching.NewCachingBolt(cfClient, c.BoltDBPath)
+		appInfoRepository = cloudfoundry.NewAppInfoRepository(cfClient)
 	} else {
-		cachingClient = caching.NewCachingEmpty()
+		appInfoRepository = cloudfoundry.NullAppInfoRepository()
 	}
-	cachingClient.CreateBucket()
-	labelMaker := nozzle.NewLabelMaker(cachingClient)
+	labelMaker := nozzle.NewLabelMaker(appInfoRepository)
 
 	return &app{
 		logger:      logger,
