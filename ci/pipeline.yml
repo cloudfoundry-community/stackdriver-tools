@@ -62,8 +62,9 @@ jobs:
   - name: deploy-candidate
     plan:
       - aggregate:
-        - {trigger: true, passed: [build-candidate],  get: gcp-tools-release,             resource: gcp-tools-release-in}
-        - {trigger: true, passed: [build-candidate],  get: gcp-tools-release-artifacts,   resource: gcp-tools-release-artifacts}
+        - {trigger: true,  passed: [build-candidate],  get: gcp-tools-release,                resource: gcp-tools-release-in}
+        - {trigger: true,  passed: [build-candidate],  get: gcp-tools-release-artifacts,      resource: gcp-tools-release-artifacts}
+        - {trigger: false, passed: [build-candidate],  get: gcp-tools-release-artifacts-sha1, resource: gcp-tools-release-artifacts-sha1}
 
       - task: build-release
         file: gcp-tools-release/ci/tasks/deploy-candidate.yml
@@ -94,6 +95,12 @@ jobs:
             nozzle_password: {{nozzle_password}}
             vip_ip: {{vip_ip}}
             service_account_key_json: {{service_account_key_json}}
+
+      - put: gcp-tools-release-artifacts
+        params: {file: candidate/latest.tgz}
+
+      - put: gcp-tools-release-artifacts-sha1
+        params: {file: candidate/latest.tgz.sha1}
 
 resources:
   - name: gcp-tools-release-in

@@ -156,3 +156,7 @@ EOF
 
 bosh deployment ${nozzle_manifest_name}
 bosh -n deploy
+
+# Move release and its SHA1
+mv gcp-tools-release-artifacts/*.tgz candidate/latest.tgz
+mv gcp-tools-release-artifacts-sha1/*.tgz.sha1 candidate/latest.tgz.sha1
