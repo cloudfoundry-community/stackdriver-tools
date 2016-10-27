@@ -23,15 +23,9 @@ type logSink struct {
 	newlineToken string
 }
 
-func (lh *logSink) Receive(envelope *events.Envelope) error {
-	payload, severity := lh.parseEnvelope(envelope)
-	log := &stackdriver.Log{
-		Payload:  payload,
-		Labels:   lh.labelMaker.Build(envelope),
-		Severity: severity,
-	}
-
-	lh.logAdapter.PostLog(log)
+func (ls *logSink) Receive(envelope *events.Envelope) error {
+	log := ls.parseEnvelope(envelope)
+	ls.logAdapter.PostLog(&log)
 	return nil
 }
 
@@ -43,15 +37,15 @@ func structToMap(obj interface{}) map[string]interface{} {
 	return unmarshaled_map
 }
 
-func (ls *logSink) parseEnvelope(envelope *events.Envelope) (interface{}, logging.Severity) {
-	envelopeMap := structToMap(envelope)
-	envelopeMap["eventType"] = envelope.GetEventType().String()
+func (ls *logSink) parseEnvelope(envelope *events.Envelope) stackdriver.Log {
+	payload := structToMap(envelope)
+	payload["eventType"] = envelope.GetEventType().String()
 
 	severity := logging.Default
 
 	// The json marshaling causes a loss in precision
 	if envelope.GetTimestamp() != 0 {
-		envelopeMap["timestamp"] = envelope.GetTimestamp()
+		payload["timestamp"] = envelope.GetTimestamp()
 	}
 
 	switch envelope.GetEventType() {
@@ -67,14 +61,14 @@ func (ls *logSink) parseEnvelope(envelope *events.Envelope) (interface{}, loggin
 			logMessageMap["message_type"] = logMessage.GetMessageType().String()
 			severity = parseSeverity(logMessage.GetMessageType())
 			logMessageMap["message"] = message
-			envelopeMap["logMessage"] = logMessageMap
+			payload["logMessage"] = logMessageMap
 
 			// Duplicate the message payload where stackdriver expects it
-			envelopeMap["message"] = message
+			payload["message"] = message
 		}
 	case events.Envelope_Error:
 		errorMessage := envelope.GetError().GetMessage()
-		envelopeMap["message"] = errorMessage
+		payload["message"] = errorMessage
 		severity = logging.Error
 	case events.Envelope_HttpStartStop:
 		httpStartStop := envelope.GetHttpStartStop()
@@ -82,11 +76,25 @@ func (ls *logSink) parseEnvelope(envelope *events.Envelope) (interface{}, loggin
 		if httpStartStopMap != nil {
 			httpStartStopMap["method"] = httpStartStop.GetMethod().String()
 			httpStartStopMap["peerType"] = httpStartStop.GetPeerType().String()
-			envelopeMap["httpStartStop"] = httpStartStopMap
+			payload["httpStartStop"] = httpStartStopMap
 		}
 	}
 
-	return envelopeMap, severity
+	labels := ls.labelMaker.Build(envelope)
+	appID := labels["applicationId"]
+	if appID != "" {
+		payload["serviceContext"] = map[string]interface{}{
+			"name": appID,
+		}
+	}
+
+	log := stackdriver.Log{
+		Payload:  payload,
+		Labels:   labels,
+		Severity: severity,
+	}
+
+	return log
 }
 
 func (ls *logSink) parseMessage(rawMessage []byte) string {

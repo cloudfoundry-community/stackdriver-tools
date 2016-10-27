@@ -63,6 +63,6 @@ func (s *logAdapter) PostLog(log *Log) {
 	s.sdLogger.Log(entry)
 }
 
-func (s* logAdapter) Flush() {
+func (s *logAdapter) Flush() {
 	s.sdLogger.Flush()
 }

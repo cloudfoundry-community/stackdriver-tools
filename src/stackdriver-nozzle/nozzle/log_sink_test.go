@@ -15,13 +15,13 @@ import (
 var _ = Describe("LogSink", func() {
 	var (
 		subject    nozzle.Sink
-		labelMaker nozzle.LabelMaker
+		labelMaker *mocks.LabelMaker
 		logAdapter *mocks.LogAdapter
 		labels     map[string]string
 	)
 
 	BeforeEach(func() {
-		labels = map[string]string{"foo": "bar"}
+		labels = map[string]string{"foo": "bar", "applicationId": "f47ac10b-58cc-4372-a567-0e02b2c3d479"}
 		labelMaker = &mocks.LabelMaker{Labels: labels}
 		logAdapter = &mocks.LogAdapter{}
 
@@ -103,6 +103,9 @@ var _ = Describe("LogSink", func() {
 				"method":   "GET",
 				"peerType": "Client",
 			}))
+			Expect(payload).To(HaveKeyWithValue("serviceContext", map[string]interface{}{
+				"name": "f47ac10b-58cc-4372-a567-0e02b2c3d479",
+			}))
 		})
 
 		It("has resolved labels and payloads equivalent for LogMessage", func() {
@@ -130,6 +133,9 @@ var _ = Describe("LogSink", func() {
 					"message":      "19400: Success: Go",
 				},
 				"message": "19400: Success: Go",
+				"serviceContext": map[string]interface{}{
+					"name": "f47ac10b-58cc-4372-a567-0e02b2c3d479",
+				},
 			}))
 			Expect(postedLog.Severity).To(Equal(logging.Default))
 		})
@@ -201,14 +207,12 @@ var _ = Describe("LogSink", func() {
 			expectedMessage := `Line one
   Line two
   Linethree`
-			Expect(payload).To(Equal(map[string]interface{}{
-				"eventType": eventType.String(),
-				"logMessage": map[string]interface{}{
-					"message_type": "OUT",
-					"message": expectedMessage,
-				},
-				"message": expectedMessage,
-			}))
+			Expect(payload).To(HaveKeyWithValue("message", expectedMessage))
+			Expect(payload).To(HaveKeyWithValue("logMessage", map[string]interface{}{
+				"message_type": "OUT",
+				"message":      expectedMessage,
+			},
+			))
 		})
 	})
 })
