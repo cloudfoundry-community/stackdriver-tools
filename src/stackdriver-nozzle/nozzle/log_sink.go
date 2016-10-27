@@ -84,7 +84,7 @@ func (ls *logSink) parseEnvelope(envelope *events.Envelope) stackdriver.Log {
 	appID := labels["applicationId"]
 	if appID != "" {
 		payload["serviceContext"] = map[string]interface{}{
-			"name": appID,
+			"service": appID,
 		}
 	}
 

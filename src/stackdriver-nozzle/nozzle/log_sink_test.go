@@ -104,7 +104,7 @@ var _ = Describe("LogSink", func() {
 				"peerType": "Client",
 			}))
 			Expect(payload).To(HaveKeyWithValue("serviceContext", map[string]interface{}{
-				"name": "f47ac10b-58cc-4372-a567-0e02b2c3d479",
+				"service": "f47ac10b-58cc-4372-a567-0e02b2c3d479",
 			}))
 		})
 
@@ -134,7 +134,7 @@ var _ = Describe("LogSink", func() {
 				},
 				"message": "19400: Success: Go",
 				"serviceContext": map[string]interface{}{
-					"name": "f47ac10b-58cc-4372-a567-0e02b2c3d479",
+					"service": "f47ac10b-58cc-4372-a567-0e02b2c3d479",
 				},
 			}))
 			Expect(postedLog.Severity).To(Equal(logging.Default))
