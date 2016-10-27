@@ -1,9 +1,10 @@
 package nozzle
 
 import (
-	"github.com/cloudfoundry-community/firehose-to-syslog/utils"
 	"github.com/cloudfoundry-community/gcp-tools-release/src/stackdriver-nozzle/cloudfoundry"
 	"github.com/cloudfoundry/sonde-go/events"
+	"encoding/binary"
+	"fmt"
 )
 
 type LabelMaker interface {
@@ -47,7 +48,7 @@ func (lm *labelMaker) Build(envelope *events.Envelope) map[string]string {
 
 func (lm *labelMaker) getApplicationId(envelope *events.Envelope) string {
 	if envelope.GetEventType() == events.Envelope_HttpStartStop {
-		return utils.FormatUUID(envelope.GetHttpStartStop().GetApplicationId())
+		return formatUUID(envelope.GetHttpStartStop().GetApplicationId())
 	} else if envelope.GetEventType() == events.Envelope_LogMessage {
 		return envelope.GetLogMessage().GetAppId()
 	} else if envelope.GetEventType() == events.Envelope_ContainerMetric {
@@ -79,4 +80,14 @@ func (lm *labelMaker) buildAppMetadataLabels(guid string, labels map[string]stri
 	if app.OrgGUID != "" {
 		labels["orgGuid"] = app.OrgGUID
 	}
+}
+
+func formatUUID(uuid *events.UUID) string {
+	if uuid == nil {
+		return ""
+	}
+	var uuidBytes [16]byte
+	binary.LittleEndian.PutUint64(uuidBytes[:8], uuid.GetLow())
+	binary.LittleEndian.PutUint64(uuidBytes[8:], uuid.GetHigh())
+	return fmt.Sprintf("%x-%x-%x-%x-%x", uuidBytes[0:4], uuidBytes[4:6], uuidBytes[6:8], uuidBytes[8:10], uuidBytes[10:])
 }
