@@ -1,8 +1,8 @@
 package nozzle
 
 import (
-	"github.com/cloudfoundry-community/firehose-to-syslog/caching"
 	"github.com/cloudfoundry-community/firehose-to-syslog/utils"
+	"github.com/cloudfoundry-community/gcp-tools-release/src/stackdriver-nozzle/cloudfoundry"
 	"github.com/cloudfoundry/sonde-go/events"
 )
 
@@ -10,12 +10,12 @@ type LabelMaker interface {
 	Build(*events.Envelope) map[string]string
 }
 
-func NewLabelMaker(cachingClient caching.Caching) LabelMaker {
-	return &labelMaker{cachingClient: cachingClient}
+func NewLabelMaker(appInfoRepository cloudfoundry.AppInfoRepository) LabelMaker {
+	return &labelMaker{appInfoRepository: appInfoRepository}
 }
 
 type labelMaker struct {
-	cachingClient caching.Caching
+	appInfoRepository cloudfoundry.AppInfoRepository
 }
 
 func (lm *labelMaker) Build(envelope *events.Envelope) map[string]string {
@@ -57,26 +57,26 @@ func (lm *labelMaker) getApplicationId(envelope *events.Envelope) string {
 	}
 }
 
-func (lm *labelMaker) buildAppMetadataLabels(appId string, labels map[string]string, envelope *events.Envelope) {
-	app := lm.cachingClient.GetAppInfoCache(appId)
+func (lm *labelMaker) buildAppMetadataLabels(guid string, labels map[string]string, envelope *events.Envelope) {
+	app := lm.appInfoRepository.GetAppInfo(guid)
 
-	if app.Name != "" {
-		labels["appName"] = app.Name
+	if app.AppName != "" {
+		labels["appName"] = app.AppName
 	}
 
 	if app.SpaceName != "" {
 		labels["spaceName"] = app.SpaceName
 	}
 
-	if app.SpaceGuid != "" {
-		labels["spaceGuid"] = app.SpaceGuid
+	if app.SpaceGUID != "" {
+		labels["spaceGuid"] = app.SpaceGUID
 	}
 
 	if app.OrgName != "" {
 		labels["orgName"] = app.OrgName
 	}
 
-	if app.OrgGuid != "" {
-		labels["orgGuid"] = app.OrgGuid
+	if app.OrgGUID != "" {
+		labels["orgGuid"] = app.OrgGUID
 	}
 }

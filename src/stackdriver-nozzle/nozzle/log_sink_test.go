@@ -205,7 +205,7 @@ var _ = Describe("LogSink", func() {
 				"eventType": eventType.String(),
 				"logMessage": map[string]interface{}{
 					"message_type": "OUT",
-					"message": expectedMessage,
+					"message":      expectedMessage,
 				},
 				"message": expectedMessage,
 			}))
