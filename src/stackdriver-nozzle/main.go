@@ -1,6 +1,8 @@
 package main
 
 import (
+	"net/http"
+	_ "net/http/pprof"
 	"os"
 	"runtime"
 	"strings"
@@ -22,7 +24,15 @@ import (
 func main() {
 	a := newApp()
 
-	defer handleFatalError(a)
+	if a.c.DebugNozzle {
+		defer handleFatalError(a)
+
+		go func() {
+			a.logger.Info("pprof", lager.Data{
+				"http.ListenAndServe": http.ListenAndServe("localhost:6060", nil),
+			})
+		}()
+	}
 
 	producer := a.newProducer()
 	consumer := a.newConsumer()
@@ -43,10 +53,6 @@ func main() {
 }
 
 func handleFatalError(a *app) {
-	if !a.c.DebugNozzle {
-		return
-	}
-
 	if e := recover(); e != nil {
 		stack := make([]byte, 1<<16)
 		stackSize := runtime.Stack(stack, true)

@@ -30,7 +30,6 @@ func main() {
 			break
 		}
 		if err != nil {
-			// TODO: Handle error.
 			panic(err)
 		}
 
