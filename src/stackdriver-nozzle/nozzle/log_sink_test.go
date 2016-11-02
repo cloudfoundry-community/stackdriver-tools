@@ -3,6 +3,8 @@ package nozzle_test
 import (
 	"time"
 
+	"cloud.google.com/go/logging"
+
 	"github.com/cloudfoundry-community/gcp-tools-release/src/stackdriver-nozzle/mocks"
 	"github.com/cloudfoundry-community/gcp-tools-release/src/stackdriver-nozzle/nozzle"
 	"github.com/cloudfoundry/sonde-go/events"
@@ -13,17 +15,18 @@ import (
 var _ = Describe("LogSink", func() {
 	var (
 		subject    nozzle.Sink
-		labelMaker nozzle.LabelMaker
+		labelMaker *mocks.LabelMaker
 		logAdapter *mocks.LogAdapter
 		labels     map[string]string
 	)
 
 	BeforeEach(func() {
-		labels = map[string]string{"foo": "bar"}
+		labels = map[string]string{"foo": "bar", "applicationId": "f47ac10b-58cc-4372-a567-0e02b2c3d479"}
 		labelMaker = &mocks.LabelMaker{Labels: labels}
 		logAdapter = &mocks.LogAdapter{}
 
-		subject = nozzle.NewLogSink(labelMaker, logAdapter)
+		newlineToken := ""
+		subject = nozzle.NewLogSink(labelMaker, logAdapter, newlineToken)
 	})
 
 	It("passes fields through to the adapter", func() {
@@ -100,6 +103,9 @@ var _ = Describe("LogSink", func() {
 				"method":   "GET",
 				"peerType": "Client",
 			}))
+			Expect(payload).To(HaveKeyWithValue("serviceContext", map[string]interface{}{
+				"service": "f47ac10b-58cc-4372-a567-0e02b2c3d479",
+			}))
 		})
 
 		It("has resolved labels and payloads equivalent for LogMessage", func() {
@@ -126,7 +132,87 @@ var _ = Describe("LogSink", func() {
 					"message_type": "OUT",
 					"message":      "19400: Success: Go",
 				},
+				"message": "19400: Success: Go",
+				"serviceContext": map[string]interface{}{
+					"service": "f47ac10b-58cc-4372-a567-0e02b2c3d479",
+				},
 			}))
+			Expect(postedLog.Severity).To(Equal(logging.Default))
+		})
+
+		It("has resolved severity for a LogMessage from an Error", func() {
+			eventType := events.Envelope_LogMessage
+			messageType := events.LogMessage_ERR
+
+			event := events.LogMessage{
+				MessageType: &messageType,
+			}
+			envelope := &events.Envelope{
+				EventType:  &eventType,
+				LogMessage: &event,
+			}
+
+			subject.Receive(envelope)
+
+			postedLog := logAdapter.PostedLogs[0]
+
+			Expect(postedLog.Severity).To(Equal(logging.Error))
+		})
+
+		It("has severity and message for Error event types", func() {
+			eventType := events.Envelope_Error
+			source := "cf-source"
+			code := int32(-1)
+			message := "some error message"
+			event := events.Error{
+				Source:  &source,
+				Code:    &code,
+				Message: &message,
+			}
+			envelope := &events.Envelope{
+				EventType: &eventType,
+				Error:     &event,
+			}
+
+			subject.Receive(envelope)
+
+			postedLog := logAdapter.PostedLogs[0]
+
+			payload, ok := postedLog.Payload.(map[string]interface{})
+			Expect(ok).To(BeTrue())
+			Expect(payload["message"]).To(Equal("some error message"))
+			Expect(postedLog.Severity).To(Equal(logging.Error))
+		})
+
+		It("translates newline tokens when one is passed in", func() {
+			subject = nozzle.NewLogSink(labelMaker, logAdapter, "∴")
+
+			eventType := events.Envelope_LogMessage
+			messageType := events.LogMessage_OUT
+
+			event := events.LogMessage{
+				MessageType: &messageType,
+				Message:     []byte("Line one∴  Line two∴  Linethree"),
+			}
+			envelope := &events.Envelope{
+				EventType:  &eventType,
+				LogMessage: &event,
+			}
+
+			subject.Receive(envelope)
+
+			postedLog := logAdapter.PostedLogs[0]
+			payload := (postedLog.Payload).(map[string]interface{})
+
+			expectedMessage := `Line one
+  Line two
+  Linethree`
+			Expect(payload).To(HaveKeyWithValue("message", expectedMessage))
+			Expect(payload).To(HaveKeyWithValue("logMessage", map[string]interface{}{
+				"message_type": "OUT",
+				"message":      expectedMessage,
+			},
+			))
 		})
 	})
 })

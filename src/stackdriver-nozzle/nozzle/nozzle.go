@@ -39,6 +39,7 @@ func (n *Nozzle) Start(fhClient firehose.Client) (errs chan error, fhErrs <-chan
 		for {
 			select {
 			case envelope := <-messages:
+				n.Heartbeater.Increment("nozzle.events")
 				err := n.handleEvent(envelope)
 				if err != nil {
 					errs <- err
@@ -65,7 +66,6 @@ func (n *Nozzle) handleEvent(envelope *events.Envelope) error {
 		handler = n.MetricSink
 	}
 
-	n.Heartbeater.AddCounter()
 	return handler.Receive(envelope)
 }
 

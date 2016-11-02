@@ -19,7 +19,7 @@ func (fc *FirehoseClient) Connect() (<-chan *events.Envelope, <-chan error) {
 }
 
 func (fc *FirehoseClient) SendEvents(eventTypes ...events.Envelope_EventType) {
-	for _, eventType := range eventTypes {
-		fc.Messages <- &events.Envelope{EventType: &eventType}
+	for i := range eventTypes {
+		fc.Messages <- &events.Envelope{EventType: &eventTypes[i]}
 	}
 }

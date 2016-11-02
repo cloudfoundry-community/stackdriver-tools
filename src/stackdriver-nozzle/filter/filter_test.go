@@ -10,21 +10,23 @@ import (
 
 var _ = Describe("Filter", func() {
 	var (
-		fhClient *mocks.FirehoseClient
+		fhClient    *mocks.FirehoseClient
+		heartbeater *mocks.Heartbeater
 	)
 
 	BeforeEach(func() {
 		fhClient = mocks.NewFirehoseClient()
+		heartbeater = mocks.NewHeartbeater()
 	})
 
 	It("can accept an empty filter and blocks all events", func() {
 		emptyFilter := []string{}
-		f, err := filter.New(fhClient, emptyFilter)
+		f, err := filter.New(fhClient, emptyFilter, heartbeater)
 		Expect(err).To(BeNil())
 		Expect(f).NotTo(BeNil())
 		messages, errs := f.Connect()
 
-		go fhClient.SendEvents(
+		fhClient.SendEvents(
 			events.Envelope_HttpStart,
 			events.Envelope_HttpStop,
 			events.Envelope_HttpStartStop,
@@ -41,7 +43,7 @@ var _ = Describe("Filter", func() {
 
 	It("can accept a single event to filter", func() {
 		singleFilter := []string{"Error"}
-		f, err := filter.New(fhClient, singleFilter)
+		f, err := filter.New(fhClient, singleFilter, heartbeater)
 		Expect(err).To(BeNil())
 		Expect(f).NotTo(BeNil())
 		messages, errs := f.Connect()
@@ -51,7 +53,7 @@ var _ = Describe("Filter", func() {
 		fhClient.Messages <- event
 		Eventually(messages).Should(Receive(Equal(event)))
 
-		go fhClient.SendEvents(
+		fhClient.SendEvents(
 			events.Envelope_HttpStart,
 			events.Envelope_HttpStop,
 			events.Envelope_HttpStartStop,
@@ -66,7 +68,7 @@ var _ = Describe("Filter", func() {
 
 	It("can accept multiple events to filter", func() {
 		multiFilter := []string{"Error", "LogMessage"}
-		f, err := filter.New(fhClient, multiFilter)
+		f, err := filter.New(fhClient, multiFilter, heartbeater)
 		Expect(err).To(BeNil())
 		Expect(f).NotTo(BeNil())
 		messages, errs := f.Connect()
@@ -81,7 +83,7 @@ var _ = Describe("Filter", func() {
 		fhClient.Messages <- event
 		Eventually(messages).Should(Receive(Equal(event)))
 
-		go fhClient.SendEvents(
+		fhClient.SendEvents(
 			events.Envelope_HttpStart,
 			events.Envelope_HttpStop,
 			events.Envelope_HttpStartStop,
@@ -91,13 +93,41 @@ var _ = Describe("Filter", func() {
 		)
 		Consistently(messages).ShouldNot(Receive())
 		Consistently(errs).ShouldNot(Receive())
-
 	})
 
 	It("rejects invalid events", func() {
 		invalidFilter := []string{"Error", "FakeEvent111"}
-		f, err := filter.New(fhClient, invalidFilter)
+		f, err := filter.New(fhClient, invalidFilter, heartbeater)
 		Expect(err).NotTo(BeNil())
 		Expect(f).To(BeNil())
+	})
+
+	It("increments the heartbeater", func() {
+		multiFilter := []string{"Error", "LogMessage"}
+		f, _ := filter.New(fhClient, multiFilter, heartbeater)
+		messages, _ := f.Connect()
+
+		fhClient.SendEvents(
+			events.Envelope_HttpStart,
+			events.Envelope_HttpStop,
+			events.Envelope_HttpStartStop,
+		)
+
+		Eventually(func() int {
+			return heartbeater.GetCount("filter.events")
+		}).Should(Equal(3))
+
+		go fhClient.SendEvents(
+			events.Envelope_LogMessage,
+			events.Envelope_ValueMetric,
+			events.Envelope_CounterEvent,
+			events.Envelope_ContainerMetric,
+		)
+
+		<-messages
+
+		Eventually(func() int {
+			return heartbeater.GetCount("filter.events")
+		}).Should(Equal(7))
 	})
 })

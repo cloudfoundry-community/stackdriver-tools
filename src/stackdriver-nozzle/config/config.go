@@ -4,11 +4,17 @@ import (
 	"cloud.google.com/go/compute/metadata"
 	"github.com/cloudfoundry/lager"
 	"github.com/kelseyhightower/envconfig"
+	"github.com/pkg/errors"
 )
 
 func NewConfig() (*Config, error) {
 	var c Config
 	err := envconfig.Process("", &c)
+	if err != nil {
+		return nil, err
+	}
+
+	err = c.validate()
 	if err != nil {
 		return nil, err
 	}
@@ -23,11 +29,13 @@ func NewConfig() (*Config, error) {
 
 type Config struct {
 	// Firehose config
-	APIEndpoint string `envconfig:"firehose_endpoint" required:"true"`
-	Events      string `envconfig:"firehose_events" required:"true"`
-	Username    string `envconfig:"firehose_username" default:"admin"`
-	Password    string `envconfig:"firehose_password" default:"admin"`
-	SkipSSL     bool   `envconfig:"firehose_skip_ssl" default:"false"`
+	APIEndpoint    string `envconfig:"firehose_endpoint" required:"true"`
+	Events         string `envconfig:"firehose_events" required:"true"`
+	Username       string `envconfig:"firehose_username" default:"admin"`
+	Password       string `envconfig:"firehose_password" default:"admin"`
+	SkipSSL        bool   `envconfig:"firehose_skip_ssl" default:"false"`
+	SubscriptionID string `envconfig:"firehose_subscription_id" required:"true"`
+	NewlineToken   string `envconfig:"firehose_newline_token"`
 
 	// Stackdriver config
 	ProjectID string `envconfig:"gcp_project_id"`
@@ -37,8 +45,24 @@ type Config struct {
 	BatchCount         int    `envconfig:"batch_count" default:"10"`
 	BatchDuration      int    `envconfig:"batch_duration" default:"1"`
 	BoltDBPath         string `envconfig:"boltdb_path" default:"cached-app-metadata.db"`
-	ResolveAppMetadata bool   `envconfig:"resolve_app_metadata" default:"true"`
-	SubscriptionID     string `envconfig:"subscription_id" default:"stackdriver-nozzle"`
+	ResolveAppMetadata bool   `envconfig:"resolve_app_metadata"`
+	DebugNozzle        bool   `envconfig:"debug_nozzle"`
+}
+
+func (c *Config) validate() error {
+	if c.SubscriptionID == "" {
+		return errors.New("FIREHOSE_SUBSCRIPTION_ID is empty")
+	}
+
+	if c.APIEndpoint == "" {
+		return errors.New("FIREHOSE_ENDPOINT is empty")
+	}
+
+	if c.Events == "" {
+		return errors.New("FIREHOSE_EVENTS is empty")
+	}
+
+	return nil
 }
 
 func (c *Config) ensureProjectID() error {
@@ -69,5 +93,7 @@ func (c *Config) ToData() lager.Data {
 		"BoltDBPath":         c.BoltDBPath,
 		"ResolveAppMetadata": c.ResolveAppMetadata,
 		"SubscriptionID":     c.SubscriptionID,
+		"DebugNozzle":        c.DebugNozzle,
+		"NewlineToken":       c.NewlineToken,
 	}
 }

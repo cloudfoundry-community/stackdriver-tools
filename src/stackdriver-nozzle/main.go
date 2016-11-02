@@ -1,10 +1,14 @@
 package main
 
 import (
+	"net/http"
+	_ "net/http/pprof"
 	"os"
+	"runtime"
 	"strings"
 	"time"
 
+	"cloud.google.com/go/logging"
 	"github.com/cloudfoundry-community/firehose-to-syslog/caching"
 	"github.com/cloudfoundry-community/gcp-tools-release/src/stackdriver-nozzle/config"
 	"github.com/cloudfoundry-community/gcp-tools-release/src/stackdriver-nozzle/filter"
@@ -12,12 +16,23 @@ import (
 	"github.com/cloudfoundry-community/gcp-tools-release/src/stackdriver-nozzle/heartbeat"
 	"github.com/cloudfoundry-community/gcp-tools-release/src/stackdriver-nozzle/nozzle"
 	"github.com/cloudfoundry-community/gcp-tools-release/src/stackdriver-nozzle/stackdriver"
+	"github.com/cloudfoundry-community/gcp-tools-release/src/stackdriver-nozzle/version"
 	"github.com/cloudfoundry-community/go-cfclient"
 	"github.com/cloudfoundry/lager"
 )
 
 func main() {
 	a := newApp()
+
+	if a.c.DebugNozzle {
+		defer handleFatalError(a)
+
+		go func() {
+			a.logger.Info("pprof", lager.Data{
+				"http.ListenAndServe": http.ListenAndServe("localhost:6060", nil),
+			})
+		}()
+	}
 
 	producer := a.newProducer()
 	consumer := a.newConsumer()
@@ -37,6 +52,38 @@ func main() {
 	}
 }
 
+func handleFatalError(a *app) {
+	if e := recover(); e != nil {
+		stack := make([]byte, 1<<16)
+		stackSize := runtime.Stack(stack, true)
+		stackTrace := string(stack[:stackSize])
+
+		payload := map[string]interface{}{
+			"serviceContext": map[string]interface{}{
+				"service": version.Name,
+				"version": version.Release,
+			},
+			"message": stackTrace,
+		}
+
+		log := &stackdriver.Log{
+			Payload:  payload,
+			Labels:   map[string]string{},
+			Severity: logging.Error,
+		}
+
+		// Purposefully get a new log adapter here since there
+		// were issues re-using the one that the nozzle uses.
+		logAdapter, _ := a.newLogAdapter()
+		logAdapter.PostLog(log)
+		logAdapter.Flush()
+
+		// Re-throw the error, we want to ensure it's logged directly to
+		// stackdriver but we are not in a recoverable state.
+		panic(e)
+	}
+}
+
 func newApp() *app {
 	logger := lager.NewLogger("stackdriver-nozzle")
 	logger.RegisterSink(lager.NewWriterSink(os.Stdout, lager.DEBUG))
@@ -47,6 +94,9 @@ func newApp() *app {
 	}
 
 	logger.Info("arguments", c.ToData())
+
+	trigger := time.NewTicker(time.Duration(c.HeartbeatRate) * time.Second).C
+	heartbeater := heartbeat.NewHeartbeater(logger, trigger)
 
 	cfConfig := &cfclient.Config{
 		ApiAddress:        c.APIEndpoint,
@@ -65,26 +115,28 @@ func newApp() *app {
 	labelMaker := nozzle.NewLabelMaker(cachingClient)
 
 	return &app{
-		logger:     logger,
-		c:          c,
-		cfConfig:   cfConfig,
-		cfClient:   cfClient,
-		labelMaker: labelMaker,
+		logger:      logger,
+		c:           c,
+		cfConfig:    cfConfig,
+		cfClient:    cfClient,
+		labelMaker:  labelMaker,
+		heartbeater: heartbeater,
 	}
 }
 
 type app struct {
-	logger     lager.Logger
-	c          *config.Config
-	cfConfig   *cfclient.Config
-	cfClient   *cfclient.Client
-	labelMaker nozzle.LabelMaker
+	logger      lager.Logger
+	c           *config.Config
+	cfConfig    *cfclient.Config
+	cfClient    *cfclient.Client
+	labelMaker  nozzle.LabelMaker
+	heartbeater heartbeat.Heartbeater
 }
 
 func (a *app) newProducer() firehose.Client {
 	fhClient := firehose.NewClient(a.cfConfig, a.cfClient, a.c.SubscriptionID)
 
-	producer, err := filter.New(fhClient, strings.Split(a.c.Events, ","))
+	producer, err := filter.New(fhClient, strings.Split(a.c.Events, ","), a.heartbeater)
 	if err != nil {
 		a.logger.Fatal("filter", err)
 	}
@@ -93,28 +145,30 @@ func (a *app) newProducer() firehose.Client {
 }
 
 func (a *app) newConsumer() *nozzle.Nozzle {
-	trigger := time.NewTicker(time.Duration(a.c.HeartbeatRate) * time.Second).C
-	heartbeater := heartbeat.NewHeartbeat(a.logger, trigger)
-
 	return &nozzle.Nozzle{
 		LogSink:     a.newLogSink(),
 		MetricSink:  a.newMetricSink(),
-		Heartbeater: heartbeater,
+		Heartbeater: a.heartbeater,
 	}
 }
 
 func (a *app) newLogSink() nozzle.Sink {
-	logAdapter, logErrs := stackdriver.NewLogAdapter(
-		a.c.ProjectID,
-		a.c.BatchCount,
-		time.Duration(a.c.BatchDuration)*time.Second,
-	)
+	logAdapter, logErrs := a.newLogAdapter()
 	go func() {
 		err := <-logErrs
 		a.logger.Error("logAdapter", err)
 	}()
 
-	return nozzle.NewLogSink(a.labelMaker, logAdapter)
+	return nozzle.NewLogSink(a.labelMaker, logAdapter, a.c.NewlineToken)
+}
+
+func (a *app) newLogAdapter() (stackdriver.LogAdapter, <-chan error) {
+	return stackdriver.NewLogAdapter(
+		a.c.ProjectID,
+		a.c.BatchCount,
+		time.Duration(a.c.BatchDuration)*time.Second,
+		a.heartbeater,
+	)
 }
 
 func (a *app) newMetricSink() nozzle.Sink {
@@ -123,7 +177,7 @@ func (a *app) newMetricSink() nozzle.Sink {
 		a.logger.Fatal("metricClient", err)
 	}
 
-	metricAdapter, err := stackdriver.NewMetricAdapter(a.c.ProjectID, metricClient)
+	metricAdapter, err := stackdriver.NewMetricAdapter(a.c.ProjectID, metricClient, a.heartbeater)
 	if err != nil {
 		a.logger.Error("metricAdapter", err)
 	}

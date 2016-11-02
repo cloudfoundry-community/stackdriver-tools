@@ -8,6 +8,10 @@ image_resource:
 inputs:
   - name: gcp-tools-release
   - name: gcp-tools-release-artifacts
+  - name: gcp-tools-release-artifacts-sha1
+outputs:
+  - name: candidate
+
 run:
   path: gcp-tools-release/ci/tasks/deploy-candidate.sh
 params:
