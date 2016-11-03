@@ -10,16 +10,30 @@ packages:
   jobs:
   - name: google-fluentd
     templates:
-    - name: google-fluentd-ctl
-    lifecycle: errand
-    post_deploy: true
+    - name: google-fluentd
+      release: bosh-gcp-tools
+    - name: stackdriver-nozzle
+      release: bosh-gcp-tools
+    - name: stackdriver-agent
+      release: bosh-gcp-tools
+    - name: credentials
+      release: bosh-gcp-tools
+    memory: 512
+    ephemeral_disk: 4096
+    cpu: 2
+    dynamic_ip: 0
+    static_ip: 1
     properties:
-  - name: stackdriver-agent
-    templates:
-    - name: stackdriver_collectd_ctl
-    lifecycle: errand
-    post_deploy: true
-    properties:
+      firehose:
+        endpoint: .properties.firehose_endpoint
+        events: .properties.firehose_events
+        username: .properties.firehose_username
+        password: .properties.firehose_password
+        skip_ssl: .properties.firehose_skip_ssl
+      credentials:
+        application_default_credentials: .properties.service_account
+      project_id: .properties.project_id
+      heartbeat_rate: .properties.heartbeat_rate
 
 
 forms:
@@ -38,15 +52,15 @@ forms:
     type: string
     label: FireHose Username
   - name: firehose_password
-    type: string
+    type: secret
     label: FireHose Password
   - name: firehose_skip_ssl
     type: boolean
     default: true
     label: Skip SSL validation on FireHose Endpoint
-  - name: google_application_credentials
+  - name: service_account
     type: text
-    label: Google Application Credentials
+    label: Service Account Credentials
   - name: project_id
     type: string
     label: Google Project ID
