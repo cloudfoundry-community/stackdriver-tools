@@ -1,7 +1,7 @@
 ---
 name: gcp-tools
-label: 'Some tools what for logging and monitoring'
-description: A Nozzle and some other stuff
+label: 'Stackdriver Nozzle'
+description: Import your Cloud Foundry logs into Stackdriver for top tier logging and monitoring
 icon_file: gcp_logo.png
 packages:
 - name: gcp-tools
