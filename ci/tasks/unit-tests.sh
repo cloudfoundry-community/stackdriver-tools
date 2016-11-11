@@ -14,5 +14,5 @@ export GOPATH=/tmp
 export PATH=${GOPATH}/bin:$PATH
 
 # Run tests
-cd ${gopath_prefix}/stackdriver-tools/src/stackdriver-nozzle
+cd ${gopath_prefix}/gcp-tools-release/src/stackdriver-nozzle
 make test
