@@ -7,7 +7,7 @@ gopath_prefix=/tmp/src/github.com/cloudfoundry-community
 mkdir -p ${gopath_prefix}
 
 # Link to the source repo
-ln -s ${PWD}/stackdriver-tools ${gopath_prefix}/
+ln -s ${PWD}/stackdriver-tools ${gopath_prefix}/gcp-tools-release
 
 # Configure GOPATH
 export GOPATH=/tmp
