@@ -6,9 +6,9 @@ image_resource:
     repository: lambr/gcp-tools
     tag: v3
 inputs:
-  - name: gcp-tools-release
+  - name: stackdriver-tools
   - name: version-semver
 outputs:
   - name: candidate
 run:
-  path: gcp-tools-release/ci/tasks/build-candidate.sh
+  path: stackdriver-tools/ci/tasks/build-candidate.sh

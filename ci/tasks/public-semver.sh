@@ -2,7 +2,7 @@
 
 set -e
 
-source gcp-tools-release/ci/tasks/utils.sh
+source stackdriver-tools/ci/tasks/utils.sh
 source /etc/profile.d/chruby-with-ruby-2.1.2.sh
 
 # BOSH and CF config

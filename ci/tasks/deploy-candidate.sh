@@ -2,7 +2,7 @@
 
 set -e
 
-source gcp-tools-release/ci/tasks/utils.sh
+source stackdriver-tools/ci/tasks/utils.sh
 source /etc/profile.d/chruby-with-ruby-2.1.2.sh
 
 # BOSH and CF config
@@ -54,7 +54,7 @@ bosh login ${bosh_user} ${bosh_password}
 director_uuid=$(bosh status --uuid)
 
 echo "Uploading nozzle release..."
-bosh upload release gcp-tools-release-artifacts/*.tgz
+bosh upload release stackdriver-tools-artifacts/*.tgz
 
 nozzle_manifest_name=stackdriver-nozzle.yml
 cat > ${nozzle_manifest_name} <<EOF
@@ -158,5 +158,5 @@ bosh deployment ${nozzle_manifest_name}
 bosh -n deploy
 
 # Move release and its SHA1
-mv gcp-tools-release-artifacts/*.tgz candidate/latest.tgz
-mv gcp-tools-release-artifacts-sha1/*.tgz.sha1 candidate/latest.tgz.sha1
+mv stackdriver-tools-artifacts/*.tgz candidate/latest.tgz
+mv stackdriver-tools-artifacts-sha1/*.tgz.sha1 candidate/latest.tgz.sha1

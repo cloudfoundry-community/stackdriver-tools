@@ -1,6 +1,6 @@
 ---
 groups:
-  - name: gcp-tools-release
+  - name: stackdriver-tools
     jobs:
       - test-unit
       - build-candidate
@@ -10,10 +10,10 @@ jobs:
   - name: test-unit
     plan:
       - aggregate:
-        - {trigger: true,  get: gcp-tools-release,   resource: gcp-tools-release-in}
+        - {trigger: true,  get: stackdriver-tools,   resource: stackdriver-tools-in}
 
       - task: unit-tests
-        file: gcp-tools-release/ci/tasks/unit-tests.yml
+        file: stackdriver-tools/ci/tasks/unit-tests.yml
         on_failure:
           aggregate:
             - put: slack-alert
@@ -27,23 +27,23 @@ jobs:
   - name: build-candidate
     plan:
       - aggregate:
-        - {trigger: true, passed: [test-unit],  get: gcp-tools-release,   resource: gcp-tools-release-in}
+        - {trigger: true, passed: [test-unit],  get: stackdriver-tools,   resource: stackdriver-tools-in}
         - {trigger: false, get: version-semver, params: {bump: patch}}
 
       - put: version-semver
         params: {file: version-semver/number}
 
       - task: make-semver-public
-        file: gcp-tools-release/ci/tasks/public-semver.yml
+        file: stackdriver-tools/ci/tasks/public-semver.yml
         config:
           params:
             project_id: {{project_id}}
             service_account_key_json: {{service_account_key_json}}
             bucket_name: {{bucket_name}}
-            semver_key: beta/current-version
+            semver_key: beta/stackdriver-tools/current-version
 
       - task: build-release
-        file: gcp-tools-release/ci/tasks/build-candidate.yml
+        file: stackdriver-tools/ci/tasks/build-candidate.yml
         on_failure:
           aggregate:
             - put: slack-alert
@@ -53,21 +53,21 @@ jobs:
                 channel: "#lambr-private"
                 text: "build-release failed"
 
-      - put: gcp-tools-release-artifacts
+      - put: stackdriver-tools-artifacts
         params: {file: candidate/*.tgz}
 
-      - put: gcp-tools-release-artifacts-sha1
+      - put: stackdriver-tools-artifacts-sha1
         params: {file: candidate/*.tgz.sha1}
 
   - name: deploy-candidate
     plan:
       - aggregate:
-        - {trigger: true,  passed: [build-candidate],  get: gcp-tools-release,                resource: gcp-tools-release-in}
-        - {trigger: true,  passed: [build-candidate],  get: gcp-tools-release-artifacts,      resource: gcp-tools-release-artifacts}
-        - {trigger: false, passed: [build-candidate],  get: gcp-tools-release-artifacts-sha1, resource: gcp-tools-release-artifacts-sha1}
+        - {trigger: true,  passed: [build-candidate],  get: stackdriver-tools,                resource: stackdriver-tools-in}
+        - {trigger: true,  passed: [build-candidate],  get: stackdriver-tools-artifacts,      resource: stackdriver-tools-artifacts}
+        - {trigger: false, passed: [build-candidate],  get: stackdriver-tools-artifacts-sha1, resource: stackdriver-tools-artifacts-sha1}
 
       - task: build-release
-        file: gcp-tools-release/ci/tasks/deploy-candidate.yml
+        file: stackdriver-tools/ci/tasks/deploy-candidate.yml
         on_failure:
           aggregate:
             - put: slack-alert
@@ -96,14 +96,14 @@ jobs:
             vip_ip: {{vip_ip}}
             service_account_key_json: {{service_account_key_json}}
 
-      - put: gcp-tools-release-artifacts
+      - put: stackdriver-tools-artifacts
         params: {file: candidate/latest.tgz}
 
-      - put: gcp-tools-release-artifacts-sha1
+      - put: stackdriver-tools-artifacts-sha1
         params: {file: candidate/latest.tgz.sha1}
 
 resources:
-  - name: gcp-tools-release-in
+  - name: stackdriver-tools-in
     type: git
     source:
       uri: https://github.com/cloudfoundry-community/gcp-tools-release.git
@@ -112,24 +112,24 @@ resources:
         - .final_builds/**/*.yml
         - releases/**/*.yml
 
-  - name: gcp-tools-release-artifacts
+  - name: stackdriver-tools-artifacts
     type: gcs-resource
     source:
       json_key: {{service_account_key_json}}
       bucket:   {{bucket_name}}
-      regexp:   beta/gcp-tools-release([0-9]+\.[0-9]+\.[0-9]+)\.tgz
+      regexp:   beta/stackdriver-tools/stackdriver-tools([0-9]+\.[0-9]+\.[0-9]+)\.tgz
 
-  - name: gcp-tools-release-artifacts-sha1
+  - name: stackdriver-tools-artifacts-sha1
     type: gcs-resource
     source:
       json_key: {{service_account_key_json}}
       bucket:   {{bucket_name}}
-      regexp:   beta/gcp-tools-release([0-9]+\.[0-9]+\.[0-9]+)\.tgz.sha1
+      regexp:   beta/stackdriver-tools/stackdriver-tools([0-9]+\.[0-9]+\.[0-9]+)\.tgz.sha1
 
   - name: version-semver
     type: semver
     source:
-      key:               beta/current-version
+      key:               beta/stackdriver-tools/current-version
       bucket:            {{bucket_name}}
       access_key_id:     {{bucket_access_key}}
       secret_access_key: {{bucket_secret_key}}

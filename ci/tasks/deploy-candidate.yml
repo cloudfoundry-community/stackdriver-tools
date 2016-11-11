@@ -6,14 +6,14 @@ image_resource:
     repository: lambr/gcp-tools
     tag: v3
 inputs:
-  - name: gcp-tools-release
-  - name: gcp-tools-release-artifacts
-  - name: gcp-tools-release-artifacts-sha1
+  - name: stackdriver-tools
+  - name: stackdriver-tools-artifacts
+  - name: stackdriver-tools-artifacts-sha1
 outputs:
   - name: candidate
 
 run:
-  path: gcp-tools-release/ci/tasks/deploy-candidate.sh
+  path: stackdriver-tools/ci/tasks/deploy-candidate.sh
 params:
   # BOSH and CF settings
   bosh_director_address: replace-me
