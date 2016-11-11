@@ -64,7 +64,7 @@ name: stackdriver-nozzle-ci
 director_uuid: ${director_uuid}
 
 releases:
-- name: bosh-gcp-tools
+- name: stackdriver-tools
   version: latest
 
 jobs:
@@ -75,11 +75,11 @@ jobs:
   resource_pool: common
   templates:
     - name: stackdriver-nozzle
-      release: bosh-gcp-tools
+      release: stackdriver-tools
     - name: google-fluentd
-      release: bosh-gcp-tools
+      release: stackdriver-tools
     - name: stackdriver-agent
-      release: bosh-gcp-tools
+      release: stackdriver-tools
   properties:
     firehose:
       endpoint: https://api.${vip_ip}.xip.io

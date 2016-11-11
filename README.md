@@ -75,7 +75,7 @@ To use any of the jobs in this BOSH release, first upload it to your BOSH
 director:
 
 ```
-beta_release=https://storage.googleapis.com/bosh-gcp/beta/bosh-gcp-tools-$(curl -s https://storage.googleapis.com/bosh-gcp/beta/current-version).tgz
+beta_release=https://storage.googleapis.com/bosh-gcp/beta/stackdriver-tools/latest.tgz
 bosh target BOSH_HOST
 bosh upload ${beta_release}
 ```
@@ -177,12 +177,12 @@ forwarded.
 [google-fluentd]: jobs/google-fluentd
 [stackdriver-agent]: jobs/stackdriver-agent
 
-Include the `bosh-gcp-tools` release in your existing deployment manifest:
+Include the `stackdriver-tools` release in your existing deployment manifest:
 
 ```
 releases:
   ...
-  - name: bosh-gcp-tools
+  - name: stackdriver-tools
     version: latest
   ...
 ```
@@ -199,7 +199,7 @@ jobs:
       - name: metron_agent
         release: cf
       - name: google-fluentd
-        release: bosh-gcp-tools
+        release: stackdriver-tools
   ...
 ```
 
@@ -214,12 +214,12 @@ forwarded.
 
 [stackdriver-agent]: jobs/stackdriver-agent
 
-Include the `bosh-gcp-tools` release in your existing deployment manifest:
+Include the `stackdriver-tools` release in your existing deployment manifest:
 
 ```
 releases:
   ...
-  - name: bosh-gcp-tools
+  - name: stackdriver-tools
     version: latest
   ...
 ```
@@ -236,7 +236,7 @@ jobs:
       - name: metron_agent
         release: cf
       - name: stackdriver-agent
-        release: bosh-gcp-tools
+        release: stackdriver-tools
   ...
 ```
 
@@ -247,16 +247,16 @@ Specify the jobs as addons in your [runtime config](https://bosh.io/docs/runtime
 # runtime.yml
 ---
 releases:
-  - name: bosh-gcp-tools
+  - name: stackdriver-tools
     version: latest
 
 addons:
 - name: gcp-tools
   jobs:
   - name: google-fluentd
-    release: bosh-gcp-tools
+    release: stackdriver-tools
   - name: stackdriver-agent
-    release: bosh-gcp-tools
+    release: stackdriver-tools
 ```
 
 To deploy the runtime config:

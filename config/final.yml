@@ -1,5 +1,5 @@
 ---
-final_name: gcp-tools
+final_name: stackdriver-tools
 blobstore:
   provider: s3
   options:
