@@ -80,15 +80,15 @@ bosh target BOSH_HOST
 bosh upload ${beta_release}
 ```
 
-The [gcp-tools.yml][tools-yaml] sample deployment manifest illustrates how to
+The [stackdriver-tools.yml][tools-yaml] sample deployment manifest illustrates how to
 use all 3 jobs in this release (nozzle, host logging, and host monitoring). You
 can deploy the sample with:
 
-[tools-yaml]: manifests/gcp-tools.yml
+[tools-yaml]: manifests/stackdriver-tools.yml
 
 
 ```
-bosh deployment manifests/gcp-tools.yml 
+bosh deployment manifests/stackdriver-tools.yml 
 bosh -n deploy
 ```
 
@@ -251,7 +251,7 @@ releases:
     version: latest
 
 addons:
-- name: gcp-tools
+- name: stackdriver-tools
   jobs:
   - name: google-fluentd
     release: stackdriver-tools
@@ -299,7 +299,7 @@ the [bosh-lite-example-manifest][bosh-lite-example-manifest]. Note the `applicat
 property, which should be filled in with the contents of a [Google service account key][google-service-account-key].
 
 [bosh-lite]: https://github.com/cloudfoundry/bosh-lite
-[bosh-lite-example-manifest]: manifests/gcp-tools-bosh-lite.yml
+[bosh-lite-example-manifest]: manifests/stackdriver-tools-bosh-lite.yml
 [google-service-account-key]: https://cloud.google.com/compute/docs/access/create-enable-service-accounts-for-instances
 
 ## Contributing
