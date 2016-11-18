@@ -4,7 +4,7 @@
 
   ```
   projectid=<REPLACE_WITH_YOUR_PROJECT_ID>
-  prefix=gcp-tools-release
+  prefix=stackdriver-tools
   pipeline=develop
   ```
 
@@ -57,12 +57,12 @@
 
   ```
   fly --target lambr login \
-    --team-name gcp-tools-release \
+    --team-name stackdriver-tools \
     --concourse-url https://your-concourse-name -k
   ```
 
 1. Upload the pipeline:
 
   ```
-fly -t google set-pipeline -p ${pipeline}-gcp-tools-release -c pipeline-${pipeline}.yml -l credentials-${pipeline}.yml
+fly -t google set-pipeline -p ${pipeline}-stackdriver-tools -c pipeline-${pipeline}.yml -l credentials-${pipeline}.yml
   ```

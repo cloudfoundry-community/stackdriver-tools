@@ -17,6 +17,6 @@ provider "google" {
 }
 
 resource "google_storage_bucket" "pipeline-artifacts" {
-  name     = "${var.pipeline}-gcp-tools-release"
+  name     = "${var.pipeline}-stackdriver-tools"
   location = "US"
 }
