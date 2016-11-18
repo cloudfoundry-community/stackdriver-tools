@@ -3,7 +3,7 @@
 set -e
 
 # Create a workspace for a GOPATh
-gopath_prefix=/tmp/src/github.com/stackdriver-tools
+gopath_prefix=/tmp/src/github.com/cloudfoundry-community
 mkdir -p ${gopath_prefix}
 
 # Link to the source repo
