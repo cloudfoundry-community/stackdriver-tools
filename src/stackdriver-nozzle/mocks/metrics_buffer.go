@@ -1,6 +1,6 @@
 package mocks
 
-import "github.com/cloudfoundry-community/gcp-tools-release/src/stackdriver-nozzle/stackdriver"
+import "github.com/cloudfoundry-community/stackdriver-tools/src/stackdriver-nozzle/stackdriver"
 
 type MetricsBuffer struct {
 	PostedMetrics []stackdriver.Metric

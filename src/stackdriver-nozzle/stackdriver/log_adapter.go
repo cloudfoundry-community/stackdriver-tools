@@ -4,8 +4,8 @@ import (
 	"time"
 
 	"cloud.google.com/go/logging"
-	"github.com/cloudfoundry-community/gcp-tools-release/src/stackdriver-nozzle/heartbeat"
-	"github.com/cloudfoundry-community/gcp-tools-release/src/stackdriver-nozzle/version"
+	"github.com/cloudfoundry-community/stackdriver-tools/src/stackdriver-nozzle/heartbeat"
+	"github.com/cloudfoundry-community/stackdriver-tools/src/stackdriver-nozzle/version"
 	"golang.org/x/net/context"
 	"google.golang.org/api/option"
 )

@@ -1,8 +1,8 @@
 package filter_test
 
 import (
-	"github.com/cloudfoundry-community/gcp-tools-release/src/stackdriver-nozzle/filter"
-	"github.com/cloudfoundry-community/gcp-tools-release/src/stackdriver-nozzle/mocks"
+	"github.com/cloudfoundry-community/stackdriver-tools/src/stackdriver-nozzle/filter"
+	"github.com/cloudfoundry-community/stackdriver-tools/src/stackdriver-nozzle/mocks"
 	"github.com/cloudfoundry/sonde-go/events"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"

@@ -106,7 +106,7 @@ resources:
   - name: stackdriver-tools-in
     type: git
     source:
-      uri: https://github.com/cloudfoundry-community/gcp-tools-release.git
+      uri: https://github.com/cloudfoundry-community/stackdriver-tools.git
       branch: master
       ignore_paths:
         - .final_builds/**/*.yml
