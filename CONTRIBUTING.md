@@ -1,7 +1,7 @@
 # Contributing
 
 ## Submitting an Issue
-We use the [GitHub issue tracker](https://github.com/cloudfoundry-community/gcp-tools-release/issues) to track bugs and features.
+We use the [GitHub issue tracker](https://github.com/cloudfoundry-community/stackdriver-tools/issues) to track bugs and features.
 Before submitting a bug report or feature request, check to make sure it hasn't already been submitted. You can indicate
 support for an existing issue by voting it up. When submitting a bug report, please include a
 [Gist](http://gist.github.com/) that includes a stack trace and any details that may be necessary to reproduce the bug,
@@ -18,7 +18,7 @@ You can add a feature or bug-fix via pull request.
 
 1. Implement your feature or bug fix
 1. Commit and push your changes
-1. Submit a pull request to the `develop` branch of the [gcp-tools-release] repository. PRs to the master branch are not accepted.
+1. Submit a pull request to the `develop` branch of the [stackdriver-tools] repository. PRs to the master branch are not accepted.
 1. Unit tests and a BOSH release are created for each PR. You should see the status of your PR change to "pending" within a few minutes of submitting it, and then to "passed" or "failed" within 10 minutes.
 
-[gcp-tools-release]: https://github.com/cloudfoundry-community/gcp-tools-release/
+[stackdriver-tools]: https://github.com/cloudfoundry-community/stackdriver-tools/

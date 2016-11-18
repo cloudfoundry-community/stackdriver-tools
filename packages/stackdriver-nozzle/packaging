@@ -9,7 +9,7 @@ export GOROOT=$(cd "${PACKAGES_DIR}/golang" && pwd -P)
 export PATH=${GOROOT}/bin:${PATH}
 
 # Build stackdriver-nozzle package
-export NOZZLE_PATH=${BOSH_COMPILE_TARGET}/go/src/github.com/cloudfoundry-community/gcp-tools-release/src
+export NOZZLE_PATH=${BOSH_COMPILE_TARGET}/go/src/github.com/cloudfoundry-community/stackdriver-tools/src
 mkdir -p ${NOZZLE_PATH}
 mv ${BOSH_COMPILE_TARGET}/stackdriver-nozzle ${NOZZLE_PATH}
 cd ${NOZZLE_PATH}/stackdriver-nozzle

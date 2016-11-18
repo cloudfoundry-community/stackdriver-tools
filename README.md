@@ -1,4 +1,4 @@
-# Google Cloud Platform Tools BOSH Release
+# stackdriver-tools release for BOSH
 
 This release provides Cloud Foundry and BOSH integration with Google Cloud
 Platform's [Stackdriver Logging](https://cloud.google.com/logging/) and
@@ -286,10 +286,10 @@ bosh deploy
 1. Update the BOSH blobstore: `bosh upload blobs`
 1. Commit your changes
 
-[gemfile]: https://github.com/cloudfoundry-community/gcp-tools-release/blob/master/src/google-fluentd/Gemfile
+[gemfile]: https://github.com/cloudfoundry-community/stackdriver-tools/blob/master/src/google-fluentd/Gemfile
 [fluentd]: https://github.com/fluent/fluentd
-[fluentd-packaging]: https://github.com/cloudfoundry-community/gcp-tools-release/blob/master/packages/google-fluentd/packaging
-[fluentd-spec]: https://github.com/cloudfoundry-community/gcp-tools-release/blob/master/packages/google-fluentd/spec
+[fluentd-packaging]: https://github.com/cloudfoundry-community/stackdriver-tools/blob/master/packages/google-fluentd/packaging
+[fluentd-spec]: https://github.com/cloudfoundry-community/stackdriver-tools/blob/master/packages/google-fluentd/spec
 [dev-release]: https://bosh.io/docs/create-release.html#dev-release
 
 ### bosh-lite
@@ -308,7 +308,7 @@ and contributing code changes - please see [CONTRIBUTING.md].
 
 ## Copyright
 Copyright (c) 2016 Ferran Rodenas. See
-[LICENSE](https://github.com.evandbrown/gcp-tools-release/blob/master/LICENSE)
+[LICENSE](https://github.com.evandbrown/stackdriver-tools/blob/master/LICENSE)
 for details.
 
 [CONTRIBUTING.md]: CONTRIBUTING.md
