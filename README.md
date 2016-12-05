@@ -75,9 +75,7 @@ To use any of the jobs in this BOSH release, first upload it to your BOSH
 director:
 
 ```
-beta_release=https://storage.googleapis.com/bosh-gcp/beta/stackdriver-tools/latest.tgz
-bosh target BOSH_HOST
-bosh upload ${beta_release}
+bosh upload release https://storage.googleapis.com/bosh-gcp/beta/stackdriver-tools/latest.tgz
 ```
 
 The [stackdriver-tools.yml][tools-yaml] sample deployment manifest illustrates how to
