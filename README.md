@@ -1,4 +1,4 @@
-# Google Cloud Platform Tools BOSH Release
+# stackdriver-tools release for BOSH
 
 This release provides Cloud Foundry and BOSH integration with Google Cloud
 Platform's [Stackdriver Logging](https://cloud.google.com/logging/) and
@@ -75,20 +75,18 @@ To use any of the jobs in this BOSH release, first upload it to your BOSH
 director:
 
 ```
-beta_release=https://storage.googleapis.com/bosh-gcp/beta/bosh-gcp-tools-$(curl -s https://storage.googleapis.com/bosh-gcp/beta/current-version).tgz
-bosh target BOSH_HOST
-bosh upload ${beta_release}
+bosh upload release https://storage.googleapis.com/bosh-gcp/beta/stackdriver-tools/latest.tgz
 ```
 
-The [gcp-tools.yml][tools-yaml] sample deployment manifest illustrates how to
+The [stackdriver-tools.yml][tools-yaml] sample deployment manifest illustrates how to
 use all 3 jobs in this release (nozzle, host logging, and host monitoring). You
 can deploy the sample with:
 
-[tools-yaml]: manifests/gcp-tools.yml
+[tools-yaml]: manifests/stackdriver-tools.yml
 
 
 ```
-bosh deployment manifests/gcp-tools.yml 
+bosh deployment manifests/stackdriver-tools.yml 
 bosh -n deploy
 ```
 
@@ -177,12 +175,12 @@ forwarded.
 [google-fluentd]: jobs/google-fluentd
 [stackdriver-agent]: jobs/stackdriver-agent
 
-Include the `bosh-gcp-tools` release in your existing deployment manifest:
+Include the `stackdriver-tools` release in your existing deployment manifest:
 
 ```
 releases:
   ...
-  - name: bosh-gcp-tools
+  - name: stackdriver-tools
     version: latest
   ...
 ```
@@ -199,7 +197,7 @@ jobs:
       - name: metron_agent
         release: cf
       - name: google-fluentd
-        release: bosh-gcp-tools
+        release: stackdriver-tools
   ...
 ```
 
@@ -214,12 +212,12 @@ forwarded.
 
 [stackdriver-agent]: jobs/stackdriver-agent
 
-Include the `bosh-gcp-tools` release in your existing deployment manifest:
+Include the `stackdriver-tools` release in your existing deployment manifest:
 
 ```
 releases:
   ...
-  - name: bosh-gcp-tools
+  - name: stackdriver-tools
     version: latest
   ...
 ```
@@ -236,7 +234,7 @@ jobs:
       - name: metron_agent
         release: cf
       - name: stackdriver-agent
-        release: bosh-gcp-tools
+        release: stackdriver-tools
   ...
 ```
 
@@ -247,16 +245,16 @@ Specify the jobs as addons in your [runtime config](https://bosh.io/docs/runtime
 # runtime.yml
 ---
 releases:
-  - name: bosh-gcp-tools
+  - name: stackdriver-tools
     version: latest
 
 addons:
-- name: gcp-tools
+- name: stackdriver-tools
   jobs:
   - name: google-fluentd
-    release: bosh-gcp-tools
+    release: stackdriver-tools
   - name: stackdriver-agent
-    release: bosh-gcp-tools
+    release: stackdriver-tools
 ```
 
 To deploy the runtime config:
@@ -286,10 +284,10 @@ bosh deploy
 1. Update the BOSH blobstore: `bosh upload blobs`
 1. Commit your changes
 
-[gemfile]: https://github.com/cloudfoundry-community/gcp-tools-release/blob/master/src/google-fluentd/Gemfile
+[gemfile]: https://github.com/cloudfoundry-community/stackdriver-tools/blob/master/src/google-fluentd/Gemfile
 [fluentd]: https://github.com/fluent/fluentd
-[fluentd-packaging]: https://github.com/cloudfoundry-community/gcp-tools-release/blob/master/packages/google-fluentd/packaging
-[fluentd-spec]: https://github.com/cloudfoundry-community/gcp-tools-release/blob/master/packages/google-fluentd/spec
+[fluentd-packaging]: https://github.com/cloudfoundry-community/stackdriver-tools/blob/master/packages/google-fluentd/packaging
+[fluentd-spec]: https://github.com/cloudfoundry-community/stackdriver-tools/blob/master/packages/google-fluentd/spec
 [dev-release]: https://bosh.io/docs/create-release.html#dev-release
 
 ### bosh-lite
@@ -299,7 +297,7 @@ the [bosh-lite-example-manifest][bosh-lite-example-manifest]. Note the `applicat
 property, which should be filled in with the contents of a [Google service account key][google-service-account-key].
 
 [bosh-lite]: https://github.com/cloudfoundry/bosh-lite
-[bosh-lite-example-manifest]: manifests/gcp-tools-bosh-lite.yml
+[bosh-lite-example-manifest]: manifests/stackdriver-tools-bosh-lite.yml
 [google-service-account-key]: https://cloud.google.com/compute/docs/access/create-enable-service-accounts-for-instances
 
 ## Contributing
@@ -308,7 +306,7 @@ and contributing code changes - please see [CONTRIBUTING.md].
 
 ## Copyright
 Copyright (c) 2016 Ferran Rodenas. See
-[LICENSE](https://github.com.evandbrown/gcp-tools-release/blob/master/LICENSE)
+[LICENSE](https://github.com.evandbrown/stackdriver-tools/blob/master/LICENSE)
 for details.
 
 [CONTRIBUTING.md]: CONTRIBUTING.md

@@ -5,8 +5,8 @@ import (
 
 	"cloud.google.com/go/logging"
 
-	"github.com/cloudfoundry-community/gcp-tools-release/src/stackdriver-nozzle/mocks"
-	"github.com/cloudfoundry-community/gcp-tools-release/src/stackdriver-nozzle/nozzle"
+	"github.com/cloudfoundry-community/stackdriver-tools/src/stackdriver-nozzle/mocks"
+	"github.com/cloudfoundry-community/stackdriver-tools/src/stackdriver-nozzle/nozzle"
 	"github.com/cloudfoundry/sonde-go/events"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"

@@ -7,12 +7,12 @@ gopath_prefix=/tmp/src/github.com/cloudfoundry-community
 mkdir -p ${gopath_prefix}
 
 # Link to the source repo
-ln -s ${PWD}/gcp-tools-release ${gopath_prefix}/
+ln -s ${PWD}/stackdriver-tools ${gopath_prefix}/stackdriver-tools
 
 # Configure GOPATH
 export GOPATH=/tmp
 export PATH=${GOPATH}/bin:$PATH
 
 # Run tests
-cd ${gopath_prefix}/gcp-tools-release/src/stackdriver-nozzle
+cd ${gopath_prefix}/stackdriver-tools/src/stackdriver-nozzle
 make test

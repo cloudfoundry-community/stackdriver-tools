@@ -9,7 +9,7 @@ logs and metrics to [Google Stackdriver][goog-sd].
 ### Installation
 
 ```sh
-go get github.com/cloudfoundry-community/gcp-tools-release/src/stackdriver-nozzle
+go get github.com/cloudfoundry-community/stackdriver-tools/src/stackdriver-nozzle
 ```
 
 ### Configuration
@@ -63,7 +63,7 @@ A [.envrc.template][envrc-template] template is provided for a quick setup. We
 suggest copying it to `.envrc` and using [direnv][direnv] to automatically set
 the environment variables when you're in the `stackdriver-nozzle` directory.
 
-[envrc-template]: https://github.com/cloudfoundry-community/gcp-tools-release/blob/master/src/stackdriver-nozzle/.envrc.template
+[envrc-template]: https://github.com/cloudfoundry-community/stackdriver-tools/blob/master/src/stackdriver-nozzle/.envrc.template
 [direnv]: http://direnv.net/
 
 When running on GCP, `stackdriver-nozzle` will [automatically configure][dts]

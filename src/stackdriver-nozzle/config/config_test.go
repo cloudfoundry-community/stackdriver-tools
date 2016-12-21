@@ -7,7 +7,7 @@ import (
 	. "github.com/onsi/ginkgo/extensions/table"
 	. "github.com/onsi/gomega"
 
-	"github.com/cloudfoundry-community/gcp-tools-release/src/stackdriver-nozzle/config"
+	"github.com/cloudfoundry-community/stackdriver-tools/src/stackdriver-nozzle/config"
 )
 
 var _ = Describe("Config", func() {

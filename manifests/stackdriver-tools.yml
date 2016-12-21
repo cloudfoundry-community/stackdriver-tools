@@ -18,7 +18,7 @@ name: stackdriver-nozzle
 director_uuid: <%= director_uuid %>
 
 releases:
-- name: bosh-gcp-tools
+- name: stackdriver-tools
   version: latest
 
 jobs:
@@ -29,11 +29,11 @@ jobs:
   resource_pool: nozzle_pool
   templates:
   - name: stackdriver-nozzle
-    release: bosh-gcp-tools
+    release: stackdriver-tools
   - name: google-fluentd
-    release: bosh-gcp-tools
+    release: stackdriver-tools
   - name: stackdriver-agent
-    release: bosh-gcp-tools
+    release: stackdriver-tools
   properties:
     firehose:
       endpoint: <%= firehose_endpoint %>

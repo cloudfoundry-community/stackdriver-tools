@@ -4,8 +4,8 @@ import (
 	"errors"
 	"time"
 
-	"github.com/cloudfoundry-community/gcp-tools-release/src/stackdriver-nozzle/heartbeat"
-	"github.com/cloudfoundry-community/gcp-tools-release/src/stackdriver-nozzle/mocks"
+	"github.com/cloudfoundry-community/stackdriver-tools/src/stackdriver-nozzle/heartbeat"
+	"github.com/cloudfoundry-community/stackdriver-tools/src/stackdriver-nozzle/mocks"
 	"github.com/cloudfoundry/lager"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"

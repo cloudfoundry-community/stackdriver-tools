@@ -1,7 +1,7 @@
 package nozzle_test
 
 import (
-	"github.com/cloudfoundry-community/gcp-tools-release/src/stackdriver-nozzle/nozzle"
+	"github.com/cloudfoundry-community/stackdriver-tools/src/stackdriver-nozzle/nozzle"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 )

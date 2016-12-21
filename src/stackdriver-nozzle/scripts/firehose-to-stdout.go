@@ -3,7 +3,7 @@ package main
 import (
 	"os"
 
-	"github.com/cloudfoundry-community/gcp-tools-release/src/stackdriver-nozzle/firehose"
+	"github.com/cloudfoundry-community/stackdriver-tools/src/stackdriver-nozzle/firehose"
 	"github.com/cloudfoundry-community/go-cfclient"
 	"github.com/cloudfoundry/sonde-go/events"
 )

@@ -3,7 +3,7 @@ package mocks
 import (
 	"sync"
 
-	"github.com/cloudfoundry-community/gcp-tools-release/src/stackdriver-nozzle/stackdriver"
+	"github.com/cloudfoundry-community/stackdriver-tools/src/stackdriver-nozzle/stackdriver"
 )
 
 type MetricAdapter struct {

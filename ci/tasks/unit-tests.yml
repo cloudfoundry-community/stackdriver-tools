@@ -6,6 +6,6 @@ image_resource:
     repository: lambr/gcp-tools
     tag: v3
 inputs:
-  - name: gcp-tools-release
+  - name: stackdriver-tools
 run:
-  path: gcp-tools-release/ci/tasks/unit-tests.sh
+  path: stackdriver-tools/ci/tasks/unit-tests.sh

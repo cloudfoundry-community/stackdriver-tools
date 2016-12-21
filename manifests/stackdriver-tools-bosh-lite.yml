@@ -6,11 +6,11 @@ firehose_endpoint = "https://api.bosh-lite.com"
 firehose_username = "admin"
 firehose_password = "admin"
 %>
-name: gcp-tools-lite
+name: stackdriver-tools-lite
 director_uuid: <%= director_uuid %>
 
 releases:
-- name: gcp-tools
+- name: stackdriver-tools
   version: latest
 
 jobs:
@@ -21,9 +21,9 @@ jobs:
   resource_pool: nozzle_pool
   templates:
   - name: stackdriver-nozzle
-    release: gcp-tools
+    release: stackdriver-tools
   - name: google-fluentd
-    release: gcp-tools
+    release: stackdriver-tools
   properties:
     credentials:
       application_default_credentials: |

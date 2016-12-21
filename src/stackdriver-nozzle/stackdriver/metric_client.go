@@ -4,7 +4,7 @@ import (
 	"context"
 
 	"cloud.google.com/go/monitoring/apiv3"
-	"github.com/cloudfoundry-community/gcp-tools-release/src/stackdriver-nozzle/version"
+	"github.com/cloudfoundry-community/stackdriver-tools/src/stackdriver-nozzle/version"
 	"google.golang.org/api/option"
 	metricpb "google.golang.org/genproto/googleapis/api/metric"
 	monitoringpb "google.golang.org/genproto/googleapis/monitoring/v3"

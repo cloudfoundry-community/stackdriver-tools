@@ -1,6 +1,6 @@
 #!/bin/bash
 #
-# stackdriver-agent-ctl - control stackdriver-agent for the gcp-tools-release
+# stackdriver-agent-ctl - control stackdriver-agent for the stackdriver-tools release
 #
 # Based on stackdriver-agent from Stackdriver package
 # http://www.stackdriver.com

@@ -6,9 +6,9 @@ image_resource:
     repository: lambr/gcp-tools
     tag: v3
 inputs:
-  - name: gcp-tools-release
+  - name: stackdriver-tools
 run:
-  path: gcp-tools-release/ci/tasks/public-semver.sh
+  path: stackdriver-tools/ci/tasks/public-semver.sh
 params:
   # Google service account settings
   project_id:               replace me

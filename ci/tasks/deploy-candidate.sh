@@ -2,7 +2,7 @@
 
 set -e
 
-source gcp-tools-release/ci/tasks/utils.sh
+source stackdriver-tools/ci/tasks/utils.sh
 source /etc/profile.d/chruby-with-ruby-2.1.2.sh
 
 # BOSH and CF config
@@ -54,7 +54,7 @@ bosh login ${bosh_user} ${bosh_password}
 director_uuid=$(bosh status --uuid)
 
 echo "Uploading nozzle release..."
-bosh upload release gcp-tools-release-artifacts/*.tgz
+bosh upload release stackdriver-tools-artifacts/*.tgz
 
 nozzle_manifest_name=stackdriver-nozzle.yml
 cat > ${nozzle_manifest_name} <<EOF
@@ -64,7 +64,7 @@ name: stackdriver-nozzle-ci
 director_uuid: ${director_uuid}
 
 releases:
-- name: bosh-gcp-tools
+- name: stackdriver-tools
   version: latest
 
 jobs:
@@ -75,11 +75,11 @@ jobs:
   resource_pool: common
   templates:
     - name: stackdriver-nozzle
-      release: bosh-gcp-tools
+      release: stackdriver-tools
     - name: google-fluentd
-      release: bosh-gcp-tools
+      release: stackdriver-tools
     - name: stackdriver-agent
-      release: bosh-gcp-tools
+      release: stackdriver-tools
   properties:
     firehose:
       endpoint: https://api.${vip_ip}.xip.io
@@ -158,5 +158,5 @@ bosh deployment ${nozzle_manifest_name}
 bosh -n deploy
 
 # Move release and its SHA1
-mv gcp-tools-release-artifacts/*.tgz candidate/latest.tgz
-mv gcp-tools-release-artifacts-sha1/*.tgz.sha1 candidate/latest.tgz.sha1
+mv stackdriver-tools-artifacts/*.tgz candidate/latest.tgz
+mv stackdriver-tools-artifacts-sha1/*.tgz.sha1 candidate/latest.tgz.sha1

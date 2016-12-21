@@ -23,8 +23,10 @@ func main() {
 		This piece of code is an attempt to repro the error without any firehose/nozzle interaction
 	*/
 	ctx := context.Background()
-	metricClient, _ := monitoring.NewMetricClient(ctx, option.WithScopes("https://www.googleapis.com/auth/monitoring.write"))
-
+	metricClient, err := monitoring.NewMetricClient(ctx, option.WithScopes("https://www.googleapis.com/auth/monitoring.write"))
+	if err != nil {
+		panic(fmt.Sprintf("Error creating metric client: %v", err))
+	}
 	t := time.NewTicker(100 * time.Millisecond)
 	errCount := 0
 	for _ = range t.C {
