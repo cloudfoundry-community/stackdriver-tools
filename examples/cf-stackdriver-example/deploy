@@ -1,0 +1,12 @@
+set -e
+
+# Build
+go build
+gcloud beta debug source gen-repo-info-file
+
+# Deploy
+cf push
+
+# Cleanup
+rm -f cf-go-concourse-app 
+rm -f source-context.json source-contexts.json

@@ -1,0 +1,23 @@
+---
+resources:
+- name: cf-go-concourse-app-src
+  type: git
+  source:
+    branch: master
+    uri: https://source.developers.google.com/p/google.com:jrjohnsondev/r/cf-go-concourse-app
+    private_key: {{git-private-key}}
+
+jobs:
+- name: say-hello
+  serial: true
+  plan:
+  - get: cf-go-concourse-app-src
+  - task: say-hello
+    config:
+      platform: linux
+      image_resource:
+        type: docker-image
+        source: {repository: ubuntu}
+      run:
+        path: echo
+        args: ["Hello, world!"]
