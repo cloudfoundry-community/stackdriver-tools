@@ -17,7 +17,7 @@ Based on the [Kubernetes Guestbook App](https://github.com/kubernetes/kubernetes
 
 ## Deploying the application
 
-The application requires the GOOGLE_PROJECT variable to start. The following snippet will get the app create, set the variable, and restage the app at which time it should start.
+The application requires the GOOGLE_PROJECT environment variable to start. The following snippet will create the app, set the variable, and restage the app at which time it should start.
 
 ```
 cf push
@@ -55,4 +55,4 @@ cf set-env cf-stackdriver-example GOOGLE_APPLICATION_CREDENTIALS '/home/vcap/app
 
 ## Try it out
 
-Navigate to your application's URL and attempt to submit a guestbook entry. You should see a new error in the [Stackdriver Errors](https://pantheon.corp.google.com/errors) console.
+Navigate to your application's URL and attempt to submit a guestbook entry. You should see a new error in the [Stackdriver Errors](https://pantheon.corp.google.com/errors) console. Try setting a debug breakpoint in main.go:69 and see if you can spot the bug.
