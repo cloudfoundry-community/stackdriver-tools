@@ -127,7 +127,7 @@ func main() {
 	}
 
 	ctx := context.Background()
-	errorsClient = HandleError(errors.NewClient(ctx, projectID, "cf-stackdriver-example", "0.0.1", false)).(*errors.Client)
+	errorsClient = HandleError(errors.NewClient(ctx, projectID, "cf-stackdriver-example", "0.0.1", true)).(*errors.Client)
 
 	r := mux.NewRouter()
 	r.Path("/lrange/{key}").Methods("GET").HandlerFunc(ListRangeHandler)

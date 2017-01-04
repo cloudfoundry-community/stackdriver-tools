@@ -40,11 +40,9 @@ export project_id=$(gcloud config get-value project 2>/dev/null)
 export account_name=cf-stackdriver-example
 export service_account_email=${account_name}@${project_id}.iam.gserviceaccount.com
 gcloud iam service-accounts create ${account_name}
-gcloud projects add-iam-policy-binding ${project_id} \
-    --member serviceAccount:${service_account_email} \
-    --role "roles/clouddebugger.agent" \
-    --role "roles/logging.logWriter" \
-    --role "roles/datastore.owner"
+gcloud projects add-iam-policy-binding ${project_id} --member serviceAccount:${service_account_email} --role "roles/clouddebugger.agent"
+gcloud projects add-iam-policy-binding ${project_id} --member serviceAccount:${service_account_email} --role "roles/logging.logWriter"
+gcloud projects add-iam-policy-binding ${project_id} --member serviceAccount:${service_account_email} --role "roles/datastore.owner"
 gcloud iam service-accounts keys create service_account.json \
     --iam-account ${service_account_email}
 ```
@@ -57,4 +55,4 @@ cf set-env cf-stackdriver-example GOOGLE_APPLICATION_CREDENTIALS '/home/vcap/app
 
 ## Try it out
 
-Navigate to your application's URL and attempt to submit a guestbook entry. You should see a new error in the [Stackdriver Errors]()
+Navigate to your application's URL and attempt to submit a guestbook entry. You should see a new error in the [Stackdriver Errors](https://pantheon.corp.google.com/errors) console.
