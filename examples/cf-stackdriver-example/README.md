@@ -1,6 +1,6 @@
 # cf-stackdriver-example
 
-A CloudFoundry application written in Go that reports errors to [Stackdriver Error Reporting](https://cloud.google.com/error-reporting/) and can be debugged with the [Stackdriver Debugger](https://cloud.google.com/debugger/).
+A Cloud Foundry application written in Go that reports errors to [Stackdriver Error Reporting](https://cloud.google.com/error-reporting/) and can be debugged with the [Stackdriver Debugger](https://cloud.google.com/debugger/).
 
 Based on the [Kubernetes Guestbook App](https://github.com/kubernetes/kubernetes/tree/master/examples/guestbook-go). This is ***not*** an offical Google product.
 
