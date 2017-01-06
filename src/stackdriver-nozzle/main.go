@@ -10,6 +10,7 @@ import (
 
 	"cloud.google.com/go/logging"
 	"github.com/cloudfoundry-community/firehose-to-syslog/caching"
+	"github.com/cloudfoundry-community/go-cfclient"
 	"github.com/cloudfoundry-community/stackdriver-tools/src/stackdriver-nozzle/config"
 	"github.com/cloudfoundry-community/stackdriver-tools/src/stackdriver-nozzle/filter"
 	"github.com/cloudfoundry-community/stackdriver-tools/src/stackdriver-nozzle/firehose"
@@ -17,7 +18,6 @@ import (
 	"github.com/cloudfoundry-community/stackdriver-tools/src/stackdriver-nozzle/nozzle"
 	"github.com/cloudfoundry-community/stackdriver-tools/src/stackdriver-nozzle/stackdriver"
 	"github.com/cloudfoundry-community/stackdriver-tools/src/stackdriver-nozzle/version"
-	"github.com/cloudfoundry-community/go-cfclient"
 	"github.com/cloudfoundry/lager"
 )
 
@@ -61,7 +61,7 @@ func handleFatalError(a *app) {
 		payload := map[string]interface{}{
 			"serviceContext": map[string]interface{}{
 				"service": version.Name,
-				"version": version.Release,
+				"version": version.Release(),
 			},
 			"message": stackTrace,
 		}
@@ -87,6 +87,7 @@ func handleFatalError(a *app) {
 func newApp() *app {
 	logger := lager.NewLogger("stackdriver-nozzle")
 	logger.RegisterSink(lager.NewWriterSink(os.Stdout, lager.DEBUG))
+	logger.Info("version", lager.Data{"name": version.Name, "release": version.Release(), "user_agent": version.UserAgent()})
 
 	c, err := config.NewConfig()
 	if err != nil {
