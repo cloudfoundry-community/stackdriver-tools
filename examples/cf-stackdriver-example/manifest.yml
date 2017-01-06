@@ -1,0 +1,6 @@
+---
+applications:
+  - name: cf-stackdriver-example
+    instances: 2
+    memory: 512M
+    buildpack: binary_buildpack
