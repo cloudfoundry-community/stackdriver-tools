@@ -1,0 +1,13 @@
+# gcloud generated files
+source-context.json
+source-contexts.json
+
+# binary
+cf-stackdriver-example
+
+# credentials
+service_account.json
+
+# misc
+*.swp
+.idea/*
