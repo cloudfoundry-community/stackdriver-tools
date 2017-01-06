@@ -1,23 +1,19 @@
 ---
-name: gcp-tools
+name: stackdriver-nozzle
 label: 'Stackdriver Nozzle'
 description: Import your Cloud Foundry logs into Stackdriver for top tier logging and monitoring
 icon_file: gcp_logo.png
 packages:
-- name: gcp-tools
+- name: stackdriver-tools
   type: bosh-release
   path: https://storage.googleapis.com/bosh-gcp/beta/gcp-tools-release/latest.tgz
   jobs:
-  - name: google-fluentd
+  - name: stackdriver-nozzle
     templates:
-    - name: google-fluentd
-      release: bosh-gcp-tools
-    - name: stackdriver-nozzle
-      release: bosh-gcp-tools
-    - name: stackdriver-agent
-      release: bosh-gcp-tools
     - name: credentials
-      release: bosh-gcp-tools
+      release: stackdriver-tools
+    - name: stackdriver-nozzle
+      release: stackdriver-tools
     memory: 512
     ephemeral_disk: 4096
     cpu: 2
@@ -25,15 +21,14 @@ packages:
     static_ip: 1
     properties:
       firehose:
-        endpoint: .properties.firehose_endpoint
-        events: .properties.firehose_events
-        username: .properties.firehose_username
-        password: .properties.firehose_password
-        skip_ssl: .properties.firehose_skip_ssl
+        endpoint: (( .properties.firehose_endpoint.value ))
+        events: (( .properties.firehose_events.value ))
+        username: (( .properties.firehose_username.value ))
+        password: (( .properties.firehose_password.value ))
+        skip_ssl: (( .properties.firehose_skip_ssl.value ))
       credentials:
-        application_default_credentials: .properties.service_account
-      project_id: .properties.project_id
-      heartbeat_rate: .properties.heartbeat_rate
+        application_default_credentials: (( .properties.service_account.value ))
+      project_id: (( .properties.project_id.value ))
 
 
 forms:
@@ -43,27 +38,29 @@ forms:
   properties:
   - name: firehose_endpoint
     type: string
-    label: FireHose Endpoint
+    label: Cloud Foundry API Endpoint
   - name: firehose_events
     type: string
     default: HttpStart,HttpStop,HttpStartStop,LogMessage,ValueMetric,CounterEvent,Error,ContainerMetric
-    label: FireHose Events
+    label: Events to Subscribe to
+    description: Comma separated list without spaces consisting of any or all of HttpStart, HttpStop, HttpStartStop, LogMessage, ValueMetric, CounterEvent, Error, ContainerMetric
   - name: firehose_username
     type: string
-    label: FireHose Username
+    label: UAA Username
+    description: UAA user with doppler.firehose and cloud_controller.admin_read_only permissions
   - name: firehose_password
     type: secret
-    label: FireHose Password
+    label: UAA Password
   - name: firehose_skip_ssl
-    type: boolean
-    default: true
-    label: Skip SSL validation on FireHose Endpoint
+    type: string
+    default: 'false'
+    label: Skip SSL validation on Cloud Foundry API Endpoint
   - name: service_account
     type: text
     label: Service Account Credentials
+    description: JSON string credentials for a Service Account with logging.logWriter and logging.configWriter permissions
   - name: project_id
     type: string
     label: Google Project ID
-  - name: heartbeat_rate
-    type: integer
-    label: Seconds between Heartbeats
+    description: Project id for project with logging and monitoring APIs enabled
+
