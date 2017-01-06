@@ -4,7 +4,7 @@ files:
   - common/utils.sh
   - google-fluentd/Gemfile
   - google-fluentd/Gemfile.lock
-  - google-fluentd-vendor/google-fluentd-vendor-0.14.tgz
+  - google-fluentd-vendor/google-fluentd-vendor-0.12-plugin-0.5.3.tgz
   - ruby/bundler-1.10.6.gem
   - ruby/ruby-2.3.0.tar.gz
   - ruby/rubygems-2.6.2.tgz
