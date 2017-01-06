@@ -12,8 +12,12 @@ pushd stackdriver-tools
   echo "Using BOSH CLI version..."
   bosh version
 
+  echo "Exposing release semver to stackdriver-nozzle"
+  echo ${semver} > "src/stackdriver-nozzle/release"
+
+  # Force create because we just created the file `src/stackdriver-nozzle/release`
   echo "Creating ${release_name} BOSH Release..."
-  bosh create release --name ${release_name} --version ${semver} --with-tarball
+  bosh create release --name ${release_name} --version ${semver} --with-tarball --force
 popd
 
 image_path=stackdriver-tools/dev_releases/${release_name}/${release_name}-${semver}.tgz
