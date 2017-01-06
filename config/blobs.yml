@@ -1,57 +1,60 @@
----
 golang/go1.6.linux-amd64.tar.gz:
+  size: 84799480
   object_id: 31e2aa40-56be-44e6-a01d-a2ee5f25337b
   sha: 01a6a28dbe31a53103b600979bbbbd63a8104456
-  size: 84799480
-ruby/bundler-1.10.6.gem:
-  object_id: fed164c4-df81-4e9b-89e2-2f1f3d2fb87d
-  sha: 55a37fccd1c0cb5542d468e35d3be46dd0667f73
-  size: 251392
-ruby/ruby-2.3.0.tar.gz:
-  object_id: a85650d1-5429-4e28-af88-0074dd7581cb
-  sha: 2dfcf7f33bda4078efca30ae28cb89cd0e36ddc4
-  size: 17648682
-ruby/rubygems-2.6.2.tgz:
-  object_id: 3a22fc58-dce2-430e-ab28-9f2d4be98e2b
-  sha: 5960628b1f90f4a05ed69c0ad59c59cb10b79e5f
-  size: 478660
-ruby/yaml-0.1.6.tar.gz:
-  object_id: 12a6045c-c545-4398-b02c-9361694c0352
-  sha: f3d404e11bec3c4efcddfd14c42d46f1aabe0b5d
-  size: 503012
-libtool/libtool-2.4.2.tar.gz:
-  object_id: 2e2677e4-06fd-4a5a-b2d1-45c3c2984867
-  sha: 22b71a8b5ce3ad86e1094e7285981cae10e6ff88
-  size: 2632347
-python/netifaces-0.10.4.tar.gz:
-  object_id: d4b7d301-60b0-4e2e-a515-074d296199d9
-  sha: c3fcd491a89c2994815053e853b005e7fc27c79a
-  size: 22969
-python/Python-2.7.11.tgz:
-  object_id: b2676f74-87a8-4708-bd78-e478705b3b33
-  sha: 62a0b1b703d42999cc4aa9ee3c55eb7efe35802a
-  size: 16856409
-python/setuptools-20.4.tar.gz:
-  object_id: 3d76e562-5b43-4828-9194-532b30726ec1
-  sha: b9ffbf5e29765c4a786c7242be1b03bfe08ad1c0
-  size: 675976
-python/psutil-1.2.1.tar.gz:
-  object_id: 65957b56-b096-4a79-8354-504a76abd69a
-  sha: c8c1842bf1c63b9068ac25a37f7aae11fcecd57f
-  size: 167397
 golang/go1.7.1.linux-amd64.tar.gz:
+  size: 81618401
   object_id: e78481ab-9a69-4116-8b99-06d3518232c5
   sha: 919ab01305ada0078a9fdf8a12bb56fb0b8a1444
-  size: 81618401
-libyajl/yajl-2.1.0.tar.gz:
-  object_id: 98602cdb-974d-4df1-8b21-e080f80aae10
-  sha: fe6b3c7439b26175aee59cabf8c4923b9eb3650d
-  size: 84039
-stackdriver-agent/stackdriver-agent_5.5.2-347.tgz:
-  object_id: ba5064b6-9690-4757-8bc6-a1cf43d0f13f
-  sha: 862df2ed4a2558086df9491231068075b2495026
-  size: 1085047
+google-fluentd-vendor/google-fluentd-vendor-0.12-plugin-0.5.3.tgz:
+  size: 12407170
+  object_id: e5955cd8-e004-49f9-5a83-a546114d442d
+  sha: 8d00c8753e3d98e0e8a56f91acca54eaec88c277
 google-fluentd-vendor/google-fluentd-vendor-0.14.tgz:
+  size: 5099520
   object_id: 8e8f347b-208f-4d71-be3b-c347acccd833
   sha: 9eb9504e3eef812eac7ea5e5f61a038c893544f4
-  size: 5099520
+libtool/libtool-2.4.2.tar.gz:
+  size: 2632347
+  object_id: 2e2677e4-06fd-4a5a-b2d1-45c3c2984867
+  sha: 22b71a8b5ce3ad86e1094e7285981cae10e6ff88
+libyajl/yajl-2.1.0.tar.gz:
+  size: 84039
+  object_id: 98602cdb-974d-4df1-8b21-e080f80aae10
+  sha: fe6b3c7439b26175aee59cabf8c4923b9eb3650d
+python/Python-2.7.11.tgz:
+  size: 16856409
+  object_id: b2676f74-87a8-4708-bd78-e478705b3b33
+  sha: 62a0b1b703d42999cc4aa9ee3c55eb7efe35802a
+python/netifaces-0.10.4.tar.gz:
+  size: 22969
+  object_id: d4b7d301-60b0-4e2e-a515-074d296199d9
+  sha: c3fcd491a89c2994815053e853b005e7fc27c79a
+python/psutil-1.2.1.tar.gz:
+  size: 167397
+  object_id: 65957b56-b096-4a79-8354-504a76abd69a
+  sha: c8c1842bf1c63b9068ac25a37f7aae11fcecd57f
+python/setuptools-20.4.tar.gz:
+  size: 675976
+  object_id: 3d76e562-5b43-4828-9194-532b30726ec1
+  sha: b9ffbf5e29765c4a786c7242be1b03bfe08ad1c0
+ruby/bundler-1.10.6.gem:
+  size: 251392
+  object_id: fed164c4-df81-4e9b-89e2-2f1f3d2fb87d
+  sha: 55a37fccd1c0cb5542d468e35d3be46dd0667f73
+ruby/ruby-2.3.0.tar.gz:
+  size: 17648682
+  object_id: a85650d1-5429-4e28-af88-0074dd7581cb
+  sha: 2dfcf7f33bda4078efca30ae28cb89cd0e36ddc4
+ruby/rubygems-2.6.2.tgz:
+  size: 478660
+  object_id: 3a22fc58-dce2-430e-ab28-9f2d4be98e2b
+  sha: 5960628b1f90f4a05ed69c0ad59c59cb10b79e5f
+ruby/yaml-0.1.6.tar.gz:
+  size: 503012
+  object_id: 12a6045c-c545-4398-b02c-9361694c0352
+  sha: f3d404e11bec3c4efcddfd14c42d46f1aabe0b5d
+stackdriver-agent/stackdriver-agent_5.5.2-347.tgz:
+  size: 1085047
+  object_id: ba5064b6-9690-4757-8bc6-a1cf43d0f13f
+  sha: 862df2ed4a2558086df9491231068075b2495026

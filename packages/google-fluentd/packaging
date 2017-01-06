@@ -34,7 +34,7 @@ ${BOSH_INSTALL_TARGET}/bin/gem install ${BOSH_COMPILE_TARGET}/ruby/bundler-1.10.
 
 # Install Bundler cache
 pushd ${BOSH_COMPILE_TARGET}/google-fluentd-vendor
-  tar xvzf google-fluentd-vendor-0.14.tgz
+  tar xvzf google-fluentd-vendor-0.12-plugin-0.5.3.tgz
   mv vendor ${BOSH_INSTALL_TARGET}
 popd
 
