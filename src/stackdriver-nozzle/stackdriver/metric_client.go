@@ -18,7 +18,7 @@ type MetricClient interface {
 
 func NewMetricClient() (MetricClient, error) {
 	ctx := context.Background()
-	sdMetricClient, err := monitoring.NewMetricClient(ctx, option.WithScopes("https://www.googleapis.com/auth/monitoring.write"), option.WithUserAgent(version.UserAgent))
+	sdMetricClient, err := monitoring.NewMetricClient(ctx, option.WithScopes("https://www.googleapis.com/auth/monitoring.write"), option.WithUserAgent(version.UserAgent()))
 	if err != nil {
 		return nil, err
 	}
