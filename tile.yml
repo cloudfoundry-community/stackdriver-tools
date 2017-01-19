@@ -1,7 +1,7 @@
 ---
 name: stackdriver-nozzle
 label: 'Stackdriver Nozzle'
-description: Import your Cloud Foundry logs into Stackdriver for top tier logging and monitoring
+description: Import your Cloud Foundry logs and metrics into Stackdriver Logging and Monitoring for diagnostics and alerting 
 icon_file: gcp_logo.png
 packages:
 - name: stackdriver-tools
