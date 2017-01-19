@@ -1,0 +1,66 @@
+---
+name: stackdriver-nozzle
+label: 'Stackdriver Nozzle'
+description: Import your Cloud Foundry logs and metrics into Stackdriver Logging and Monitoring for diagnostics and alerting 
+icon_file: gcp_logo.png
+packages:
+- name: stackdriver-tools
+  type: bosh-release
+  path: https://storage.googleapis.com/bosh-gcp/beta/stackdriver-tools/stackdriver-tools-0.0.185.tgz
+  jobs:
+  - name: stackdriver-nozzle
+    templates:
+    - name: credentials
+      release: stackdriver-tools
+    - name: stackdriver-nozzle
+      release: stackdriver-tools
+    memory: 512
+    ephemeral_disk: 4096
+    cpu: 2
+    dynamic_ip: 0
+    static_ip: 1
+    properties:
+      firehose:
+        endpoint: (( .properties.firehose_endpoint.value ))
+        events: (( .properties.firehose_events.value ))
+        username: (( .properties.firehose_username.value ))
+        password: (( .properties.firehose_password.value ))
+        skip_ssl: (( .properties.firehose_skip_ssl.value ))
+      credentials:
+        application_default_credentials: (( .properties.service_account.value ))
+      project_id: (( .properties.project_id.value ))
+
+
+forms:
+- name: nozzle-config
+  label: Nozzle Configuration
+  description: Configure access properties for the Stackdriver Nozzle here
+  properties:
+  - name: firehose_endpoint
+    type: string
+    label: Cloud Foundry API Endpoint
+  - name: firehose_events
+    type: string
+    default: HttpStart,HttpStop,HttpStartStop,LogMessage,ValueMetric,CounterEvent,Error,ContainerMetric
+    label: Events to Subscribe to
+    description: Comma separated list without spaces consisting of any or all of HttpStart, HttpStop, HttpStartStop, LogMessage, ValueMetric, CounterEvent, Error, ContainerMetric
+  - name: firehose_username
+    type: string
+    label: UAA Username
+    description: UAA user with doppler.firehose and cloud_controller.admin_read_only permissions
+  - name: firehose_password
+    type: secret
+    label: UAA Password
+  - name: firehose_skip_ssl
+    type: string
+    default: 'false'
+    label: Skip SSL validation on Cloud Foundry API Endpoint
+  - name: service_account
+    type: text
+    label: Service Account Credentials
+    description: JSON string credentials for a Service Account with logging.logWriter and logging.configWriter permissions
+  - name: project_id
+    type: string
+    label: Google Project ID
+    description: Project id for project with logging and monitoring APIs enabled
+
