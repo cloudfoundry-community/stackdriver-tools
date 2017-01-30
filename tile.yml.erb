@@ -1,3 +1,7 @@
+<%
+release_path = ENV["RELEASE_PATH"]
+raise "RELEASE_PATH env variable required" if release_path.to_s.empty?
+%>
 ---
 name: stackdriver-nozzle
 label: 'Stackdriver Nozzle'
@@ -6,7 +10,7 @@ icon_file: gcp_logo.png
 packages:
 - name: stackdriver-tools
   type: bosh-release
-  path: https://storage.googleapis.com/bosh-gcp/beta/stackdriver-tools/stackdriver-tools-0.0.185.tgz
+  path: <%=release_path %> 
   jobs:
   - name: stackdriver-nozzle
     templates:
