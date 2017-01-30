@@ -43,7 +43,7 @@ type Log struct {
 
 func NewLogAdapter(projectID string, batchCount int, batchDuration time.Duration, heartbeater heartbeat.Heartbeater) (LogAdapter, <-chan error) {
 	errs := make(chan error)
-	loggingClient, err := logging.NewClient(context.Background(), projectID, option.WithUserAgent(version.UserAgent))
+	loggingClient, err := logging.NewClient(context.Background(), projectID, option.WithUserAgent(version.UserAgent()))
 	if err != nil {
 		go func() { errs <- err }()
 		return nil, errs

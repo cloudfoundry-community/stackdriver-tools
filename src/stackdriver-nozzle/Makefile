@@ -2,11 +2,11 @@ default: test
 
 # Builds stackdriver-nozzle for linux-amd64
 build:
-	go build -o out/stackdriver-nozzle .
+	go build -ldflags "-X github.com/cloudfoundry-community/stackdriver-tools/src/stackdriver-nozzle/version.release=`cat release 2>/dev/null`" -o out/stackdriver-nozzle .
 
 # Build cross-platform binaries
 build-all:
-	gox -output="out/stackdriver-nozzle_{{.OS}}_{{.Arch}}" .
+	gox -output="out/stackdriver-nozzle_{{.OS}}_{{.Arch}}" -ldflags="-X github.com/cloudfoundry-community/stackdriver-tools/src/stackdriver-nozzle/version.release=`cat release 2>/dev/null`" .
 
 # Prepration for tests
 get-deps:

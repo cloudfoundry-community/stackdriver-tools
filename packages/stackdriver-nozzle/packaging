@@ -14,8 +14,10 @@ mkdir -p ${NOZZLE_PATH}
 mv ${BOSH_COMPILE_TARGET}/stackdriver-nozzle ${NOZZLE_PATH}
 cd ${NOZZLE_PATH}/stackdriver-nozzle
 export GOPATH=${BOSH_COMPILE_TARGET}/go
-go build -o out/stackdriver-nozzle main.go
+go build -ldflags "-X github.com/cloudfoundry-community/stackdriver-tools/src/stackdriver-nozzle/version.release=`cat release 2>/dev/null`" -o out/stackdriver-nozzle main.go
 
 # Copy BOSH Google CPI package
 mkdir -p ${BOSH_INSTALL_TARGET}/bin
 cp -a ${NOZZLE_PATH}/stackdriver-nozzle/out/stackdriver-nozzle ${BOSH_INSTALL_TARGET}/bin/
+
+
