@@ -17,8 +17,10 @@
 package nozzle
 
 import (
-	"github.com/cloudfoundry-community/firehose-to-syslog/caching"
-	"github.com/cloudfoundry-community/firehose-to-syslog/utils"
+	"encoding/binary"
+	"fmt"
+
+	"github.com/cloudfoundry-community/stackdriver-tools/src/stackdriver-nozzle/cloudfoundry"
 	"github.com/cloudfoundry/sonde-go/events"
 )
 
@@ -26,12 +28,12 @@ type LabelMaker interface {
 	Build(*events.Envelope) map[string]string
 }
 
-func NewLabelMaker(cachingClient caching.Caching) LabelMaker {
-	return &labelMaker{cachingClient: cachingClient}
+func NewLabelMaker(appInfoRepository cloudfoundry.AppInfoRepository) LabelMaker {
+	return &labelMaker{appInfoRepository: appInfoRepository}
 }
 
 type labelMaker struct {
-	cachingClient caching.Caching
+	appInfoRepository cloudfoundry.AppInfoRepository
 }
 
 func (lm *labelMaker) Build(envelope *events.Envelope) map[string]string {
@@ -63,7 +65,7 @@ func (lm *labelMaker) Build(envelope *events.Envelope) map[string]string {
 
 func (lm *labelMaker) getApplicationId(envelope *events.Envelope) string {
 	if envelope.GetEventType() == events.Envelope_HttpStartStop {
-		return utils.FormatUUID(envelope.GetHttpStartStop().GetApplicationId())
+		return formatUUID(envelope.GetHttpStartStop().GetApplicationId())
 	} else if envelope.GetEventType() == events.Envelope_LogMessage {
 		return envelope.GetLogMessage().GetAppId()
 	} else if envelope.GetEventType() == events.Envelope_ContainerMetric {
@@ -73,26 +75,36 @@ func (lm *labelMaker) getApplicationId(envelope *events.Envelope) string {
 	}
 }
 
-func (lm *labelMaker) buildAppMetadataLabels(appId string, labels map[string]string, envelope *events.Envelope) {
-	app := lm.cachingClient.GetAppInfoCache(appId)
+func (lm *labelMaker) buildAppMetadataLabels(guid string, labels map[string]string, envelope *events.Envelope) {
+	app := lm.appInfoRepository.GetAppInfo(guid)
 
-	if app.Name != "" {
-		labels["appName"] = app.Name
+	if app.AppName != "" {
+		labels["appName"] = app.AppName
 	}
 
 	if app.SpaceName != "" {
 		labels["spaceName"] = app.SpaceName
 	}
 
-	if app.SpaceGuid != "" {
-		labels["spaceGuid"] = app.SpaceGuid
+	if app.SpaceGUID != "" {
+		labels["spaceGuid"] = app.SpaceGUID
 	}
 
 	if app.OrgName != "" {
 		labels["orgName"] = app.OrgName
 	}
 
-	if app.OrgGuid != "" {
-		labels["orgGuid"] = app.OrgGuid
+	if app.OrgGUID != "" {
+		labels["orgGuid"] = app.OrgGUID
 	}
+}
+
+func formatUUID(uuid *events.UUID) string {
+	if uuid == nil {
+		return ""
+	}
+	var uuidBytes [16]byte
+	binary.LittleEndian.PutUint64(uuidBytes[:8], uuid.GetLow())
+	binary.LittleEndian.PutUint64(uuidBytes[8:], uuid.GetHigh())
+	return fmt.Sprintf("%x-%x-%x-%x-%x", uuidBytes[0:4], uuidBytes[4:6], uuidBytes[6:8], uuidBytes[8:10], uuidBytes[10:])
 }

@@ -9,11 +9,10 @@ import (
 	"time"
 
 	"cloud.google.com/go/logging"
-	"github.com/cloudfoundry-community/firehose-to-syslog/caching"
 	"github.com/cloudfoundry-community/go-cfclient"
 	"github.com/cloudfoundry-community/stackdriver-tools/src/stackdriver-nozzle/config"
 	"github.com/cloudfoundry-community/stackdriver-tools/src/stackdriver-nozzle/filter"
-	"github.com/cloudfoundry-community/stackdriver-tools/src/stackdriver-nozzle/firehose"
+	"github.com/cloudfoundry-community/stackdriver-tools/src/stackdriver-nozzle/cloudfoundry"
 	"github.com/cloudfoundry-community/stackdriver-tools/src/stackdriver-nozzle/heartbeat"
 	"github.com/cloudfoundry-community/stackdriver-tools/src/stackdriver-nozzle/nozzle"
 	"github.com/cloudfoundry-community/stackdriver-tools/src/stackdriver-nozzle/stackdriver"
@@ -106,14 +105,13 @@ func newApp() *app {
 		SkipSslValidation: c.SkipSSL}
 	cfClient := cfclient.NewClient(cfConfig)
 
-	var cachingClient caching.Caching
+	var appInfoRepository cloudfoundry.AppInfoRepository
 	if c.ResolveAppMetadata {
-		cachingClient = caching.NewCachingBolt(cfClient, c.BoltDBPath)
+		appInfoRepository = cloudfoundry.NewAppInfoRepository(cfClient)
 	} else {
-		cachingClient = caching.NewCachingEmpty()
+		appInfoRepository = cloudfoundry.NullAppInfoRepository()
 	}
-	cachingClient.CreateBucket()
-	labelMaker := nozzle.NewLabelMaker(cachingClient)
+	labelMaker := nozzle.NewLabelMaker(appInfoRepository)
 
 	return &app{
 		logger:      logger,
@@ -134,10 +132,10 @@ type app struct {
 	heartbeater heartbeat.Heartbeater
 }
 
-func (a *app) newProducer() firehose.Client {
-	fhClient := firehose.NewClient(a.cfConfig, a.cfClient, a.c.SubscriptionID)
+func (a *app) newProducer() cloudfoundry.Firehose {
+	firehose := cloudfoundry.NewFirehose(a.cfConfig, a.cfClient, a.c.SubscriptionID)
 
-	producer, err := filter.New(fhClient, strings.Split(a.c.Events, ","), a.heartbeater)
+	producer, err := filter.New(firehose, strings.Split(a.c.Events, ","), a.heartbeater)
 	if err != nil {
 		a.logger.Fatal("filter", err)
 	}

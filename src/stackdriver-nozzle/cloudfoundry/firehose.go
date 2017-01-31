@@ -14,13 +14,13 @@
  * limitations under the License.
  */
 
-package firehose
+package cloudfoundry
 
 import (
 	"crypto/tls"
 	"time"
 
-	"github.com/cloudfoundry-community/go-cfclient"
+	cfclient "github.com/cloudfoundry-community/go-cfclient"
 	"github.com/cloudfoundry/noaa/consumer"
 	"github.com/cloudfoundry/sonde-go/events"
 )
@@ -29,21 +29,21 @@ type FirehoseHandler interface {
 	HandleEvent(*events.Envelope) error
 }
 
-type Client interface {
+type Firehose interface {
 	Connect() (<-chan *events.Envelope, <-chan error)
 }
 
-type client struct {
+type firehose struct {
 	cfConfig       *cfclient.Config
 	cfClient       *cfclient.Client
 	subscriptionID string
 }
 
-func NewClient(cfConfig *cfclient.Config, cfClient *cfclient.Client, subscriptionID string) Client {
-	return &client{cfConfig, cfClient, subscriptionID}
+func NewFirehose(cfConfig *cfclient.Config, cfClient *cfclient.Client, subscriptionID string) Firehose {
+	return &firehose{cfConfig, cfClient, subscriptionID}
 }
 
-func (c *client) Connect() (<-chan *events.Envelope, <-chan error) {
+func (c *firehose) Connect() (<-chan *events.Envelope, <-chan error) {
 	cfConsumer := consumer.New(
 		c.cfClient.Endpoint.DopplerEndpoint,
 		&tls.Config{InsecureSkipVerify: c.cfConfig.SkipSslValidation},

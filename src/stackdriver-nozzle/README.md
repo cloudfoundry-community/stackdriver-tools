@@ -45,7 +45,6 @@ go get github.com/cloudfoundry-community/stackdriver-tools/src/stackdriver-nozzl
   second
 - `RESOLVE_APP_METADATA` - whether to hydrate app UUIDs into org name, org
   UUID, space name, space UUID, and app name; defaults to `true`
-- `BOLTDB_PATH` - where to cache app metadata; defaults to `cached-app-metadata.db`
 - `SUBSCRIPTION_ID` - what subscription ID to use for connecting to the
   firehose; defaults to `stackdriver-nozzle`
 

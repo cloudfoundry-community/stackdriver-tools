@@ -223,6 +223,7 @@ var _ = Describe("LogSink", func() {
 			expectedMessage := `Line one
   Line two
   Linethree`
+
 			Expect(payload).To(HaveKeyWithValue("message", expectedMessage))
 			Expect(payload).To(HaveKeyWithValue("logMessage", map[string]interface{}{
 				"message_type": "OUT",
