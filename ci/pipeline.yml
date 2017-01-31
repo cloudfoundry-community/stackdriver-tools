@@ -144,7 +144,7 @@ resources:
     type: git
     source:
       uri: https://github.com/cloudfoundry-community/stackdriver-tools.git
-      branch: pr-ci
+      branch: master
       ignore_paths:
         - .final_builds/**/*.yml
         - releases/**/*.yml
