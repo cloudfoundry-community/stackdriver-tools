@@ -1,4 +1,3 @@
-<<<<<<< HEAD:src/stackdriver-nozzle/firehose/client.go
 /*
  * Copyright 2017 Google Inc.
  *
@@ -21,7 +20,7 @@ import (
 	"crypto/tls"
 	"time"
 
-	"github.com/cloudfoundry-community/go-cfclient"
+	cfclient "github.com/cloudfoundry-community/go-cfclient"
 	"github.com/cloudfoundry/noaa/consumer"
 	"github.com/cloudfoundry/sonde-go/events"
 )

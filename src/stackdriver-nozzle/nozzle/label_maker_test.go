@@ -19,8 +19,7 @@ package nozzle_test
 import (
 	"time"
 
-
-	"github.com/cloudfoundry-community/gcp-tools-release/src/stackdriver-nozzle/cloudfoundry"
+	"github.com/cloudfoundry-community/stackdriver-tools/src/stackdriver-nozzle/cloudfoundry"
 	"github.com/cloudfoundry-community/stackdriver-tools/src/stackdriver-nozzle/mocks"
 	"github.com/cloudfoundry-community/stackdriver-tools/src/stackdriver-nozzle/nozzle"
 

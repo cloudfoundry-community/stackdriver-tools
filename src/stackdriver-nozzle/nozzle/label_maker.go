@@ -17,10 +17,11 @@
 package nozzle
 
 import (
-	"github.com/cloudfoundry-community/gcp-tools-release/src/stackdriver-nozzle/cloudfoundry"
-	"github.com/cloudfoundry/sonde-go/events"
 	"encoding/binary"
 	"fmt"
+
+	"github.com/cloudfoundry-community/stackdriver-tools/src/stackdriver-nozzle/cloudfoundry"
+	"github.com/cloudfoundry/sonde-go/events"
 )
 
 type LabelMaker interface {

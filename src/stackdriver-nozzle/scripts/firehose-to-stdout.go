@@ -17,10 +17,10 @@
 package main
 
 import (
-	"os"
-	"github.com/cloudfoundry-community/stackdriver-tools/src/stackdriver-nozzle/cloudfoundry"
 	"github.com/cloudfoundry-community/go-cfclient"
+	"github.com/cloudfoundry-community/stackdriver-tools/src/stackdriver-nozzle/cloudfoundry"
 	"github.com/cloudfoundry/sonde-go/events"
+	"os"
 )
 
 func main() {

@@ -57,11 +57,11 @@ type Config struct {
 	ProjectID string `envconfig:"gcp_project_id"`
 
 	// Nozzle config
-	HeartbeatRate      int    `envconfig:"heartbeat_rate" default:"30"`
-	BatchCount         int    `envconfig:"batch_count" default:"10"`
-	BatchDuration      int    `envconfig:"batch_duration" default:"1"`
-	ResolveAppMetadata bool   `envconfig:"resolve_app_metadata"`
-	DebugNozzle        bool   `envconfig:"debug_nozzle"`
+	HeartbeatRate      int  `envconfig:"heartbeat_rate" default:"30"`
+	BatchCount         int  `envconfig:"batch_count" default:"10"`
+	BatchDuration      int  `envconfig:"batch_duration" default:"1"`
+	ResolveAppMetadata bool `envconfig:"resolve_app_metadata"`
+	DebugNozzle        bool `envconfig:"debug_nozzle"`
 }
 
 func (c *Config) validate() error {
