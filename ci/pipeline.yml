@@ -52,6 +52,26 @@ jobs:
       - put: stackdriver-tools-artifacts-sha1
         params: {file: candidate/*.tgz.sha1}
 
+  - name: build-tile
+    plan:
+      - aggregate:
+        - {trigger: true,  passed: [build-candidate],   get: stackdriver-tools,                resource: stackdriver-tools-in}
+        - {trigger: false,                              get: version-semver,                   resource: version-semver}
+
+      - task: build-tile
+        file: stackdriver-tools/ci/tasks/build-tile.yml
+        on_failure:
+          aggregate:
+            - put: slack-alert
+              params:
+                icon_emoji: ":robot_face:"
+                username: Build pipeline
+                channel: "#lambr-private"
+                text: "build-tile failed"
+
+      - put: stackdriver-nozzle-tile
+        params: {file: candidate/*.pivotal}
+
   - name: deploy-candidate
     plan:
       - aggregate:
@@ -59,7 +79,7 @@ jobs:
         - {trigger: true,  passed: [build-candidate],  get: stackdriver-tools-artifacts,      resource: stackdriver-tools-artifacts}
         - {trigger: false, passed: [build-candidate],  get: stackdriver-tools-artifacts-sha1, resource: stackdriver-tools-artifacts-sha1}
 
-      - task: build-release
+      - task: deploy-candidate
         file: stackdriver-tools/ci/tasks/deploy-candidate.yml
         attempts: 2
         on_failure:
@@ -90,23 +110,35 @@ jobs:
             vip_ip: {{vip_ip}}
             service_account_key_json: {{service_account_key_json}}
 
+  - name: promote-candidate 
+    plan:
+      - aggregate:
+        - {trigger: true,  passed: [deploy-candidate],  get: stackdriver-nozzle-tile,          resource: stackdriver-nozzle-tile}
+        - {trigger: true,  passed: [deploy-candidate],  get: stackdriver-tools,                resource: stackdriver-tools-in}
+        - {trigger: true,  passed: [deploy-candidate],  get: stackdriver-tools-artifacts,      resource: stackdriver-tools-artifacts}
+        - {trigger: false, passed: [deploy-candidate],  get: stackdriver-tools-artifacts-sha1, resource: stackdriver-tools-artifacts-sha1}
+
+      - task: promote-candidate
+        file: stackdriver-tools/ci/tasks/promote-candidate.yml
+        attempts: 2
+        on_failure:
+          aggregate:
+            - put: slack-alert
+              params:
+                icon_emoji: ":robot_face:"
+                username: Build pipeline
+                channel: "#lambr-private"
+                text: "promote-candidate failed"
+
       - put: stackdriver-tools-artifacts
         params: {file: candidate/latest.tgz}
 
       - put: stackdriver-tools-artifacts-sha1
         params: {file: candidate/latest.tgz.sha1}
 
-  - name: build-tile
-    plan:
-      - aggregate:
-        - {trigger: true,  passed: [deploy-candidate],  get: stackdriver-tools,                resource: stackdriver-tools-in}
-        - {trigger: false,                              get: version-semver,                   resource: version-semver}
-
-      - task: build-tile
-        file: stackdriver-tools/ci/tasks/build-tile.yml
-
       - put: stackdriver-nozzle-tile
-        params: {file: candidate/*.pivotal}
+        params: {file: candidate/latest.pivotal}
+
 resources:
   - name: stackdriver-tools-in
     type: git
