@@ -9,6 +9,7 @@ inputs:
   - name: stackdriver-tools
   - name: stackdriver-tools-artifacts
   - name: stackdriver-tools-artifacts-sha1
+  - name: version-semver
 outputs:
   - name: candidate
 
