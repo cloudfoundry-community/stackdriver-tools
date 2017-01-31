@@ -113,7 +113,7 @@ jobs:
   - name: promote-candidate 
     plan:
       - aggregate:
-        - {trigger: true,  passed: [deploy-candidate],  get: stackdriver-nozzle-tile,          resource: stackdriver-nozzle-tile}
+        - {trigger: true,  passed: [build-tile],        get: stackdriver-nozzle-tile,          resource: stackdriver-nozzle-tile}
         - {trigger: true,  passed: [deploy-candidate],  get: stackdriver-tools,                resource: stackdriver-tools-in}
         - {trigger: true,  passed: [deploy-candidate],  get: stackdriver-tools-artifacts,      resource: stackdriver-tools-artifacts}
         - {trigger: false, passed: [deploy-candidate],  get: stackdriver-tools-artifacts-sha1, resource: stackdriver-tools-artifacts-sha1}
