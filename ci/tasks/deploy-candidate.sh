@@ -28,6 +28,8 @@ check_param ssh_bastion_name
 check_param ssh_user
 check_param ssh_key
 
+semver=`cat version-semver/number`
+
 echo "Creating google json key..."
 mkdir -p $HOME/.config/gcloud/
 echo "${service_account_key_json}" > $HOME/.config/gcloud/application_default_credentials.json
@@ -65,7 +67,7 @@ director_uuid: ${director_uuid}
 
 releases:
 - name: stackdriver-tools
-  version: latest
+  version: ${semver}
 
 jobs:
 - name: stackdriver-nozzle
