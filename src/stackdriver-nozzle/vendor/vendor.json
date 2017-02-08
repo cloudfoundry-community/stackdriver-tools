@@ -187,6 +187,12 @@
 			"revisionTime": "2016-09-21T17:42:30Z"
 		},
 		{
+			"checksumSHA1": "sWdAYPKyaT4SW8hNQNpRS0sU4lU=",
+			"path": "github.com/mitchellh/hashstructure",
+			"revision": "ab25296c0f51f1022f01cd99dfb45f1775de8799",
+			"revisionTime": "2017-01-16T05:20:23Z"
+		},
+		{
 			"checksumSHA1": "5CYrIFTTUD3pONFo8uEO21Ajz68=",
 			"path": "github.com/onsi/ginkgo",
 			"revision": "45a5f6ffb2a14e4f29698c16ae4c0a34018a8951",
