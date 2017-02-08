@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"net/http"
 	_ "net/http/pprof"
 	"os"
@@ -10,9 +11,9 @@ import (
 
 	"cloud.google.com/go/logging"
 	"github.com/cloudfoundry-community/go-cfclient"
+	"github.com/cloudfoundry-community/stackdriver-tools/src/stackdriver-nozzle/cloudfoundry"
 	"github.com/cloudfoundry-community/stackdriver-tools/src/stackdriver-nozzle/config"
 	"github.com/cloudfoundry-community/stackdriver-tools/src/stackdriver-nozzle/filter"
-	"github.com/cloudfoundry-community/stackdriver-tools/src/stackdriver-nozzle/cloudfoundry"
 	"github.com/cloudfoundry-community/stackdriver-tools/src/stackdriver-nozzle/heartbeat"
 	"github.com/cloudfoundry-community/stackdriver-tools/src/stackdriver-nozzle/nozzle"
 	"github.com/cloudfoundry-community/stackdriver-tools/src/stackdriver-nozzle/stackdriver"
@@ -23,8 +24,10 @@ import (
 func main() {
 	a := newApp()
 
+	ctx, cancel := context.WithCancel(context.Background())
+
 	if a.c.DebugNozzle {
-		defer handleFatalError(a)
+		defer handleFatalError(a, cancel)
 
 		go func() {
 			a.logger.Info("pprof", lager.Data{
@@ -34,7 +37,7 @@ func main() {
 	}
 
 	producer := a.newProducer()
-	consumer := a.newConsumer()
+	consumer := a.newConsumer(ctx)
 
 	errs, fhErrs := consumer.Start(producer)
 	defer consumer.Stop()
@@ -47,12 +50,17 @@ func main() {
 
 	fatalErr := <-fhErrs
 	if fatalErr != nil {
+		// TODO(evanbrown): Give the buffer time to drain before logging fatal
+		cancel()
 		a.logger.Fatal("firehose", fatalErr)
 	}
 }
 
-func handleFatalError(a *app) {
+func handleFatalError(a *app, cancel context.CancelFunc) {
 	if e := recover(); e != nil {
+		// Cancel the context
+		cancel()
+
 		stack := make([]byte, 1<<16)
 		stackSize := runtime.Stack(stack, true)
 		stackTrace := string(stack[:stackSize])
@@ -143,10 +151,10 @@ func (a *app) newProducer() cloudfoundry.Firehose {
 	return producer
 }
 
-func (a *app) newConsumer() *nozzle.Nozzle {
+func (a *app) newConsumer(ctx context.Context) *nozzle.Nozzle {
 	return &nozzle.Nozzle{
 		LogSink:     a.newLogSink(),
-		MetricSink:  a.newMetricSink(),
+		MetricSink:  a.newMetricSink(ctx),
 		Heartbeater: a.heartbeater,
 	}
 }
@@ -170,7 +178,7 @@ func (a *app) newLogAdapter() (stackdriver.LogAdapter, <-chan error) {
 	)
 }
 
-func (a *app) newMetricSink() nozzle.Sink {
+func (a *app) newMetricSink(ctx context.Context) nozzle.Sink {
 	metricClient, err := stackdriver.NewMetricClient()
 	if err != nil {
 		a.logger.Fatal("metricClient", err)
@@ -181,7 +189,8 @@ func (a *app) newMetricSink() nozzle.Sink {
 		a.logger.Error("metricAdapter", err)
 	}
 
-	metricBuffer, errs := stackdriver.NewMetricsBuffer(a.c.BatchCount, metricAdapter)
+	// TODO(evanbrown): Make metrics buffer duration configurable
+	metricBuffer, errs := stackdriver.NewTimerMetricsBuffer(ctx, 30*time.Second, a.c.BatchCount, metricAdapter)
 	go func() {
 		for err = range errs {
 			a.logger.Error("metricsBuffer", err)

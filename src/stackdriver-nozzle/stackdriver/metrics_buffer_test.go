@@ -17,6 +17,7 @@
 package stackdriver_test
 
 import (
+	"context"
 	"errors"
 	"time"
 
@@ -26,6 +27,32 @@ import (
 	. "github.com/onsi/gomega"
 	"sync"
 )
+
+var _ = Describe("TimerMetricsBuffer", func() {
+	var (
+		metricAdapter *mocks.MetricAdapter
+	)
+
+	BeforeEach(func() {
+		metricAdapter = &mocks.MetricAdapter{}
+	})
+
+	It("posts current batch when encounters a duplicate", func() {
+		d := 100 * time.Millisecond
+		subject, _ := stackdriver.NewTimerMetricsBuffer(context.TODO(), d, 5,
+			metricAdapter)
+
+		subject.PostMetric(&stackdriver.Metric{Name: "a", Value: 1})
+		subject.PostMetric(&stackdriver.Metric{Name: "b", Value: 2})
+		subject.PostMetric(&stackdriver.Metric{Name: "a", Value: 2})
+		Eventually(metricAdapter.GetPostedMetrics).Should(HaveLen(2))
+
+		Expect(metricAdapter.GetPostedMetrics()).To(Equal([]stackdriver.Metric{
+			{Name: "a", Value: 2},
+			{Name: "b", Value: 2},
+		}))
+	})
+})
 
 var _ = Describe("MetricsBuffer", func() {
 	var (
