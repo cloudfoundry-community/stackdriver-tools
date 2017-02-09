@@ -17,6 +17,7 @@
 package stackdriver
 
 import (
+	"bytes"
 	"fmt"
 	"path"
 	"sync"
@@ -36,6 +37,16 @@ type Metric struct {
 	Labels    map[string]string
 	EventTime time.Time
 	Unit      string // TODO Should this be "1" if it's empty?
+}
+
+func (m *Metric) Hash() string {
+	var b bytes.Buffer
+	b.Write([]byte(m.Name))
+	for k, v := range m.Labels {
+		b.Write([]byte(k))
+		b.Write([]byte(v))
+	}
+	return b.String()
 }
 
 type MetricAdapter interface {

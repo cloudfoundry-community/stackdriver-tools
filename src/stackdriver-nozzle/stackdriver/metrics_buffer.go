@@ -17,80 +17,12 @@
 package stackdriver
 
 import (
-	"context"
-	"github.com/mitchellh/hashstructure"
 	"reflect"
-	"sync"
-	"time"
 )
 
 type MetricsBuffer interface {
 	PostMetric(*Metric)
-}
-
-type timerMetricsBuffer struct {
-	adapter MetricAdapter
-	errs    chan error
-	size    int
-	ticker  *time.Ticker
-	ctx     context.Context
-
-	metricsMu sync.Mutex // Guard metrics
-	metrics   metricsMap
-}
-
-func NewTimerMetricsBuffer(ctx context.Context, frequency time.Duration,
-	size int, adapter MetricAdapter) (MetricsBuffer, <-chan error) {
-	errs := make(chan error)
-	mb := &timerMetricsBuffer{
-		adapter: adapter,
-		errs:    errs,
-		metrics: make(map[string]*Metric),
-		size:    size,
-		ctx:     ctx,
-		ticker:  time.NewTicker(frequency),
-	}
-	mb.start()
-	return mb, errs
-}
-
-func (mb *timerMetricsBuffer) PostMetric(metric *Metric) {
-	mb.addMetric(metric)
-}
-
-func (mb *timerMetricsBuffer) addMetric(newMetric *Metric) {
-	k, _ := hashstructure.Hash(newMetric.Labels, nil)
-	mb.metricsMu.Lock()
-	defer mb.metricsMu.Unlock()
-	mb.metrics[newMetric.Name+string(k)] = newMetric
-}
-
-func (mb *timerMetricsBuffer) start() {
-	go func() {
-		for {
-			select {
-			case <-mb.ticker.C:
-				mb.metricsMu.Lock()
-				// TODO(evanbrown): batch size should be applied here to ensure
-				// we don't exceed the max batch size of the StackDriver API.
-				err := mb.adapter.PostMetrics(mb.metrics.Slice())
-				mb.metrics = make(map[string]*Metric)
-				mb.metricsMu.Unlock()
-				if err != nil {
-					mb.errs <- err
-				}
-			case <-mb.ctx.Done():
-				mb.ticker.Stop()
-				mb.metricsMu.Lock()
-				err := mb.adapter.PostMetrics(mb.metrics.Slice())
-				mb.metricsMu.Unlock()
-				if err != nil {
-					mb.errs <- err
-				}
-				return
-			}
-		}
-	}()
+	IsEmpty() bool
 }
 
 type metricsBuffer struct {
@@ -114,6 +46,10 @@ func (mb *metricsBuffer) PostMetric(metric *Metric) {
 
 	mb.postMetrics(mb.metrics)
 	mb.metrics = []Metric{}
+}
+
+func (mb *metricsBuffer) IsEmpty() bool {
+	return len(mb.metrics) == 0
 }
 
 func (mb *metricsBuffer) addMetric(newMetric *Metric) {

@@ -50,8 +50,18 @@ func main() {
 
 	fatalErr := <-fhErrs
 	if fatalErr != nil {
-		// TODO(evanbrown): Give the buffer time to drain before logging fatal
 		cancel()
+		t := time.NewTimer(5 * time.Second)
+		for {
+			select {
+			case <-time.Tick(100 * time.Millisecond):
+				if a.bufferEmpty() {
+					break
+				}
+			case <-t.C:
+				break
+			}
+		}
 		a.logger.Fatal("firehose", fatalErr)
 	}
 }
@@ -138,6 +148,7 @@ type app struct {
 	cfClient    *cfclient.Client
 	labelMaker  nozzle.LabelMaker
 	heartbeater heartbeat.Heartbeater
+	bufferEmpty func() bool
 }
 
 func (a *app) newProducer() cloudfoundry.Firehose {
@@ -190,7 +201,8 @@ func (a *app) newMetricSink(ctx context.Context) nozzle.Sink {
 	}
 
 	// TODO(evanbrown): Make metrics buffer duration configurable
-	metricBuffer, errs := stackdriver.NewTimerMetricsBuffer(ctx, 30*time.Second, a.c.BatchCount, metricAdapter)
+	metricBuffer, errs := stackdriver.NewAutoCulledMetricsBuffer(ctx, 30*time.Second, a.c.BatchCount, metricAdapter)
+	a.bufferEmpty = metricBuffer.IsEmpty
 	go func() {
 		for err = range errs {
 			a.logger.Error("metricsBuffer", err)
