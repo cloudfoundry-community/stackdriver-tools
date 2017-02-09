@@ -200,8 +200,7 @@ func (a *app) newMetricSink(ctx context.Context) nozzle.Sink {
 		a.logger.Error("metricAdapter", err)
 	}
 
-	// TODO(evanbrown): Make metrics buffer duration configurable
-	metricBuffer, errs := stackdriver.NewAutoCulledMetricsBuffer(ctx, 30*time.Second, a.c.BatchCount, metricAdapter)
+	metricBuffer, errs := stackdriver.NewAutoCulledMetricsBuffer(ctx, time.Duration(a.c.MetricsBufferDuration)*time.Second, a.c.MetricsBufferSize, metricAdapter)
 	a.bufferEmpty = metricBuffer.IsEmpty
 	go func() {
 		for err = range errs {
