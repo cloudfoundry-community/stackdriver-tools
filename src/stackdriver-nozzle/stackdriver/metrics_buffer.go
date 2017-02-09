@@ -16,10 +16,13 @@
 
 package stackdriver
 
-import "reflect"
+import (
+	"reflect"
+)
 
 type MetricsBuffer interface {
 	PostMetric(*Metric)
+	IsEmpty() bool
 }
 
 type metricsBuffer struct {
@@ -43,6 +46,10 @@ func (mb *metricsBuffer) PostMetric(metric *Metric) {
 
 	mb.postMetrics(mb.metrics)
 	mb.metrics = []Metric{}
+}
+
+func (mb *metricsBuffer) IsEmpty() bool {
+	return len(mb.metrics) == 0
 }
 
 func (mb *metricsBuffer) addMetric(newMetric *Metric) {
@@ -77,4 +84,16 @@ func (mb *metricsBuffer) postMetrics(metrics []Metric) {
 			mb.errs <- err
 		}
 	}()
+}
+
+type metricsMap map[string]*Metric
+
+func (mm metricsMap) Slice() []Metric {
+	m := make([]Metric, len(mm))
+	var i int
+	for _, v := range mm {
+		m[i] = *v
+		i++
+	}
+	return m
 }

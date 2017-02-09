@@ -54,7 +54,9 @@ type Config struct {
 	NewlineToken   string `envconfig:"firehose_newline_token"`
 
 	// Stackdriver config
-	ProjectID string `envconfig:"gcp_project_id"`
+	ProjectID             string `envconfig:"gcp_project_id"`
+	MetricsBufferDuration int    `envconfig:"metrics_buffer_duration" default:"30"`
+	MetricsBufferSize     int    `envconfig:"metrics_buffer_size" default:"200"`
 
 	// Nozzle config
 	HeartbeatRate      int  `envconfig:"heartbeat_rate" default:"30"`

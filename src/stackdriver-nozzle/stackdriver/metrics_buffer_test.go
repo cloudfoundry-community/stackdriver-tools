@@ -18,13 +18,13 @@ package stackdriver_test
 
 import (
 	"errors"
+	"sync"
 	"time"
 
 	"github.com/cloudfoundry-community/stackdriver-tools/src/stackdriver-nozzle/mocks"
 	"github.com/cloudfoundry-community/stackdriver-tools/src/stackdriver-nozzle/stackdriver"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
-	"sync"
 )
 
 var _ = Describe("MetricsBuffer", func() {
