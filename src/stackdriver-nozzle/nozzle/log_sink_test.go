@@ -37,7 +37,7 @@ var _ = Describe("LogSink", func() {
 	)
 
 	BeforeEach(func() {
-		labels = map[string]string{"foo": "bar", "applicationId": "f47ac10b-58cc-4372-a567-0e02b2c3d479"}
+		labels = map[string]string{"foo": "bar", "applicationId": "ab313b25-aa48-4a8f-8e7d-d63a6d410e7c"}
 		labelMaker = &mocks.LabelMaker{Labels: labels}
 		logAdapter = &mocks.LogAdapter{}
 
@@ -98,9 +98,16 @@ var _ = Describe("LogSink", func() {
 		It("handles HttpStartStop", func() {
 			method := events.Method_GET
 			peerType := events.PeerType_Client
+			var low uint64 = 0x7243cc580bc17af4
+			var high uint64 = 0x79d4c3b2020e67a5
+			requestId := events.UUID{
+				Low:  &low,
+				High: &high,
+			}
 			event := events.HttpStartStop{
-				Method:   &method,
-				PeerType: &peerType,
+				Method:    &method,
+				PeerType:  &peerType,
+				RequestId: &requestId,
 			}
 
 			eventType := events.Envelope_HttpStartStop
@@ -116,11 +123,12 @@ var _ = Describe("LogSink", func() {
 			Expect(payload).To(HaveKeyWithValue("eventType", "HttpStartStop"))
 			Expect(payload).To(HaveKey("httpStartStop"))
 			Expect(payload).To(HaveKeyWithValue("httpStartStop", map[string]interface{}{
-				"method":   "GET",
-				"peerType": "Client",
+				"method":    "GET",
+				"peerType":  "Client",
+				"requestId": "f47ac10b-58cc-4372-a567-0e02b2c3d479",
 			}))
 			Expect(payload).To(HaveKeyWithValue("serviceContext", map[string]interface{}{
-				"service": "f47ac10b-58cc-4372-a567-0e02b2c3d479",
+				"service": "ab313b25-aa48-4a8f-8e7d-d63a6d410e7c",
 			}))
 		})
 
@@ -150,7 +158,7 @@ var _ = Describe("LogSink", func() {
 				},
 				"message": "19400: Success: Go",
 				"serviceContext": map[string]interface{}{
-					"service": "f47ac10b-58cc-4372-a567-0e02b2c3d479",
+					"service": "ab313b25-aa48-4a8f-8e7d-d63a6d410e7c",
 				},
 			}))
 			Expect(postedLog.Severity).To(Equal(logging.Default))
