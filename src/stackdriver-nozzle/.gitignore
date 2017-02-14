@@ -1,3 +1,4 @@
 .envrc
+stackdriver-nozzle
 cached-app-metadata.db
 credentials.json
