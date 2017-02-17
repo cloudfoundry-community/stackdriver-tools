@@ -1,3 +1,4 @@
 .envrc
 cached-app-metadata.db
 credentials.json
+out/
