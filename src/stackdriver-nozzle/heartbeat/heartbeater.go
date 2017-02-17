@@ -29,43 +29,53 @@ type Heartbeater interface {
 	Stop()
 }
 
+type Handler interface {
+	Handle(string)
+	Flush() error
+}
+
 type heartbeater struct {
-	logger  lager.Logger
-	trigger <-chan time.Time
-	counter chan string
-	done    chan struct{}
-	started bool
+	logger   lager.Logger
+	trigger  <-chan time.Time
+	counter  chan string
+	done     chan struct{}
+	started  bool
+	handlers []Handler
 }
 
 func NewHeartbeater(logger lager.Logger, trigger <-chan time.Time) Heartbeater {
 	counter := make(chan string)
 	done := make(chan struct{})
+	loggerHandler := NewLoggerHandler(logger)
 	return &heartbeater{
-		logger:  logger,
 		trigger: trigger,
 		counter: counter,
 		done:    done,
 		started: false,
+		logger:  logger,
+		handlers: []Handler{
+			loggerHandler,
+		},
 	}
 }
 
 func (h *heartbeater) Start() {
 	h.started = true
 	go func() {
-		counters := map[string]uint{}
 		for {
 			select {
 			case <-h.trigger:
-				h.logger.Info(
-					"heartbeater", lager.Data{"counters": counters},
-				)
-				counters = map[string]uint{}
+				for _, h := range h.handlers {
+					h.Flush()
+				}
 			case name := <-h.counter:
-				counters[name] += 1
+				for _, h := range h.handlers {
+					h.Handle(name)
+				}
 			case <-h.done:
-				h.logger.Info(
-					"heartbeater", lager.Data{"counters": counters},
-				)
+				for _, h := range h.handlers {
+					h.Flush()
+				}
 				return
 			}
 		}
