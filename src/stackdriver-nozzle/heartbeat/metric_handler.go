@@ -23,7 +23,7 @@ import (
 	"github.com/cloudfoundry/lager"
 )
 
-type metricsHandler struct {
+type metricHandler struct {
 	start  time.Time
 	logger lager.Logger
 	ma     MetricAdapter
@@ -32,8 +32,8 @@ type metricsHandler struct {
 	counter   map[string]uint
 }
 
-func NewMetricsHandler(ma MetricAdapter, logger lager.Logger) *metricsHandler {
-	return &metricsHandler{
+func NewMetricHandler(ma MetricAdapter, logger lager.Logger) *metricHandler {
+	return &metricHandler{
 		logger:    logger,
 		ma:        ma,
 		start:     time.Now(),
@@ -42,14 +42,14 @@ func NewMetricsHandler(ma MetricAdapter, logger lager.Logger) *metricsHandler {
 	}
 }
 
-func (h *metricsHandler) Handle(event string) {
+func (h *metricHandler) Handle(event string) {
 	h.counterMu.Lock()
 	defer h.counterMu.Unlock()
 	h.counter[event]++
 	return
 }
 
-func (h *metricsHandler) Flush() error {
+func (h *metricHandler) Flush() error {
 	h.counterMu.Lock()
 	defer h.counterMu.Unlock()
 
