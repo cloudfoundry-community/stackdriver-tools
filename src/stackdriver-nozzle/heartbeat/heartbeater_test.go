@@ -50,7 +50,7 @@ var _ = Describe("Heartbeater", func() {
 		// Mock metric handler
 		client = &mocks.MockClient{}
 		metricAdapter, _ = stackdriver.NewMetricAdapter("my-awesome-project", client, heartbeater)
-		metricHandler = heartbeat.NewMetricHandler(metricAdapter, logger)
+		metricHandler = heartbeat.NewMetricHandler(metricAdapter, logger, "nozzle-id", "nozzle-zone")
 
 		subject = heartbeat.NewLoggerMetricHeartbeater(metricHandler, logger, trigger)
 		subject.Start()

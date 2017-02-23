@@ -25,21 +25,25 @@ import (
 )
 
 type metricHandler struct {
-	start  time.Time
-	logger lager.Logger
-	ma     stackdriver.MetricAdapter
+	start      time.Time
+	logger     lager.Logger
+	ma         stackdriver.MetricAdapter
+	nozzleId   string
+	nozzleZone string
 
 	counterMu *sync.Mutex // Guards counter
 	counter   map[string]uint
 }
 
-func NewMetricHandler(ma stackdriver.MetricAdapter, logger lager.Logger) *metricHandler {
+func NewMetricHandler(ma stackdriver.MetricAdapter, logger lager.Logger, nozzleId, nozzleZone string) *metricHandler {
 	return &metricHandler{
-		logger:    logger,
-		ma:        ma,
-		start:     time.Now(),
-		counterMu: &sync.Mutex{},
-		counter:   map[string]uint{},
+		logger:     logger,
+		ma:         ma,
+		nozzleId:   nozzleId,
+		nozzleZone: nozzleZone,
+		start:      time.Now(),
+		counterMu:  &sync.Mutex{},
+		counter:    map[string]uint{},
 	}
 }
 
@@ -61,8 +65,8 @@ func (h *metricHandler) Flush() error {
 			Name:  "nozzle-heartbeat/" + k,
 			Value: float64(v),
 			Labels: map[string]string{
-				"instance": "TODO",
-				"zone":     "TODO",
+				"instance": h.nozzleId,
+				"zone":     h.nozzleZone,
 			},
 			EventTime:    h.start,
 			EventEndTime: now,

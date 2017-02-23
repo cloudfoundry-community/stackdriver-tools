@@ -125,7 +125,7 @@ func newApp() *app {
 	if err != nil {
 		logger.Error("metricAdapter", err)
 	}
-	metricHandler := heartbeat.NewMetricHandler(metricAdapter, logger)
+	metricHandler := heartbeat.NewMetricHandler(metricAdapter, logger, c.NozzleId, c.NozzleZone)
 	heartbeater := heartbeat.NewLoggerMetricHeartbeater(metricHandler, logger, trigger)
 
 	cfConfig := &cfclient.Config{

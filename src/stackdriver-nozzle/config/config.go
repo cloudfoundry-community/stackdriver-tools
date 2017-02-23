@@ -40,6 +40,9 @@ func NewConfig() (*Config, error) {
 		return nil, err
 	}
 
+	c.setNozzleId()
+	c.setNozzleZone()
+
 	return &c, nil
 }
 
@@ -59,11 +62,13 @@ type Config struct {
 	MetricsBufferSize     int    `envconfig:"metrics_buffer_size" default:"200"`
 
 	// Nozzle config
-	HeartbeatRate      int  `envconfig:"heartbeat_rate" default:"30"`
-	BatchCount         int  `envconfig:"batch_count" default:"10"`
-	BatchDuration      int  `envconfig:"batch_duration" default:"1"`
-	ResolveAppMetadata bool `envconfig:"resolve_app_metadata"`
-	DebugNozzle        bool `envconfig:"debug_nozzle"`
+	HeartbeatRate      int    `envconfig:"heartbeat_rate" default:"30"`
+	BatchCount         int    `envconfig:"batch_count" default:"10"`
+	BatchDuration      int    `envconfig:"batch_duration" default:"1"`
+	ResolveAppMetadata bool   `envconfig:"resolve_app_metadata"`
+	NozzleId           string `envconfig:"nozzle_id" default:"nozzle-id"`
+	NozzleZone         string `envconfig:"nozzle_zone" default:"nozzle-zone"`
+	DebugNozzle        bool   `envconfig:"debug_nozzle"`
 }
 
 func (c *Config) validate() error {
@@ -94,6 +99,24 @@ func (c *Config) ensureProjectID() error {
 
 	c.ProjectID = projectID
 	return nil
+}
+
+// If running on GCE, this will set the nozzle's ID to the VM ID.
+func (c *Config) setNozzleId() {
+	if metadata.OnGCE() {
+		if v, err := metadata.InstanceID(); err == nil {
+			c.NozzleId = v
+		}
+	}
+}
+
+// If running on GCE, this will set the nozzle's zone to the VM zone.
+func (c *Config) setNozzleZone() {
+	if metadata.OnGCE() {
+		if v, err := metadata.Zone(); err == nil {
+			c.NozzleZone = v
+		}
+	}
 }
 
 func (c *Config) ToData() lager.Data {
