@@ -23,7 +23,6 @@ import (
 	"sync"
 	"time"
 
-	"github.com/cloudfoundry-community/stackdriver-tools/src/stackdriver-nozzle/heartbeat"
 	"github.com/golang/protobuf/ptypes/timestamp"
 	"github.com/pkg/errors"
 	labelpb "google.golang.org/genproto/googleapis/api/label"
@@ -32,11 +31,12 @@ import (
 )
 
 type Metric struct {
-	Name      string
-	Value     float64
-	Labels    map[string]string
-	EventTime time.Time
-	Unit      string // TODO Should this be "1" if it's empty?
+	Name         string
+	Value        float64
+	Labels       map[string]string
+	EventTime    time.Time
+	EventEndTime time.Time
+	Unit         string // TODO Should this be "1" if it's empty?
 }
 
 func (m *Metric) Hash() string {
@@ -49,8 +49,23 @@ func (m *Metric) Hash() string {
 	return b.String()
 }
 
+// metricDescriptorType returns MetricDescriptor_DELTA if the metric's
+// EventEndTime has been initialized. Otherwise, it returns MetricDescriptor_GAUGE.
+func (m *Metric) metricDescriptorType() metricpb.MetricDescriptor_MetricKind {
+	if !m.EventEndTime.IsZero() {
+		return metricpb.MetricDescriptor_DELTA
+	}
+	return metricpb.MetricDescriptor_GAUGE
+}
+
 type MetricAdapter interface {
 	PostMetrics([]Metric) error
+}
+
+type Heartbeater interface {
+	Start()
+	Increment(string)
+	Stop()
 }
 
 type metricAdapter struct {
@@ -58,10 +73,10 @@ type metricAdapter struct {
 	client                MetricClient
 	descriptors           map[string]struct{}
 	createDescriptorMutex *sync.Mutex
-	heartbeater           heartbeat.Heartbeater
+	heartbeater           Heartbeater
 }
 
-func NewMetricAdapter(projectID string, client MetricClient, heartbeater heartbeat.Heartbeater) (MetricAdapter, error) {
+func NewMetricAdapter(projectID string, client MetricClient, heartbeater Heartbeater) (MetricAdapter, error) {
 	ma := &metricAdapter{
 		projectID:             projectID,
 		client:                client,
@@ -130,7 +145,7 @@ func (ma *metricAdapter) CreateMetricDescriptor(metric Metric) error {
 			Name:        metricName,
 			Type:        metricType,
 			Labels:      labelDescriptors,
-			MetricKind:  metricpb.MetricDescriptor_GAUGE,
+			MetricKind:  metric.metricDescriptorType(),
 			ValueType:   metricpb.MetricDescriptor_DOUBLE,
 			Unit:        metric.Unit,
 			Description: "stackdriver-nozzle created custom metric.",

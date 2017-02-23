@@ -20,19 +20,20 @@ import (
 	"sync"
 	"time"
 
+	"github.com/cloudfoundry-community/stackdriver-tools/src/stackdriver-nozzle/stackdriver"
 	"github.com/cloudfoundry/lager"
 )
 
 type metricHandler struct {
 	start  time.Time
 	logger lager.Logger
-	ma     MetricAdapter
+	ma     stackdriver.MetricAdapter
 
 	counterMu *sync.Mutex // Guards counter
 	counter   map[string]uint
 }
 
-func NewMetricHandler(ma MetricAdapter, logger lager.Logger) *metricHandler {
+func NewMetricHandler(ma stackdriver.MetricAdapter, logger lager.Logger) *metricHandler {
 	return &metricHandler{
 		logger:    logger,
 		ma:        ma,
@@ -54,9 +55,9 @@ func (h *metricHandler) Flush() error {
 	defer h.counterMu.Unlock()
 
 	now := time.Now()
-	metrics := []Metric{}
+	metrics := []stackdriver.Metric{}
 	for k, v := range h.counter {
-		metrics = append(metrics, Metric{
+		metrics = append(metrics, stackdriver.Metric{
 			Name:  "nozzle-heartbeat/" + k,
 			Value: float64(v),
 			Labels: map[string]string{

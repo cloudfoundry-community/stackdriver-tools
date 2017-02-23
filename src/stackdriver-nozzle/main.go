@@ -115,12 +115,13 @@ func newApp() *app {
 
 	trigger := time.NewTicker(time.Duration(c.HeartbeatRate) * time.Second).C
 
-	metricClient, err := heartbeat.NewMetricClient()
+	metricClient, err := stackdriver.NewMetricClient()
 	if err != nil {
 		logger.Fatal("metricClient", err)
 	}
 
-	metricAdapter, err := heartbeat.NewMetricAdapter(c.ProjectID, metricClient)
+	adapterHeartbeater := heartbeat.NewHeartbeater(logger, trigger)
+	metricAdapter, err := stackdriver.NewMetricAdapter(c.ProjectID, metricClient, adapterHeartbeater)
 	if err != nil {
 		logger.Error("metricAdapter", err)
 	}

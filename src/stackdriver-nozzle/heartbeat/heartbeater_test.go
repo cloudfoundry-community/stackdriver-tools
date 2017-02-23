@@ -22,6 +22,7 @@ import (
 
 	"github.com/cloudfoundry-community/stackdriver-tools/src/stackdriver-nozzle/heartbeat"
 	"github.com/cloudfoundry-community/stackdriver-tools/src/stackdriver-nozzle/mocks"
+	"github.com/cloudfoundry-community/stackdriver-tools/src/stackdriver-nozzle/stackdriver"
 	"github.com/cloudfoundry/lager"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -32,8 +33,8 @@ var _ = Describe("Heartbeater", func() {
 		subject       heartbeat.Heartbeater
 		logger        *mocks.MockLogger
 		trigger       chan time.Time
-		client        *mockClient
-		metricAdapter heartbeat.MetricAdapter
+		client        *mocks.MockClient
+		metricAdapter stackdriver.MetricAdapter
 		metricHandler heartbeat.Handler
 	)
 
@@ -43,9 +44,12 @@ var _ = Describe("Heartbeater", func() {
 		// Mock logger
 		logger = &mocks.MockLogger{}
 
+		// Mock heartbeater
+		heartbeater := mocks.NewHeartbeater()
+
 		// Mock metric handler
-		client = &mockClient{}
-		metricAdapter, _ = heartbeat.NewMetricAdapter("my-awesome-project", client)
+		client = &mocks.MockClient{}
+		metricAdapter, _ = stackdriver.NewMetricAdapter("my-awesome-project", client, heartbeater)
 		metricHandler = heartbeat.NewMetricHandler(metricAdapter, logger)
 
 		subject = heartbeat.NewLoggerMetricHeartbeater(metricHandler, logger, trigger)
@@ -84,9 +88,9 @@ var _ = Describe("Heartbeater", func() {
 		}))
 
 		Eventually(func() int {
-			client.mutex.Lock()
-			defer client.mutex.Unlock()
-			return len(client.metricReqs[0].TimeSeries)
+			client.Mutex.Lock()
+			defer client.Mutex.Unlock()
+			return len(client.MetricReqs[0].TimeSeries)
 		}).Should(Equal(1))
 	})
 
@@ -114,9 +118,9 @@ var _ = Describe("Heartbeater", func() {
 		}))
 
 		Eventually(func() int {
-			client.mutex.Lock()
-			defer client.mutex.Unlock()
-			return len(client.metricReqs[len(client.metricReqs)-1].TimeSeries)
+			client.Mutex.Lock()
+			defer client.Mutex.Unlock()
+			return len(client.MetricReqs[len(client.MetricReqs)-1].TimeSeries)
 		}).Should(Equal(1))
 
 	})
@@ -170,9 +174,9 @@ var _ = Describe("Heartbeater", func() {
 		}))
 
 		Eventually(func() int {
-			client.mutex.Lock()
-			defer client.mutex.Unlock()
-			return len(client.metricReqs[len(client.metricReqs)-1].TimeSeries)
+			client.Mutex.Lock()
+			defer client.Mutex.Unlock()
+			return len(client.MetricReqs[len(client.MetricReqs)-1].TimeSeries)
 		}).Should(Equal(2))
 
 	})
