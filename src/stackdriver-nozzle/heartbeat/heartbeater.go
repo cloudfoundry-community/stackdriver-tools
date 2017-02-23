@@ -113,7 +113,3 @@ func (h *heartbeater) Stop() {
 	h.done <- struct{}{}
 	h.started = false
 }
-
-func (h *heartbeater) AddHandler(handler Handler) {
-	h.handlers = append(h.handlers, handler)
-}
