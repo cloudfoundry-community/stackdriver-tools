@@ -176,7 +176,10 @@ var _ = Describe("Heartbeater", func() {
 		Eventually(func() int {
 			client.Mutex.Lock()
 			defer client.Mutex.Unlock()
-			return len(client.MetricReqs[len(client.MetricReqs)-1].TimeSeries)
+			if len(client.MetricReqs) > 0 {
+				return len(client.MetricReqs[len(client.MetricReqs)-1].TimeSeries)
+			}
+			return 0
 		}).Should(Equal(2))
 
 	})
