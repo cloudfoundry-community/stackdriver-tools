@@ -29,16 +29,26 @@ import (
 
 var _ = Describe("Heartbeater", func() {
 	var (
-		subject heartbeat.Heartbeater
-		logger  *mocks.MockLogger
-		trigger chan time.Time
+		subject       heartbeat.Heartbeater
+		logger        *mocks.MockLogger
+		trigger       chan time.Time
+		client        *mockClient
+		metricAdapter heartbeat.MetricAdapter
+		metricHandler heartbeat.Handler
 	)
 
 	BeforeEach(func() {
-		logger = &mocks.MockLogger{}
 		trigger = make(chan time.Time)
 
-		subject = heartbeat.NewHeartbeater(logger, trigger)
+		// Mock logger
+		logger = &mocks.MockLogger{}
+
+		// Mock metric handler
+		client = &mockClient{}
+		metricAdapter, _ = heartbeat.NewMetricAdapter("my-awesome-project", client)
+		metricHandler = heartbeat.NewMetricsHandler(metricAdapter, logger)
+
+		subject = heartbeat.NewLoggerMetricHeartbeater(metricHandler, logger, trigger)
 		subject.Start()
 	})
 
@@ -72,6 +82,12 @@ var _ = Describe("Heartbeater", func() {
 				{"counters": map[string]uint{"foo": 10}},
 			},
 		}))
+
+		Eventually(func() int {
+			client.mutex.Lock()
+			defer client.mutex.Unlock()
+			return len(client.metricReqs[0].TimeSeries)
+		}).Should(Equal(1))
 	})
 
 	It("should reset the heartbeater on triggers", func() {
@@ -96,6 +112,13 @@ var _ = Describe("Heartbeater", func() {
 				{"counters": map[string]uint{"foo": 5}},
 			},
 		}))
+
+		Eventually(func() int {
+			client.mutex.Lock()
+			defer client.mutex.Unlock()
+			return len(client.metricReqs[len(client.metricReqs)-1].TimeSeries)
+		}).Should(Equal(1))
+
 	})
 
 	It("should stop counting", func() {
@@ -145,5 +168,12 @@ var _ = Describe("Heartbeater", func() {
 				}},
 			},
 		}))
+
+		Eventually(func() int {
+			client.mutex.Lock()
+			defer client.mutex.Unlock()
+			return len(client.metricReqs[len(client.metricReqs)-1].TimeSeries)
+		}).Should(Equal(2))
+
 	})
 })

@@ -59,6 +59,22 @@ func NewHeartbeater(logger lager.Logger, trigger <-chan time.Time) Heartbeater {
 	}
 }
 
+func NewLoggerMetricHeartbeater(metricHandler Handler, logger lager.Logger, trigger <-chan time.Time) Heartbeater {
+	counter := make(chan string)
+	done := make(chan struct{})
+	loggerHandler := NewLoggerHandler(logger)
+	return &heartbeater{
+		trigger: trigger,
+		counter: counter,
+		done:    done,
+		started: false,
+		logger:  logger,
+		handlers: []Handler{
+			loggerHandler,
+			metricHandler,
+		},
+	}
+}
 func (h *heartbeater) Start() {
 	h.started = true
 	go func() {
@@ -96,4 +112,8 @@ func (h *heartbeater) Increment(name string) {
 func (h *heartbeater) Stop() {
 	h.done <- struct{}{}
 	h.started = false
+}
+
+func (h *heartbeater) AddHandler(handler Handler) {
+	h.handlers = append(h.handlers, handler)
 }
