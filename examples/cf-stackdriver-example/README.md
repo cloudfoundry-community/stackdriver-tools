@@ -8,9 +8,9 @@ Based on the [Kubernetes Guestbook App](https://github.com/kubernetes/kubernetes
 
 - [Cloud Foundry](https://cloud.google.com/solutions/cloud-foundry-on-gcp) with the CLI signed in and targeting a Cloud Foundry you have push access to
 - A Google project with the following APIs enabled:
-  - [Stackdriver Erorr Reporting API](https://pantheon.corp.google.com/apis/api/clouderrorreporting.googleapis.com/overview)
-  - [Stackdriver Debugger API](https://pantheon.corp.google.com/apis/api/clouddebugger.googleapis.com/overview)
-  - [Cloud Datstore API](https://pantheon.corp.google.com/apis/api/datastore.googleapis.com/overview)
+  - [Stackdriver Erorr Reporting API](https://console.cloud.google.com/apis/api/clouderrorreporting.googleapis.com/overview)
+  - [Stackdriver Debugger API](https://console.cloud.google.com/apis/api/clouddebugger.googleapis.com/overview)
+  - [Cloud Datstore API](https://console.cloud.google.com/apis/api/datastore.googleapis.com/overview)
 - To test the database, the Google project must have an existing App Engine project. [More info](https://cloud.google.com/datastore/docs/activate).
 - [Go 1.7](https://golang.org/)
 - [Cloud SDK](https://cloud.google.com/sdk/downloads)
@@ -55,4 +55,4 @@ cf set-env cf-stackdriver-example GOOGLE_APPLICATION_CREDENTIALS '/home/vcap/app
 
 ## Try it out
 
-Navigate to your application's URL and attempt to submit a guestbook entry. You should see a new error in the [Stackdriver Errors](https://pantheon.corp.google.com/errors) console. Try setting a debug breakpoint in main.go:69 and see if you can spot the bug.
+Navigate to your application's URL and attempt to submit a guestbook entry. You should see a new error in the [Stackdriver Errors](https://console.cloud.google.com/errors) console. Try setting a debug breakpoint in main.go:69 and see if you can spot the bug.
