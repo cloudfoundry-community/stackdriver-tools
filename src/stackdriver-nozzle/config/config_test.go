@@ -44,6 +44,8 @@ var _ = Describe("Config", func() {
 
 		Expect(err).To(BeNil())
 		Expect(c.APIEndpoint).To(Equal("https://api.example.com"))
+		Expect(c.NozzleId).To(Equal("nozzle-id"))
+		Expect(c.NozzleZone).To(Equal("nozzle-zone"))
 	})
 
 	DescribeTable("required values aren't empty", func(envName string) {

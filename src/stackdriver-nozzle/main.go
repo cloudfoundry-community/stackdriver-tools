@@ -114,7 +114,19 @@ func newApp() *app {
 	logger.Info("arguments", c.ToData())
 
 	trigger := time.NewTicker(time.Duration(c.HeartbeatRate) * time.Second).C
-	heartbeater := heartbeat.NewHeartbeater(logger, trigger)
+
+	metricClient, err := stackdriver.NewMetricClient()
+	if err != nil {
+		logger.Fatal("metricClient", err)
+	}
+
+	adapterHeartbeater := heartbeat.NewHeartbeater(logger, trigger)
+	metricAdapter, err := stackdriver.NewMetricAdapter(c.ProjectID, metricClient, adapterHeartbeater)
+	if err != nil {
+		logger.Error("metricAdapter", err)
+	}
+	metricHandler := heartbeat.NewMetricHandler(metricAdapter, logger, c.NozzleId, c.NozzleZone)
+	heartbeater := heartbeat.NewLoggerMetricHeartbeater(metricHandler, logger, trigger)
 
 	cfConfig := &cfclient.Config{
 		ApiAddress:        c.APIEndpoint,
