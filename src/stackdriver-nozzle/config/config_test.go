@@ -23,6 +23,7 @@ import (
 	. "github.com/onsi/ginkgo/extensions/table"
 	. "github.com/onsi/gomega"
 
+	"cloud.google.com/go/compute/metadata"
 	"github.com/cloudfoundry-community/stackdriver-tools/src/stackdriver-nozzle/config"
 )
 
@@ -44,8 +45,18 @@ var _ = Describe("Config", func() {
 
 		Expect(err).To(BeNil())
 		Expect(c.APIEndpoint).To(Equal("https://api.example.com"))
-		Expect(c.NozzleId).To(Equal("nozzle-id"))
-		Expect(c.NozzleZone).To(Equal("nozzle-zone"))
+
+		switch metadata.OnGCE() {
+		case true:
+			v, _ := metadata.InstanceID()
+			Expect(c.NozzleId).To(Equal(v))
+			v, _ = metadata.Zone()
+			Expect(c.NozzleZone).To(Equal(v))
+		case false:
+			Expect(c.NozzleId).To(Equal("nozzle-id"))
+			Expect(c.NozzleZone).To(Equal("nozzle-zone"))
+		}
+
 	})
 
 	DescribeTable("required values aren't empty", func(envName string) {
