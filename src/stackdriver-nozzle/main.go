@@ -113,20 +113,29 @@ func newApp() *app {
 
 	logger.Info("arguments", c.ToData())
 
-	trigger := time.NewTicker(time.Duration(c.HeartbeatRate) * time.Second).C
-
 	metricClient, err := stackdriver.NewMetricClient()
 	if err != nil {
 		logger.Fatal("metricClient", err)
 	}
 
+	// Create a metricAdapter that will be used by the heartbeater
+	// to send heartbeat metrics to Stackdriver. This metricAdapter
+	// has its own heartbeater (with its own trigger) that writes to a logger.
+	trigger := time.NewTicker(time.Duration(c.HeartbeatRate) * time.Second).C
 	adapterHeartbeater := heartbeat.NewHeartbeater(logger, trigger)
+	adapterHeartbeater.Start()
 	metricAdapter, err := stackdriver.NewMetricAdapter(c.ProjectID, metricClient, adapterHeartbeater)
 	if err != nil {
 		logger.Error("metricAdapter", err)
 	}
+
+	// Create a heartbeater that will write heartbeat events to Stackdriver
+	// logging and monitoring. It uses the metricAdapter created previously
+	// to write to Stackdriver.
 	metricHandler := heartbeat.NewMetricHandler(metricAdapter, logger, c.NozzleId, c.NozzleZone)
-	heartbeater := heartbeat.NewLoggerMetricHeartbeater(metricHandler, logger, trigger)
+	trigger2 := time.NewTicker(time.Duration(c.HeartbeatRate) * time.Second).C
+	heartbeater := heartbeat.NewLoggerMetricHeartbeater(metricHandler, logger, trigger2)
+	heartbeater.Start()
 
 	cfConfig := &cfclient.Config{
 		ApiAddress:        c.APIEndpoint,
