@@ -66,8 +66,8 @@ type Config struct {
 	BatchCount         int    `envconfig:"batch_count" default:"10"`
 	BatchDuration      int    `envconfig:"batch_duration" default:"1"`
 	ResolveAppMetadata bool   `envconfig:"resolve_app_metadata"`
-	NozzleId           string `envconfig:"nozzle_id" default:"nozzle-id"`
-	NozzleZone         string `envconfig:"nozzle_zone" default:"nozzle-zone"`
+	NozzleId           string `envconfig:"nozzle_id" default:"local-nozzle"`
+	NozzleZone         string `envconfig:"nozzle_zone" default:"local-nozzle"`
 	DebugNozzle        bool   `envconfig:"debug_nozzle"`
 }
 
