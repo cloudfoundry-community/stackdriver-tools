@@ -47,6 +47,10 @@ func NewMetricHandler(ma stackdriver.MetricAdapter, logger lager.Logger, nozzleI
 	}
 }
 
+func (h *metricHandler) Name() string {
+	return "metricHandler"
+}
+
 func (h *metricHandler) Handle(event string) {
 	h.counterMu.Lock()
 	defer h.counterMu.Unlock()
@@ -58,19 +62,21 @@ func (h *metricHandler) Flush() error {
 	h.counterMu.Lock()
 	defer h.counterMu.Unlock()
 
-	now := time.Now()
 	metrics := []stackdriver.Metric{}
 	for k, v := range h.counter {
 		metrics = append(metrics, stackdriver.Metric{
-			Name:  "nozzle-heartbeat/" + k,
+			Name:  "heartbeat/" + k,
 			Value: float64(v),
 			Labels: map[string]string{
 				"instance": h.nozzleId,
 				"zone":     h.nozzleZone,
 			},
-			EventTime:    h.start,
-			EventEndTime: now,
-			Unit:         "events",
+			EventTime: h.start,
+			// TODO: Setting an end time will cause the metric to be recognized as
+			// a DELTA, but Stackdriver doesn't support this type for custom metrics.
+			// Someday it should, and we can use this.
+			//EventEndTime: now,
+			Unit: "events",
 		})
 	}
 	h.counter = map[string]uint{}

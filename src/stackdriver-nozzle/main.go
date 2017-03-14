@@ -135,7 +135,6 @@ func newApp() *app {
 	metricHandler := heartbeat.NewMetricHandler(metricAdapter, logger, c.NozzleId, c.NozzleZone)
 	trigger2 := time.NewTicker(time.Duration(c.HeartbeatRate) * time.Second).C
 	heartbeater := heartbeat.NewLoggerMetricHeartbeater(metricHandler, logger, trigger2)
-	heartbeater.Start()
 
 	cfConfig := &cfclient.Config{
 		ApiAddress:        c.APIEndpoint,

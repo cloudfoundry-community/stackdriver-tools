@@ -36,6 +36,10 @@ func NewLoggerHandler(logger lager.Logger) *loggerHandler {
 	}
 }
 
+func (h *loggerHandler) Name() string {
+	return "loggerHandler"
+}
+
 func (h *loggerHandler) Handle(event string) {
 	h.counterMu.Lock()
 	defer h.counterMu.Unlock()

@@ -18,6 +18,7 @@ package heartbeat
 
 import (
 	"errors"
+	"fmt"
 	"time"
 
 	"github.com/cloudfoundry/lager"
@@ -32,6 +33,7 @@ type Heartbeater interface {
 type Handler interface {
 	Handle(string)
 	Flush() error
+	Name() string
 }
 
 type heartbeater struct {
@@ -81,16 +83,22 @@ func (h *heartbeater) Start() {
 		for {
 			select {
 			case <-h.trigger:
-				for _, h := range h.handlers {
-					h.Flush()
+				h.logger.Info("heartbeater", lager.Data{"debug": fmt.Sprintf("Flushing %v handlers", len(h.handlers))})
+				for _, ha := range h.handlers {
+					if err := ha.Flush(); err != nil {
+						h.logger.Error("heartbeater", err, lager.Data{"handler": ha.Name()})
+					}
 				}
 			case name := <-h.counter:
-				for _, h := range h.handlers {
-					h.Handle(name)
+				for _, ha := range h.handlers {
+					ha.Handle(name)
 				}
 			case <-h.done:
-				for _, h := range h.handlers {
-					h.Flush()
+				h.logger.Info("hearbeater", lager.Data{"debug": fmt.Sprintf("Heartbeat polling done for %v handlers", len(h.handlers))})
+				for _, ha := range h.handlers {
+					if err := ha.Flush(); err != nil {
+						h.logger.Error("heartbeater", err, lager.Data{"handler": ha.Name()})
+					}
 				}
 				return
 			}
