@@ -88,6 +88,10 @@ func NewMetricAdapter(projectID string, client MetricClient, heartbeater Heartbe
 }
 
 func (ma *metricAdapter) PostMetrics(metrics []Metric) error {
+	if len(metrics) == 0 {
+		return nil
+	}
+
 	projectName := path.Join("projects", ma.projectID)
 	var timeSerieses []*monitoringpb.TimeSeries
 
