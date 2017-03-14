@@ -30,7 +30,7 @@ type autoCulledMetricsBuffer struct {
 	ctx     context.Context
 
 	metricsMu sync.Mutex // Guard metrics
-	metrics   metricsMap
+	metrics   map[string]*Metric
 }
 
 func NewAutoCulledMetricsBuffer(ctx context.Context, frequency time.Duration,
@@ -68,7 +68,8 @@ func (mb *autoCulledMetricsBuffer) start() {
 			select {
 			case <-mb.ticker.C:
 				mb.metricsMu.Lock()
-				l := len(mb.metrics)
+				metricsSlice := metricsMapToSlice(mb.metrics)
+				l := len(metricsSlice)
 				chunks := l/mb.size + 1
 				var low, high int
 				for i := 0; i < chunks; i++ {
@@ -77,7 +78,8 @@ func (mb *autoCulledMetricsBuffer) start() {
 					if i == chunks-1 {
 						high = l
 					}
-					err := mb.adapter.PostMetrics(mb.metrics.Slice()[low:high])
+					err := mb.adapter.PostMetrics(metricsSlice[low:high])
+
 					if err != nil {
 						mb.errs <- err
 					}
@@ -88,7 +90,7 @@ func (mb *autoCulledMetricsBuffer) start() {
 			case <-mb.ctx.Done():
 				mb.ticker.Stop()
 				mb.metricsMu.Lock()
-				err := mb.adapter.PostMetrics(mb.metrics.Slice())
+				err := mb.adapter.PostMetrics(metricsMapToSlice(mb.metrics))
 				mb.metricsMu.Unlock()
 				if err != nil {
 					mb.errs <- err

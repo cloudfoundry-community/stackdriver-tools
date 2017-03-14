@@ -86,14 +86,11 @@ func (mb *metricsBuffer) postMetrics(metrics []Metric) {
 	}()
 }
 
-type metricsMap map[string]*Metric
-
-func (mm metricsMap) Slice() []Metric {
-	m := make([]Metric, len(mm))
-	var i int
-	for _, v := range mm {
-		m[i] = *v
-		i++
+func metricsMapToSlice(m map[string]*Metric) []Metric {
+	slice := make([]Metric, 0, len(m))
+	for _, v := range m {
+		slice = append(slice, *v)
 	}
-	return m
+
+	return slice
 }

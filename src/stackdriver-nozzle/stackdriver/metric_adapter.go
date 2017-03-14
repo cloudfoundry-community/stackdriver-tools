@@ -20,6 +20,7 @@ import (
 	"bytes"
 	"fmt"
 	"path"
+	"sort"
 	"sync"
 	"time"
 
@@ -31,31 +32,28 @@ import (
 )
 
 type Metric struct {
-	Name         string
-	Value        float64
-	Labels       map[string]string
-	EventTime    time.Time
-	EventEndTime time.Time
-	Unit         string // TODO Should this be "1" if it's empty?
+	Name      string
+	Value     float64
+	Labels    map[string]string
+	EventTime time.Time
+	Unit      string // TODO Should this be "1" if it's empty?
 }
 
 func (m *Metric) Hash() string {
 	var b bytes.Buffer
 	b.Write([]byte(m.Name))
-	for k, v := range m.Labels {
+
+	// Extract keys to a slice and sort it
+	keys := make([]string, len(m.Labels), len(m.Labels))
+	for k, _ := range m.Labels {
+		keys = append(keys, k)
+	}
+	sort.Strings(keys)
+	for _, k := range keys {
 		b.Write([]byte(k))
-		b.Write([]byte(v))
+		b.Write([]byte(m.Labels[k]))
 	}
 	return b.String()
-}
-
-// metricDescriptorType returns MetricDescriptor_DELTA if the metric's
-// EventEndTime has been initialized. Otherwise, it returns MetricDescriptor_GAUGE.
-func (m *Metric) metricDescriptorType() metricpb.MetricDescriptor_MetricKind {
-	if !m.EventEndTime.IsZero() {
-		return metricpb.MetricDescriptor_DELTA
-	}
-	return metricpb.MetricDescriptor_GAUGE
 }
 
 type MetricAdapter interface {
@@ -145,7 +143,7 @@ func (ma *metricAdapter) CreateMetricDescriptor(metric Metric) error {
 			Name:        metricName,
 			Type:        metricType,
 			Labels:      labelDescriptors,
-			MetricKind:  metric.metricDescriptorType(),
+			MetricKind:  metricpb.MetricDescriptor_GAUGE,
 			ValueType:   metricpb.MetricDescriptor_DOUBLE,
 			Unit:        metric.Unit,
 			Description: "stackdriver-nozzle created custom metric.",
