@@ -63,20 +63,16 @@ func (h *metricHandler) Flush() error {
 	defer h.counterMu.Unlock()
 
 	metrics := []stackdriver.Metric{}
+	t := time.Now()
 	for k, v := range h.counter {
 		metrics = append(metrics, stackdriver.Metric{
-			Name:  "heartbeat/" + k,
+			Name:  "heartbeat." + k,
 			Value: float64(v),
 			Labels: map[string]string{
 				"instance": h.nozzleId,
 				"zone":     h.nozzleZone,
 			},
-			EventTime: h.start,
-			// TODO: Setting an end time will cause the metric to be recognized as
-			// a DELTA, but Stackdriver doesn't support this type for custom metrics.
-			// Someday it should, and we can use this.
-			//EventEndTime: now,
-			Unit: "events",
+			EventTime: t,
 		})
 	}
 	h.counter = map[string]uint{}
