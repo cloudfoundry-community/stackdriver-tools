@@ -18,6 +18,7 @@ package cloudfoundry
 
 import (
 	"crypto/tls"
+	"fmt"
 	"time"
 
 	cfclient "github.com/cloudfoundry-community/go-cfclient"
@@ -59,6 +60,17 @@ type cfClientTokenRefresh struct {
 	cfClient *cfclient.Client
 }
 
-func (ct *cfClientTokenRefresh) RefreshAuthToken() (string, error) {
-	return ct.cfClient.GetToken(), nil
+func (ct *cfClientTokenRefresh) RefreshAuthToken() (token string, err error) {
+	// GetToken() doesn't return an error if there is a problem retrieving the
+	// refresh token. If the token is an empty string, that is an error and
+	// we return it. The downstream client should call firehose.Connect to get
+	// a new connection.
+	//
+	// TODO: Track https://github.com/cloudfoundry-community/go-cfclient/issues/34 for
+	// updates on proper refresh token handling.
+	token = ct.cfClient.GetToken()
+	if token == "" {
+		err = fmt.Errorf("Fatal: error getting refresh token")
+	}
+	return
 }
