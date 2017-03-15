@@ -25,8 +25,8 @@ import (
 type MetricAdapter struct {
 	PostMetricsFn   func(metrics []stackdriver.Metric) error
 	PostMetricError error
-	postedMetrics   []stackdriver.Metric
-	mutex           sync.Mutex
+	PostedMetrics   []stackdriver.Metric
+	Mutex           sync.Mutex
 }
 
 func (m *MetricAdapter) PostMetrics(metrics []stackdriver.Metric) error {
@@ -34,15 +34,15 @@ func (m *MetricAdapter) PostMetrics(metrics []stackdriver.Metric) error {
 		return m.PostMetricsFn(metrics)
 	}
 
-	m.mutex.Lock()
-	defer m.mutex.Unlock()
-	m.postedMetrics = append(m.postedMetrics, metrics...)
+	m.Mutex.Lock()
+	defer m.Mutex.Unlock()
+	m.PostedMetrics = append(m.PostedMetrics, metrics...)
 	return m.PostMetricError
 }
 
 func (m *MetricAdapter) GetPostedMetrics() []stackdriver.Metric {
-	m.mutex.Lock()
-	defer m.mutex.Unlock()
+	m.Mutex.Lock()
+	defer m.Mutex.Unlock()
 
-	return m.postedMetrics
+	return m.PostedMetrics
 }

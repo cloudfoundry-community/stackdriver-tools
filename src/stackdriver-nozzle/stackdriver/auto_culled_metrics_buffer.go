@@ -64,6 +64,7 @@ func (mb *autoCulledMetricsBuffer) addMetric(newMetric *Metric) {
 
 func (mb *autoCulledMetricsBuffer) start() {
 	go func() {
+		defer close(mb.errs)
 		for {
 			select {
 			case <-mb.ticker.C:
@@ -90,11 +91,23 @@ func (mb *autoCulledMetricsBuffer) start() {
 			case <-mb.ctx.Done():
 				mb.ticker.Stop()
 				mb.metricsMu.Lock()
-				err := mb.adapter.PostMetrics(metricsMapToSlice(mb.metrics))
-				mb.metricsMu.Unlock()
-				if err != nil {
-					mb.errs <- err
+				metricsSlice := metricsMapToSlice(mb.metrics)
+				l := len(metricsSlice)
+				chunks := l/mb.size + 1
+				var low, high int
+				for i := 0; i < chunks; i++ {
+					low = i * mb.size
+					high = low + mb.size
+					if i == chunks-1 {
+						high = l
+					}
+					err := mb.adapter.PostMetrics(metricsSlice[low:high])
+
+					if err != nil {
+						mb.errs <- err
+					}
 				}
+				mb.metricsMu.Unlock()
 				return
 			}
 		}

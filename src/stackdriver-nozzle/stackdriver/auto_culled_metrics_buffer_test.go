@@ -19,7 +19,9 @@ package stackdriver_test
 import (
 	"context"
 	"errors"
+	"fmt"
 	"sort"
+	"strconv"
 	"time"
 
 	"github.com/cloudfoundry-community/stackdriver-tools/src/stackdriver-nozzle/mocks"
@@ -103,19 +105,38 @@ var _ = Describe("autoCulledMetricsBuffer", func() {
 		Eventually(metricAdapter.GetPostedMetrics).Should(HaveLen(2))
 	})
 
-	It("it posts the metrics  in correct batch size", func() {
-		d := 100 * time.Millisecond
-		ctx, cancel := context.WithCancel(context.Background())
-		subject, _ := stackdriver.NewAutoCulledMetricsBuffer(ctx, d, 3,
-			metricAdapter)
+	It("it posts the metrics in correct batch size", func() {
+		d := 10 * time.Millisecond
+		batchSize := 200
 
-		subject.PostMetric(&stackdriver.Metric{Name: "a", Value: 1})
-		subject.PostMetric(&stackdriver.Metric{Name: "b", Value: 1})
-		subject.PostMetric(&stackdriver.Metric{Name: "c", Value: 1})
-		subject.PostMetric(&stackdriver.Metric{Name: "d", Value: 1})
-		subject.PostMetric(&stackdriver.Metric{Name: "e", Value: 1})
-		cancel()
-		Eventually(metricAdapter.GetPostedMetrics).Should(HaveLen(5))
+		metricAdapter.PostMetricsFn = func(metrics []stackdriver.Metric) error {
+			if len(metrics) > batchSize {
+				return fmt.Errorf("Batch size (%v) exceeded max (%v)", len(metrics), batchSize)
+			}
+			metricAdapter.Mutex.Lock()
+			defer metricAdapter.Mutex.Unlock()
+			metricAdapter.PostedMetrics = append(metricAdapter.PostedMetrics, metrics...)
+			return metricAdapter.PostMetricError
+		}
+
+		metricGroupSizes := []int{199, 200, 201, 399, 400, 1999, 2000, 2001}
+
+		// Test various numbers of metrics being posted to the buffer
+		for _, groupSize := range metricGroupSizes {
+			ctx, cancel := context.WithCancel(context.Background())
+			metricAdapter.PostedMetrics = []stackdriver.Metric{}
+			metricAdapter.PostMetricError = nil
+			subject, errs := stackdriver.NewAutoCulledMetricsBuffer(ctx, d, batchSize,
+				metricAdapter)
+			for i := 0; i < groupSize; i++ {
+				subject.PostMetric(&stackdriver.Metric{Name: strconv.Itoa(i), Value: 1})
+			}
+			cancel()
+			err := <-errs
+			Expect(err).ToNot(HaveOccurred())
+			Expect(metricAdapter.PostedMetrics).To(HaveLen(groupSize))
+		}
+
 	})
 
 	It("sends errors through the error channel", func() {
