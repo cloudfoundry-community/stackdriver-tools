@@ -56,13 +56,12 @@ func main() {
 			select {
 			case <-time.Tick(100 * time.Millisecond):
 				if a.bufferEmpty() {
-					break
+					a.logger.Fatal("firehose", fatalErr, lager.Data{"cleanup": "The metrics buffer was successfully flushed before shutdown"})
 				}
 			case <-t.C:
-				break
+				a.logger.Fatal("firehose", fatalErr, lager.Data{"cleanup": "The metrics buffer could not be flushed before shutdown"})
 			}
 		}
-		a.logger.Fatal("firehose", fatalErr)
 	}
 }
 
