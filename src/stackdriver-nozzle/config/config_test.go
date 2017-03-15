@@ -53,8 +53,8 @@ var _ = Describe("Config", func() {
 			v, _ = metadata.Zone()
 			Expect(c.NozzleZone).To(Equal(v))
 		case false:
-			Expect(c.NozzleId).To(Equal("nozzle-id"))
-			Expect(c.NozzleZone).To(Equal("nozzle-zone"))
+			Expect(c.NozzleId).To(Equal("local-nozzle"))
+			Expect(c.NozzleZone).To(Equal("local-nozzle"))
 		}
 
 	})
