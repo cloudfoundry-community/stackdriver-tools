@@ -220,7 +220,7 @@ func (a *app) newMetricSink(ctx context.Context) nozzle.Sink {
 		a.logger.Error("metricAdapter", err)
 	}
 
-	metricBuffer, errs := stackdriver.NewAutoCulledMetricsBuffer(ctx, time.Duration(a.c.MetricsBufferDuration)*time.Second, a.c.MetricsBufferSize, metricAdapter)
+	metricBuffer, errs := stackdriver.NewAutoCulledMetricsBuffer(ctx, a.logger, time.Duration(a.c.MetricsBufferDuration)*time.Second, a.c.MetricsBufferSize, metricAdapter)
 	a.bufferEmpty = metricBuffer.IsEmpty
 	go func() {
 		for err = range errs {

@@ -33,15 +33,20 @@ import (
 var _ = Describe("autoCulledMetricsBuffer", func() {
 	var (
 		metricAdapter *mocks.MetricAdapter
+		logger        *mocks.MockLogger
 	)
 
 	BeforeEach(func() {
 		metricAdapter = &mocks.MetricAdapter{}
+
+		// Mock logger
+		logger = &mocks.MockLogger{}
+
 	})
 
 	It("culls duplicate metrics", func() {
 		d := 100 * time.Millisecond
-		subject, _ := stackdriver.NewAutoCulledMetricsBuffer(context.TODO(), d, 5,
+		subject, _ := stackdriver.NewAutoCulledMetricsBuffer(context.TODO(), logger, d, 5,
 			metricAdapter)
 
 		subject.PostMetric(&stackdriver.Metric{Name: "a", Value: 1})
@@ -82,7 +87,7 @@ var _ = Describe("autoCulledMetricsBuffer", func() {
 
 	It("it buffers metrics for the expected duration before flushing", func() {
 		d := 500 * time.Millisecond
-		subject, _ := stackdriver.NewAutoCulledMetricsBuffer(context.TODO(), d, 5,
+		subject, _ := stackdriver.NewAutoCulledMetricsBuffer(context.TODO(), logger, d, 5,
 			metricAdapter)
 
 		subject.PostMetric(&stackdriver.Metric{Name: "a", Value: 1})
@@ -95,7 +100,7 @@ var _ = Describe("autoCulledMetricsBuffer", func() {
 	It("it flushes metrics when the context is canceled", func() {
 		d := 500 * time.Second
 		ctx, cancel := context.WithCancel(context.Background())
-		subject, _ := stackdriver.NewAutoCulledMetricsBuffer(ctx, d, 5,
+		subject, _ := stackdriver.NewAutoCulledMetricsBuffer(ctx, logger, d, 5,
 			metricAdapter)
 
 		subject.PostMetric(&stackdriver.Metric{Name: "a", Value: 1})
@@ -126,7 +131,7 @@ var _ = Describe("autoCulledMetricsBuffer", func() {
 			ctx, cancel := context.WithCancel(context.Background())
 			metricAdapter.PostedMetrics = []stackdriver.Metric{}
 			metricAdapter.PostMetricError = nil
-			subject, errs := stackdriver.NewAutoCulledMetricsBuffer(ctx, d, batchSize,
+			subject, errs := stackdriver.NewAutoCulledMetricsBuffer(ctx, logger, d, batchSize,
 				metricAdapter)
 			for i := 0; i < groupSize; i++ {
 				subject.PostMetric(&stackdriver.Metric{Name: strconv.Itoa(i), Value: 1})
@@ -141,7 +146,7 @@ var _ = Describe("autoCulledMetricsBuffer", func() {
 
 	It("sends errors through the error channel", func() {
 		d := 1 * time.Millisecond
-		subject, errs := stackdriver.NewAutoCulledMetricsBuffer(context.TODO(), d, 5,
+		subject, errs := stackdriver.NewAutoCulledMetricsBuffer(context.TODO(), logger, d, 5,
 			metricAdapter)
 
 		expectedErr := errors.New("fail")

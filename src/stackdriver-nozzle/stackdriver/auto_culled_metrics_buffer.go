@@ -18,8 +18,11 @@ package stackdriver
 
 import (
 	"context"
+	"fmt"
 	"sync"
 	"time"
+
+	"github.com/cloudfoundry/lager"
 )
 
 type autoCulledMetricsBuffer struct {
@@ -28,12 +31,13 @@ type autoCulledMetricsBuffer struct {
 	size    int
 	ticker  *time.Ticker
 	ctx     context.Context
+	logger  lager.Logger
 
 	metricsMu sync.Mutex // Guard metrics
 	metrics   map[string]*Metric
 }
 
-func NewAutoCulledMetricsBuffer(ctx context.Context, frequency time.Duration,
+func NewAutoCulledMetricsBuffer(ctx context.Context, logger lager.Logger, frequency time.Duration,
 	size int, adapter MetricAdapter) (MetricsBuffer, <-chan error) {
 	errs := make(chan error)
 	mb := &autoCulledMetricsBuffer{
@@ -42,6 +46,7 @@ func NewAutoCulledMetricsBuffer(ctx context.Context, frequency time.Duration,
 		metrics: make(map[string]*Metric),
 		size:    size,
 		ctx:     ctx,
+		logger:  logger,
 		ticker:  time.NewTicker(frequency),
 	}
 	mb.start()
@@ -62,52 +67,41 @@ func (mb *autoCulledMetricsBuffer) addMetric(newMetric *Metric) {
 	mb.metrics[newMetric.Hash()] = newMetric
 }
 
+func (mb *autoCulledMetricsBuffer) flush() {
+	mb.metricsMu.Lock()
+	mb.logger.Info("autoCulledMetricsBuffer", lager.Data{"info": fmt.Sprintf("Flushing %v metrics", len(mb.metrics))})
+	metricsSlice := metricsMapToSlice(mb.metrics)
+	l := len(metricsSlice)
+	chunks := l/mb.size + 1
+	mb.logger.Info("autoCulledMetricsBuffer", lager.Data{"info": fmt.Sprintf("%v metrics will be flushed in %v batches", l, chunks)})
+	var low, high int
+	for i := 0; i < chunks; i++ {
+		low = i * mb.size
+		high = low + mb.size
+		if i == chunks-1 {
+			high = l
+		}
+		err := mb.adapter.PostMetrics(metricsSlice[low:high])
+
+		if err != nil {
+			mb.errs <- err
+		}
+	}
+	mb.metrics = make(map[string]*Metric)
+	mb.metricsMu.Unlock()
+}
+
 func (mb *autoCulledMetricsBuffer) start() {
 	go func() {
 		defer close(mb.errs)
 		for {
 			select {
 			case <-mb.ticker.C:
-				mb.metricsMu.Lock()
-				metricsSlice := metricsMapToSlice(mb.metrics)
-				l := len(metricsSlice)
-				chunks := l/mb.size + 1
-				var low, high int
-				for i := 0; i < chunks; i++ {
-					low = i * mb.size
-					high = low + mb.size
-					if i == chunks-1 {
-						high = l
-					}
-					err := mb.adapter.PostMetrics(metricsSlice[low:high])
-
-					if err != nil {
-						mb.errs <- err
-					}
-				}
-				mb.metrics = make(map[string]*Metric)
-				mb.metricsMu.Unlock()
-
+				mb.flush()
 			case <-mb.ctx.Done():
+				mb.logger.Info("autoCulledMetricsBuffer", lager.Data{"info": "Context cancelled"})
 				mb.ticker.Stop()
-				mb.metricsMu.Lock()
-				metricsSlice := metricsMapToSlice(mb.metrics)
-				l := len(metricsSlice)
-				chunks := l/mb.size + 1
-				var low, high int
-				for i := 0; i < chunks; i++ {
-					low = i * mb.size
-					high = low + mb.size
-					if i == chunks-1 {
-						high = l
-					}
-					err := mb.adapter.PostMetrics(metricsSlice[low:high])
-
-					if err != nil {
-						mb.errs <- err
-					}
-				}
-				mb.metricsMu.Unlock()
+				mb.flush()
 				return
 			}
 		}

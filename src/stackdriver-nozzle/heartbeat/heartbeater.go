@@ -78,6 +78,7 @@ func NewLoggerMetricHeartbeater(metricHandler Handler, logger lager.Logger, trig
 	}
 }
 func (h *heartbeater) Start() {
+	h.logger.Info("heartbeater", lager.Data{"debug": "Starting heartbeater"})
 	h.started = true
 	go func() {
 		for {
@@ -118,6 +119,7 @@ func (h *heartbeater) Increment(name string) {
 }
 
 func (h *heartbeater) Stop() {
+	h.logger.Info("heartbeater", lager.Data{"debug": "Stopping heartbeater"})
 	h.done <- struct{}{}
 	h.started = false
 }
