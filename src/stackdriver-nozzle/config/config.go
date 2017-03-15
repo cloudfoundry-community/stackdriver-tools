@@ -40,8 +40,7 @@ func NewConfig() (*Config, error) {
 		return nil, err
 	}
 
-	c.setNozzleId()
-	c.setNozzleZone()
+	c.setNozzleHostInfo()
 
 	return &c, nil
 }
@@ -67,6 +66,7 @@ type Config struct {
 	BatchDuration      int    `envconfig:"batch_duration" default:"1"`
 	ResolveAppMetadata bool   `envconfig:"resolve_app_metadata"`
 	NozzleId           string `envconfig:"nozzle_id" default:"local-nozzle"`
+	NozzleName         string `envconfig:"nozzle_name" default:"local-nozzle"`
 	NozzleZone         string `envconfig:"nozzle_zone" default:"local-nozzle"`
 	DebugNozzle        bool   `envconfig:"debug_nozzle"`
 }
@@ -101,20 +101,18 @@ func (c *Config) ensureProjectID() error {
 	return nil
 }
 
-// If running on GCE, this will set the nozzle's ID to the VM ID.
-func (c *Config) setNozzleId() {
+// If running on GCE, this will set the nozzle's ID, name, and zone to
+// the GCE instance's values.
+func (c *Config) setNozzleHostInfo() {
 	if metadata.OnGCE() {
 		if v, err := metadata.InstanceID(); err == nil {
 			c.NozzleId = v
 		}
-	}
-}
-
-// If running on GCE, this will set the nozzle's zone to the VM zone.
-func (c *Config) setNozzleZone() {
-	if metadata.OnGCE() {
 		if v, err := metadata.Zone(); err == nil {
 			c.NozzleZone = v
+		}
+		if v, err := metadata.InstanceName(); err == nil {
+			c.NozzleName = v
 		}
 	}
 }

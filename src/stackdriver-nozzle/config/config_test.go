@@ -46,15 +46,23 @@ var _ = Describe("Config", func() {
 		Expect(err).To(BeNil())
 		Expect(c.APIEndpoint).To(Equal("https://api.example.com"))
 
-		switch metadata.OnGCE() {
-		case true:
-			v, _ := metadata.InstanceID()
-			Expect(c.NozzleId).To(Equal(v))
-			v, _ = metadata.Zone()
-			Expect(c.NozzleZone).To(Equal(v))
-		case false:
-			Expect(c.NozzleId).To(Equal("local-nozzle"))
-			Expect(c.NozzleZone).To(Equal("local-nozzle"))
+		// Several config vals have defaults that can be overriden environment
+		// that can be overriden by GCE metadata. Check those.
+		funcs := []struct {
+			configVal string
+			localFn   func() (string, error)
+			gceFn     func() (string, error)
+		}{
+			{c.NozzleId, func() (string, error) { return "local-nozzle", nil }, metadata.InstanceID},
+			{c.NozzleName, func() (string, error) { return "local-nozzle", nil }, metadata.InstanceName},
+			{c.NozzleZone, func() (string, error) { return "local-nozzle", nil }, metadata.Zone},
+		}
+		for _, t := range funcs {
+			v, _ := t.localFn()
+			if metadata.OnGCE() {
+				v, _ = t.gceFn()
+			}
+			Expect(t.configVal).To(Equal(v))
 		}
 
 	})

@@ -29,17 +29,19 @@ type metricHandler struct {
 	logger     lager.Logger
 	ma         stackdriver.MetricAdapter
 	nozzleId   string
+	nozzleName string
 	nozzleZone string
 
 	counterMu *sync.Mutex // Guards counter
 	counter   map[string]uint
 }
 
-func NewMetricHandler(ma stackdriver.MetricAdapter, logger lager.Logger, nozzleId, nozzleZone string) *metricHandler {
+func NewMetricHandler(ma stackdriver.MetricAdapter, logger lager.Logger, nozzleId, nozzleName, nozzleZone string) *metricHandler {
 	return &metricHandler{
 		logger:     logger,
 		ma:         ma,
 		nozzleId:   nozzleId,
+		nozzleName: nozzleName,
 		nozzleZone: nozzleZone,
 		start:      time.Now(),
 		counterMu:  &sync.Mutex{},
@@ -69,7 +71,7 @@ func (h *metricHandler) Flush() error {
 			Name:  "heartbeat." + k,
 			Value: float64(v),
 			Labels: map[string]string{
-				"instance": h.nozzleId,
+				"instance": h.nozzleName,
 				"zone":     h.nozzleZone,
 			},
 			EventTime: t,

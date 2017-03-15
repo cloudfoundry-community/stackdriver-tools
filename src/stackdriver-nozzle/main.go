@@ -131,7 +131,7 @@ func newApp() *app {
 	// Create a heartbeater that will write heartbeat events to Stackdriver
 	// logging and monitoring. It uses the metricAdapter created previously
 	// to write to Stackdriver.
-	metricHandler := heartbeat.NewMetricHandler(metricAdapter, logger, c.NozzleId, c.NozzleZone)
+	metricHandler := heartbeat.NewMetricHandler(metricAdapter, logger, c.NozzleId, c.NozzleName, c.NozzleZone)
 	trigger2 := time.NewTicker(time.Duration(c.HeartbeatRate) * time.Second).C
 	heartbeater := heartbeat.NewLoggerMetricHeartbeater(metricHandler, logger, trigger2)
 
