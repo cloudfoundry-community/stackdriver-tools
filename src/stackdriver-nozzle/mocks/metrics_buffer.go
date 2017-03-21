@@ -25,3 +25,7 @@ type MetricsBuffer struct {
 func (m *MetricsBuffer) PostMetric(metric *stackdriver.Metric) {
 	m.PostedMetrics = append(m.PostedMetrics, *metric)
 }
+
+func (m *MetricsBuffer) IsEmpty() bool {
+	return true
+}

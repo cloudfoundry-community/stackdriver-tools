@@ -18,6 +18,7 @@ package heartbeat
 
 import (
 	"errors"
+	"fmt"
 	"time"
 
 	"github.com/cloudfoundry/lager"
@@ -29,43 +30,77 @@ type Heartbeater interface {
 	Stop()
 }
 
+type Handler interface {
+	Handle(string)
+	Flush() error
+	Name() string
+}
+
 type heartbeater struct {
-	logger  lager.Logger
-	trigger <-chan time.Time
-	counter chan string
-	done    chan struct{}
-	started bool
+	logger   lager.Logger
+	trigger  <-chan time.Time
+	counter  chan string
+	done     chan struct{}
+	started  bool
+	handlers []Handler
 }
 
 func NewHeartbeater(logger lager.Logger, trigger <-chan time.Time) Heartbeater {
 	counter := make(chan string)
 	done := make(chan struct{})
+	loggerHandler := NewLoggerHandler(logger)
 	return &heartbeater{
-		logger:  logger,
 		trigger: trigger,
 		counter: counter,
 		done:    done,
 		started: false,
+		logger:  logger,
+		handlers: []Handler{
+			loggerHandler,
+		},
 	}
 }
 
+func NewLoggerMetricHeartbeater(metricHandler Handler, logger lager.Logger, trigger <-chan time.Time) Heartbeater {
+	counter := make(chan string)
+	done := make(chan struct{})
+	loggerHandler := NewLoggerHandler(logger)
+	return &heartbeater{
+		trigger: trigger,
+		counter: counter,
+		done:    done,
+		started: false,
+		logger:  logger,
+		handlers: []Handler{
+			loggerHandler,
+			metricHandler,
+		},
+	}
+}
 func (h *heartbeater) Start() {
+	h.logger.Info("heartbeater", lager.Data{"debug": "Starting heartbeater"})
 	h.started = true
 	go func() {
-		counters := map[string]uint{}
 		for {
 			select {
 			case <-h.trigger:
-				h.logger.Info(
-					"heartbeater", lager.Data{"counters": counters},
-				)
-				counters = map[string]uint{}
+				h.logger.Info("heartbeater", lager.Data{"debug": fmt.Sprintf("Flushing %v handlers", len(h.handlers))})
+				for _, ha := range h.handlers {
+					if err := ha.Flush(); err != nil {
+						h.logger.Error("heartbeater", err, lager.Data{"handler": ha.Name()})
+					}
+				}
 			case name := <-h.counter:
-				counters[name] += 1
+				for _, ha := range h.handlers {
+					ha.Handle(name)
+				}
 			case <-h.done:
-				h.logger.Info(
-					"heartbeater", lager.Data{"counters": counters},
-				)
+				h.logger.Info("hearbeater", lager.Data{"debug": fmt.Sprintf("Heartbeat polling done for %v handlers", len(h.handlers))})
+				for _, ha := range h.handlers {
+					if err := ha.Flush(); err != nil {
+						h.logger.Error("heartbeater", err, lager.Data{"handler": ha.Name()})
+					}
+				}
 				return
 			}
 		}
@@ -84,6 +119,7 @@ func (h *heartbeater) Increment(name string) {
 }
 
 func (h *heartbeater) Stop() {
+	h.logger.Info("heartbeater", lager.Data{"debug": "Stopping heartbeater"})
 	h.done <- struct{}{}
 	h.started = false
 }

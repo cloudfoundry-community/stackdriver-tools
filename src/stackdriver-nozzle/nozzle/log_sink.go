@@ -19,10 +19,11 @@ package nozzle
 import (
 	"encoding/json"
 
+	"strings"
+
 	"cloud.google.com/go/logging"
 	"github.com/cloudfoundry-community/stackdriver-tools/src/stackdriver-nozzle/stackdriver"
 	"github.com/cloudfoundry/sonde-go/events"
-	"strings"
 )
 
 func NewLogSink(labelMaker LabelMaker, logAdapter stackdriver.LogAdapter, newlineToken string) Sink {
@@ -92,6 +93,7 @@ func (ls *logSink) parseEnvelope(envelope *events.Envelope) stackdriver.Log {
 		if httpStartStopMap != nil {
 			httpStartStopMap["method"] = httpStartStop.GetMethod().String()
 			httpStartStopMap["peerType"] = httpStartStop.GetPeerType().String()
+			httpStartStopMap["requestId"] = formatUUID(httpStartStop.GetRequestId())
 			payload["httpStartStop"] = httpStartStopMap
 		}
 	}

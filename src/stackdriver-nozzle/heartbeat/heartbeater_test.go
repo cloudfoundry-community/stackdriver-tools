@@ -22,6 +22,7 @@ import (
 
 	"github.com/cloudfoundry-community/stackdriver-tools/src/stackdriver-nozzle/heartbeat"
 	"github.com/cloudfoundry-community/stackdriver-tools/src/stackdriver-nozzle/mocks"
+	"github.com/cloudfoundry-community/stackdriver-tools/src/stackdriver-nozzle/stackdriver"
 	"github.com/cloudfoundry/lager"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -29,16 +30,29 @@ import (
 
 var _ = Describe("Heartbeater", func() {
 	var (
-		subject heartbeat.Heartbeater
-		logger  *mocks.MockLogger
-		trigger chan time.Time
+		subject       heartbeat.Heartbeater
+		logger        *mocks.MockLogger
+		trigger       chan time.Time
+		client        *mocks.MockClient
+		metricAdapter stackdriver.MetricAdapter
+		metricHandler heartbeat.Handler
 	)
 
 	BeforeEach(func() {
-		logger = &mocks.MockLogger{}
 		trigger = make(chan time.Time)
 
-		subject = heartbeat.NewHeartbeater(logger, trigger)
+		// Mock logger
+		logger = &mocks.MockLogger{}
+
+		// Mock heartbeater
+		heartbeater := mocks.NewHeartbeater()
+
+		// Mock metric handler
+		client = &mocks.MockClient{}
+		metricAdapter, _ = stackdriver.NewMetricAdapter("my-awesome-project", client, heartbeater)
+		metricHandler = heartbeat.NewMetricHandler(metricAdapter, logger, "nozzle-id", "nozzle-name", "nozle-zone")
+
+		subject = heartbeat.NewLoggerMetricHeartbeater(metricHandler, logger, trigger)
 		subject.Start()
 	})
 
@@ -72,6 +86,12 @@ var _ = Describe("Heartbeater", func() {
 				{"counters": map[string]uint{"foo": 10}},
 			},
 		}))
+
+		Eventually(func() int {
+			client.Mutex.Lock()
+			defer client.Mutex.Unlock()
+			return len(client.MetricReqs[0].TimeSeries)
+		}).Should(Equal(1))
 	})
 
 	It("should reset the heartbeater on triggers", func() {
@@ -96,6 +116,13 @@ var _ = Describe("Heartbeater", func() {
 				{"counters": map[string]uint{"foo": 5}},
 			},
 		}))
+
+		Eventually(func() int {
+			client.Mutex.Lock()
+			defer client.Mutex.Unlock()
+			return len(client.MetricReqs[len(client.MetricReqs)-1].TimeSeries)
+		}).Should(Equal(1))
+
 	})
 
 	It("should stop counting", func() {
@@ -145,5 +172,15 @@ var _ = Describe("Heartbeater", func() {
 				}},
 			},
 		}))
+
+		Eventually(func() int {
+			client.Mutex.Lock()
+			defer client.Mutex.Unlock()
+			if len(client.MetricReqs) > 0 {
+				return len(client.MetricReqs[len(client.MetricReqs)-1].TimeSeries)
+			}
+			return 0
+		}).Should(Equal(2))
+
 	})
 })

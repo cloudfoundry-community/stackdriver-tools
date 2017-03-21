@@ -17,12 +17,13 @@
 package stackdriver
 
 import (
+	"bytes"
 	"fmt"
 	"path"
+	"sort"
 	"sync"
 	"time"
 
-	"github.com/cloudfoundry-community/stackdriver-tools/src/stackdriver-nozzle/heartbeat"
 	"github.com/golang/protobuf/ptypes/timestamp"
 	"github.com/pkg/errors"
 	labelpb "google.golang.org/genproto/googleapis/api/label"
@@ -38,8 +39,31 @@ type Metric struct {
 	Unit      string // TODO Should this be "1" if it's empty?
 }
 
+func (m *Metric) Hash() string {
+	var b bytes.Buffer
+	b.Write([]byte(m.Name))
+
+	// Extract keys to a slice and sort it
+	keys := make([]string, len(m.Labels), len(m.Labels))
+	for k, _ := range m.Labels {
+		keys = append(keys, k)
+	}
+	sort.Strings(keys)
+	for _, k := range keys {
+		b.Write([]byte(k))
+		b.Write([]byte(m.Labels[k]))
+	}
+	return b.String()
+}
+
 type MetricAdapter interface {
 	PostMetrics([]Metric) error
+}
+
+type Heartbeater interface {
+	Start()
+	Increment(string)
+	Stop()
 }
 
 type metricAdapter struct {
@@ -47,10 +71,10 @@ type metricAdapter struct {
 	client                MetricClient
 	descriptors           map[string]struct{}
 	createDescriptorMutex *sync.Mutex
-	heartbeater           heartbeat.Heartbeater
+	heartbeater           Heartbeater
 }
 
-func NewMetricAdapter(projectID string, client MetricClient, heartbeater heartbeat.Heartbeater) (MetricAdapter, error) {
+func NewMetricAdapter(projectID string, client MetricClient, heartbeater Heartbeater) (MetricAdapter, error) {
 	ma := &metricAdapter{
 		projectID:             projectID,
 		client:                client,
@@ -64,6 +88,10 @@ func NewMetricAdapter(projectID string, client MetricClient, heartbeater heartbe
 }
 
 func (ma *metricAdapter) PostMetrics(metrics []Metric) error {
+	if len(metrics) == 0 {
+		return nil
+	}
+
 	projectName := path.Join("projects", ma.projectID)
 	var timeSerieses []*monitoringpb.TimeSeries
 

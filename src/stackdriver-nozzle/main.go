@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"net/http"
 	_ "net/http/pprof"
 	"os"
@@ -9,11 +10,10 @@ import (
 	"time"
 
 	"cloud.google.com/go/logging"
-	"github.com/cloudfoundry-community/firehose-to-syslog/caching"
 	"github.com/cloudfoundry-community/go-cfclient"
+	"github.com/cloudfoundry-community/stackdriver-tools/src/stackdriver-nozzle/cloudfoundry"
 	"github.com/cloudfoundry-community/stackdriver-tools/src/stackdriver-nozzle/config"
 	"github.com/cloudfoundry-community/stackdriver-tools/src/stackdriver-nozzle/filter"
-	"github.com/cloudfoundry-community/stackdriver-tools/src/stackdriver-nozzle/firehose"
 	"github.com/cloudfoundry-community/stackdriver-tools/src/stackdriver-nozzle/heartbeat"
 	"github.com/cloudfoundry-community/stackdriver-tools/src/stackdriver-nozzle/nozzle"
 	"github.com/cloudfoundry-community/stackdriver-tools/src/stackdriver-nozzle/stackdriver"
@@ -24,8 +24,10 @@ import (
 func main() {
 	a := newApp()
 
+	ctx, cancel := context.WithCancel(context.Background())
+
 	if a.c.DebugNozzle {
-		defer handleFatalError(a)
+		defer handleFatalError(a, cancel)
 
 		go func() {
 			a.logger.Info("pprof", lager.Data{
@@ -35,7 +37,7 @@ func main() {
 	}
 
 	producer := a.newProducer()
-	consumer := a.newConsumer()
+	consumer := a.newConsumer(ctx)
 
 	errs, fhErrs := consumer.Start(producer)
 	defer consumer.Stop()
@@ -48,12 +50,26 @@ func main() {
 
 	fatalErr := <-fhErrs
 	if fatalErr != nil {
-		a.logger.Fatal("firehose", fatalErr)
+		cancel()
+		t := time.NewTimer(5 * time.Second)
+		for {
+			select {
+			case <-time.Tick(100 * time.Millisecond):
+				if a.bufferEmpty() {
+					a.logger.Fatal("firehose", fatalErr, lager.Data{"cleanup": "The metrics buffer was successfully flushed before shutdown"})
+				}
+			case <-t.C:
+				a.logger.Fatal("firehose", fatalErr, lager.Data{"cleanup": "The metrics buffer could not be flushed before shutdown"})
+			}
+		}
 	}
 }
 
-func handleFatalError(a *app) {
+func handleFatalError(a *app, cancel context.CancelFunc) {
 	if e := recover(); e != nil {
+		// Cancel the context
+		cancel()
+
 		stack := make([]byte, 1<<16)
 		stackSize := runtime.Stack(stack, true)
 		stackTrace := string(stack[:stackSize])
@@ -96,8 +112,28 @@ func newApp() *app {
 
 	logger.Info("arguments", c.ToData())
 
+	metricClient, err := stackdriver.NewMetricClient()
+	if err != nil {
+		logger.Fatal("metricClient", err)
+	}
+
+	// Create a metricAdapter that will be used by the heartbeater
+	// to send heartbeat metrics to Stackdriver. This metricAdapter
+	// has its own heartbeater (with its own trigger) that writes to a logger.
 	trigger := time.NewTicker(time.Duration(c.HeartbeatRate) * time.Second).C
-	heartbeater := heartbeat.NewHeartbeater(logger, trigger)
+	adapterHeartbeater := heartbeat.NewHeartbeater(logger, trigger)
+	adapterHeartbeater.Start()
+	metricAdapter, err := stackdriver.NewMetricAdapter(c.ProjectID, metricClient, adapterHeartbeater)
+	if err != nil {
+		logger.Error("metricAdapter", err)
+	}
+
+	// Create a heartbeater that will write heartbeat events to Stackdriver
+	// logging and monitoring. It uses the metricAdapter created previously
+	// to write to Stackdriver.
+	metricHandler := heartbeat.NewMetricHandler(metricAdapter, logger, c.NozzleId, c.NozzleName, c.NozzleZone)
+	trigger2 := time.NewTicker(time.Duration(c.HeartbeatRate) * time.Second).C
+	heartbeater := heartbeat.NewLoggerMetricHeartbeater(metricHandler, logger, trigger2)
 
 	cfConfig := &cfclient.Config{
 		ApiAddress:        c.APIEndpoint,
@@ -106,14 +142,13 @@ func newApp() *app {
 		SkipSslValidation: c.SkipSSL}
 	cfClient := cfclient.NewClient(cfConfig)
 
-	var cachingClient caching.Caching
+	var appInfoRepository cloudfoundry.AppInfoRepository
 	if c.ResolveAppMetadata {
-		cachingClient = caching.NewCachingBolt(cfClient, c.BoltDBPath)
+		appInfoRepository = cloudfoundry.NewAppInfoRepository(cfClient)
 	} else {
-		cachingClient = caching.NewCachingEmpty()
+		appInfoRepository = cloudfoundry.NullAppInfoRepository()
 	}
-	cachingClient.CreateBucket()
-	labelMaker := nozzle.NewLabelMaker(cachingClient)
+	labelMaker := nozzle.NewLabelMaker(appInfoRepository)
 
 	return &app{
 		logger:      logger,
@@ -132,12 +167,13 @@ type app struct {
 	cfClient    *cfclient.Client
 	labelMaker  nozzle.LabelMaker
 	heartbeater heartbeat.Heartbeater
+	bufferEmpty func() bool
 }
 
-func (a *app) newProducer() firehose.Client {
-	fhClient := firehose.NewClient(a.cfConfig, a.cfClient, a.c.SubscriptionID)
+func (a *app) newProducer() cloudfoundry.Firehose {
+	firehose := cloudfoundry.NewFirehose(a.cfConfig, a.cfClient, a.c.SubscriptionID)
 
-	producer, err := filter.New(fhClient, strings.Split(a.c.Events, ","), a.heartbeater)
+	producer, err := filter.New(firehose, strings.Split(a.c.Events, ","), a.heartbeater)
 	if err != nil {
 		a.logger.Fatal("filter", err)
 	}
@@ -145,10 +181,10 @@ func (a *app) newProducer() firehose.Client {
 	return producer
 }
 
-func (a *app) newConsumer() *nozzle.Nozzle {
+func (a *app) newConsumer(ctx context.Context) *nozzle.Nozzle {
 	return &nozzle.Nozzle{
 		LogSink:     a.newLogSink(),
-		MetricSink:  a.newMetricSink(),
+		MetricSink:  a.newMetricSink(ctx),
 		Heartbeater: a.heartbeater,
 	}
 }
@@ -172,7 +208,7 @@ func (a *app) newLogAdapter() (stackdriver.LogAdapter, <-chan error) {
 	)
 }
 
-func (a *app) newMetricSink() nozzle.Sink {
+func (a *app) newMetricSink(ctx context.Context) nozzle.Sink {
 	metricClient, err := stackdriver.NewMetricClient()
 	if err != nil {
 		a.logger.Fatal("metricClient", err)
@@ -183,7 +219,8 @@ func (a *app) newMetricSink() nozzle.Sink {
 		a.logger.Error("metricAdapter", err)
 	}
 
-	metricBuffer, errs := stackdriver.NewMetricsBuffer(a.c.BatchCount, metricAdapter)
+	metricBuffer, errs := stackdriver.NewAutoCulledMetricsBuffer(ctx, a.logger, time.Duration(a.c.MetricsBufferDuration)*time.Second, a.c.MetricsBufferSize, metricAdapter)
+	a.bufferEmpty = metricBuffer.IsEmpty
 	go func() {
 		for err = range errs {
 			a.logger.Error("metricsBuffer", err)

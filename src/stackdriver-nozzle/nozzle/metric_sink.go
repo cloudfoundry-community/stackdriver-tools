@@ -88,8 +88,8 @@ func (ms *metricSink) Receive(envelope *events.Envelope) error {
 		return fmt.Errorf("unknown event type: %v", envelope.EventType)
 	}
 
-	for _, metric := range metrics {
-		ms.metricBuffer.PostMetric(&metric)
+	for k, _ := range metrics {
+		ms.metricBuffer.PostMetric(&metrics[k])
 	}
 	return nil
 }

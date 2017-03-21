@@ -19,7 +19,7 @@ package nozzle
 import (
 	"strings"
 
-	"github.com/cloudfoundry-community/stackdriver-tools/src/stackdriver-nozzle/firehose"
+	"github.com/cloudfoundry-community/stackdriver-tools/src/stackdriver-nozzle/cloudfoundry"
 	"github.com/cloudfoundry-community/stackdriver-tools/src/stackdriver-nozzle/heartbeat"
 	"github.com/cloudfoundry/sonde-go/events"
 )
@@ -45,12 +45,12 @@ type Nozzle struct {
 	done chan struct{}
 }
 
-func (n *Nozzle) Start(fhClient firehose.Client) (errs chan error, fhErrs <-chan error) {
+func (n *Nozzle) Start(firehose cloudfoundry.Firehose) (errs chan error, fhErrs <-chan error) {
 	n.Heartbeater.Start()
 	n.done = make(chan struct{})
 
 	errs = make(chan error)
-	messages, fhErrs := fhClient.Connect()
+	messages, fhErrs := firehose.Connect()
 	go func() {
 		for {
 			select {

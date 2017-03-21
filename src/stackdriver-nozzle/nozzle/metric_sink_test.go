@@ -78,11 +78,11 @@ var _ = Describe("MetricSink", func() {
 
 		metrics := metricBuffer.PostedMetrics
 		Expect(metrics).To(ConsistOf(stackdriver.Metric{
-			"valueMetricName",
-			123.456,
-			labels,
-			eventTime,
-			"{foo}",
+			Name:      "valueMetricName",
+			Value:     123.456,
+			Labels:    labels,
+			EventTime: eventTime,
+			Unit:      "{foo}",
 		}))
 
 		Expect(unitParser.lastInput).To(Equal("barUnit"))
@@ -123,12 +123,12 @@ var _ = Describe("MetricSink", func() {
 		metrics := metricBuffer.PostedMetrics
 		Expect(metrics).To(HaveLen(6))
 
-		Expect(metrics).To(ContainElement(stackdriver.Metric{"diskBytesQuota", float64(1073741824), labels, eventTime, ""}))
-		Expect(metrics).To(ContainElement(stackdriver.Metric{"instanceIndex", float64(0), labels, eventTime, ""}))
-		Expect(metrics).To(ContainElement(stackdriver.Metric{"cpuPercentage", 0.061651273460637, labels, eventTime, ""}))
-		Expect(metrics).To(ContainElement(stackdriver.Metric{"diskBytes", float64(164634624), labels, eventTime, ""}))
-		Expect(metrics).To(ContainElement(stackdriver.Metric{"memoryBytes", float64(16601088), labels, eventTime, ""}))
-		Expect(metrics).To(ContainElement(stackdriver.Metric{"memoryBytesQuota", float64(33554432), labels, eventTime, ""}))
+		Expect(metrics).To(ContainElement(stackdriver.Metric{Name: "diskBytesQuota", Value: float64(1073741824), Labels: labels, EventTime: eventTime, Unit: ""}))
+		Expect(metrics).To(ContainElement(stackdriver.Metric{Name: "instanceIndex", Value: float64(0), Labels: labels, EventTime: eventTime, Unit: ""}))
+		Expect(metrics).To(ContainElement(stackdriver.Metric{Name: "cpuPercentage", Value: 0.061651273460637, Labels: labels, EventTime: eventTime, Unit: ""}))
+		Expect(metrics).To(ContainElement(stackdriver.Metric{Name: "diskBytes", Value: float64(164634624), Labels: labels, EventTime: eventTime, Unit: ""}))
+		Expect(metrics).To(ContainElement(stackdriver.Metric{Name: "memoryBytes", Value: float64(16601088), Labels: labels, EventTime: eventTime, Unit: ""}))
+		Expect(metrics).To(ContainElement(stackdriver.Metric{Name: "memoryBytesQuota", Value: float64(33554432), Labels: labels, EventTime: eventTime, Unit: ""}))
 	})
 
 	It("creates total and delta metrics for CounterEvent", func() {
@@ -157,18 +157,18 @@ var _ = Describe("MetricSink", func() {
 		metrics := metricBuffer.PostedMetrics
 		Expect(metrics).To(ConsistOf(
 			stackdriver.Metric{
-				"counterName.delta",
-				float64(654321),
-				labels,
-				eventTime,
-				"",
+				Name:      "counterName.delta",
+				Value:     float64(654321),
+				Labels:    labels,
+				EventTime: eventTime,
+				Unit:      "",
 			},
 			stackdriver.Metric{
-				"counterName.total",
-				float64(123456),
-				labels,
-				eventTime,
-				"",
+				Name:      "counterName.total",
+				Value:     float64(123456),
+				Labels:    labels,
+				EventTime: eventTime,
+				Unit:      "",
 			},
 		))
 	})

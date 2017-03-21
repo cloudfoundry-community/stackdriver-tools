@@ -40,6 +40,8 @@ func NewConfig() (*Config, error) {
 		return nil, err
 	}
 
+	c.setNozzleHostInfo()
+
 	return &c, nil
 }
 
@@ -54,14 +56,18 @@ type Config struct {
 	NewlineToken   string `envconfig:"firehose_newline_token"`
 
 	// Stackdriver config
-	ProjectID string `envconfig:"gcp_project_id"`
+	ProjectID             string `envconfig:"gcp_project_id"`
+	MetricsBufferDuration int    `envconfig:"metrics_buffer_duration" default:"30"`
+	MetricsBufferSize     int    `envconfig:"metrics_buffer_size" default:"200"`
 
 	// Nozzle config
 	HeartbeatRate      int    `envconfig:"heartbeat_rate" default:"30"`
 	BatchCount         int    `envconfig:"batch_count" default:"10"`
 	BatchDuration      int    `envconfig:"batch_duration" default:"1"`
-	BoltDBPath         string `envconfig:"boltdb_path" default:"cached-app-metadata.db"`
 	ResolveAppMetadata bool   `envconfig:"resolve_app_metadata"`
+	NozzleId           string `envconfig:"nozzle_id" default:"local-nozzle"`
+	NozzleName         string `envconfig:"nozzle_name" default:"local-nozzle"`
+	NozzleZone         string `envconfig:"nozzle_zone" default:"local-nozzle"`
 	DebugNozzle        bool   `envconfig:"debug_nozzle"`
 }
 
@@ -95,6 +101,22 @@ func (c *Config) ensureProjectID() error {
 	return nil
 }
 
+// If running on GCE, this will set the nozzle's ID, name, and zone to
+// the GCE instance's values.
+func (c *Config) setNozzleHostInfo() {
+	if metadata.OnGCE() {
+		if v, err := metadata.InstanceID(); err == nil {
+			c.NozzleId = v
+		}
+		if v, err := metadata.Zone(); err == nil {
+			c.NozzleZone = v
+		}
+		if v, err := metadata.InstanceName(); err == nil {
+			c.NozzleName = v
+		}
+	}
+}
+
 func (c *Config) ToData() lager.Data {
 	return lager.Data{
 		"APIEndpoint":        c.APIEndpoint,
@@ -106,7 +128,6 @@ func (c *Config) ToData() lager.Data {
 		"BatchCount":         c.BatchCount,
 		"BatchDuration":      c.BatchDuration,
 		"HeartbeatRate":      c.HeartbeatRate,
-		"BoltDBPath":         c.BoltDBPath,
 		"ResolveAppMetadata": c.ResolveAppMetadata,
 		"SubscriptionID":     c.SubscriptionID,
 		"DebugNozzle":        c.DebugNozzle,

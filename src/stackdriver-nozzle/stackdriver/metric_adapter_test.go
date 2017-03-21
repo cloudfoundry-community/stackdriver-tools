@@ -34,12 +34,12 @@ import (
 var _ = Describe("MetricAdapter", func() {
 	var (
 		subject     stackdriver.MetricAdapter
-		client      *mockClient
+		client      *mocks.MockClient
 		heartbeater *mocks.Heartbeater
 	)
 
 	BeforeEach(func() {
-		client = &mockClient{}
+		client = &mocks.MockClient{}
 		heartbeater = mocks.NewHeartbeater()
 		subject, _ = stackdriver.NewMetricAdapter("my-awesome-project", client, heartbeater)
 	})
@@ -68,9 +68,9 @@ var _ = Describe("MetricAdapter", func() {
 
 		subject.PostMetrics(metrics)
 
-		Expect(client.metricReqs).To(HaveLen(1))
+		Expect(client.MetricReqs).To(HaveLen(1))
 
-		req := client.metricReqs[0]
+		req := client.MetricReqs[0]
 		Expect(req.Name).To(Equal("projects/my-awesome-project"))
 
 		timeSerieses := req.GetTimeSeries()
@@ -114,8 +114,8 @@ var _ = Describe("MetricAdapter", func() {
 
 		subject.PostMetrics(metrics)
 
-		Expect(client.descriptorReqs).To(HaveLen(1))
-		req := client.descriptorReqs[0]
+		Expect(client.DescriptorReqs).To(HaveLen(1))
+		req := client.DescriptorReqs[0]
 		Expect(req.Name).To(Equal("projects/my-awesome-project"))
 		Expect(req.MetricDescriptor).To(Equal(&metricpb.MetricDescriptor{
 			Name:        "projects/my-awesome-project/metricDescriptors/custom.googleapis.com/metricWithUnit",
@@ -151,7 +151,7 @@ var _ = Describe("MetricAdapter", func() {
 
 		subject.PostMetrics(metrics)
 
-		Expect(client.descriptorReqs).To(HaveLen(2))
+		Expect(client.DescriptorReqs).To(HaveLen(2))
 	})
 
 	It("handles concurrent metric descriptor creation", func() {
@@ -191,7 +191,7 @@ var _ = Describe("MetricAdapter", func() {
 
 	It("returns the adapter even if we fail to list the metric descriptors", func() {
 		expectedErr := errors.New("fail")
-		client.listErr = expectedErr
+		client.ListErr = expectedErr
 		subject, err := stackdriver.NewMetricAdapter("my-awesome-project", client, heartbeater)
 		Expect(subject).To(Not(BeNil()))
 		Expect(err).To(Equal(expectedErr))
@@ -222,41 +222,3 @@ var _ = Describe("MetricAdapter", func() {
 		Expect(heartbeater.GetCount("metrics.requests")).To(Equal(2))
 	})
 })
-
-type mockClient struct {
-	metricReqs     []*monitoringpb.CreateTimeSeriesRequest
-	descriptorReqs []*monitoringpb.CreateMetricDescriptorRequest
-	listErr        error
-	mutex          sync.Mutex
-
-	CreateMetricDescriptorFn func(request *monitoringpb.CreateMetricDescriptorRequest) error
-}
-
-func (mc *mockClient) Post(req *monitoringpb.CreateTimeSeriesRequest) error {
-	mc.mutex.Lock()
-	mc.metricReqs = append(mc.metricReqs, req)
-	mc.mutex.Unlock()
-
-	return nil
-}
-
-func (mc *mockClient) CreateMetricDescriptor(request *monitoringpb.CreateMetricDescriptorRequest) error {
-	if mc.CreateMetricDescriptorFn != nil {
-		return mc.CreateMetricDescriptorFn(request)
-	}
-
-	mc.mutex.Lock()
-	mc.descriptorReqs = append(mc.descriptorReqs, request)
-	mc.mutex.Unlock()
-
-	return nil
-}
-
-func (mc *mockClient) ListMetricDescriptors(request *monitoringpb.ListMetricDescriptorsRequest) ([]*metricpb.MetricDescriptor, error) {
-	if mc.listErr != nil {
-		return nil, mc.listErr
-	}
-	return []*metricpb.MetricDescriptor{
-		{Name: "anExistingMetric"},
-	}, nil
-}

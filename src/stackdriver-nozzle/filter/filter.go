@@ -20,13 +20,13 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/cloudfoundry-community/stackdriver-tools/src/stackdriver-nozzle/firehose"
+	"github.com/cloudfoundry-community/stackdriver-tools/src/stackdriver-nozzle/cloudfoundry"
 	"github.com/cloudfoundry-community/stackdriver-tools/src/stackdriver-nozzle/heartbeat"
 	"github.com/cloudfoundry/sonde-go/events"
 )
 
-func New(client firehose.Client, eventNames []string, heartbeater heartbeat.Heartbeater) (firehose.Client, error) {
-	f := filter{client: client, enabled: make(map[events.Envelope_EventType]bool), heartbeater: heartbeater}
+func New(firehose cloudfoundry.Firehose, eventNames []string, heartbeater heartbeat.Heartbeater) (cloudfoundry.Firehose, error) {
+	f := filter{firehose: firehose, enabled: make(map[events.Envelope_EventType]bool), heartbeater: heartbeater}
 
 	for _, eventName := range eventNames {
 		eventType, err := parseEventName(eventName)
@@ -42,14 +42,14 @@ func New(client firehose.Client, eventNames []string, heartbeater heartbeat.Hear
 }
 
 type filter struct {
-	client      firehose.Client
+	firehose    cloudfoundry.Firehose
 	enabled     map[events.Envelope_EventType]bool
 	heartbeater heartbeat.Heartbeater
 }
 
 func (f *filter) Connect() (<-chan *events.Envelope, <-chan error) {
 	filteredMessages := make(chan *events.Envelope)
-	messages, errs := f.client.Connect()
+	messages, errs := f.firehose.Connect()
 
 	go func() {
 		for envelope := range messages {

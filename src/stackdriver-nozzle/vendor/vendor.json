@@ -61,87 +61,6 @@
 			"revision": ""
 		},
 		{
-			"checksumSHA1": "DWPL08pD/SQ2GzLfoR7ZXnjj7Sw=",
-			"origin": "github.com/cloudfoundry-community/firehose-to-syslog/vendor/github.com/Sirupsen/logrus",
-			"path": "github.com/Sirupsen/logrus",
-			"revision": "2f0289cc7945c4cb44a27c4514c5d5cdcbee790a",
-			"revisionTime": "2016-09-27T03:13:17Z"
-		},
-		{
-			"checksumSHA1": "63vHVSiItUfflK3tUwe6mrI84BQ=",
-			"origin": "github.com/cloudfoundry-community/firehose-to-syslog/vendor/github.com/Sirupsen/logrus/hooks/syslog",
-			"path": "github.com/Sirupsen/logrus/hooks/syslog",
-			"revision": "2f0289cc7945c4cb44a27c4514c5d5cdcbee790a",
-			"revisionTime": "2016-09-27T03:13:17Z"
-		},
-		{
-			"checksumSHA1": "KmjnydoAbofMieIWm+it5OWERaM=",
-			"path": "github.com/alecthomas/template",
-			"revision": "a0175ee3bccc567396460bf5acd36800cb10c49c",
-			"revisionTime": "2016-04-05T07:15:01Z"
-		},
-		{
-			"checksumSHA1": "3wt0pTXXeS+S93unwhGoLIyGX/Q=",
-			"path": "github.com/alecthomas/template/parse",
-			"revision": "a0175ee3bccc567396460bf5acd36800cb10c49c",
-			"revisionTime": "2016-04-05T07:15:01Z"
-		},
-		{
-			"checksumSHA1": "fCc3grA7vIxfBru7R3SqjcW+oLI=",
-			"path": "github.com/alecthomas/units",
-			"revision": "2efee857e7cfd4f3d0138cc3cbb1b4966962b93a",
-			"revisionTime": "2015-10-22T06:55:26Z"
-		},
-		{
-			"checksumSHA1": "mDtGHhE0QAZjCMJy9fablynDpvw=",
-			"origin": "github.com/cloudfoundry-community/firehose-to-syslog/vendor/github.com/boltdb/bolt",
-			"path": "github.com/boltdb/bolt",
-			"revision": "2f0289cc7945c4cb44a27c4514c5d5cdcbee790a",
-			"revisionTime": "2016-09-27T03:13:17Z"
-		},
-		{
-			"checksumSHA1": "x5JKFpyFd95+2C+/OJ5r1SPyTXA=",
-			"path": "github.com/cloudfoundry-community/firehose-to-syslog/caching",
-			"revision": "2f0289cc7945c4cb44a27c4514c5d5cdcbee790a",
-			"revisionTime": "2016-09-27T03:13:17Z"
-		},
-		{
-			"checksumSHA1": "V/i47eWiK2fmp+0xzU4Tlv6zTUc=",
-			"path": "github.com/cloudfoundry-community/firehose-to-syslog/eventRouting",
-			"revision": "2f0289cc7945c4cb44a27c4514c5d5cdcbee790a",
-			"revisionTime": "2016-09-27T03:13:17Z"
-		},
-		{
-			"checksumSHA1": "VfTWoKZR+h0mTIrktCpeeXJ/n00=",
-			"path": "github.com/cloudfoundry-community/firehose-to-syslog/events",
-			"revision": "2f0289cc7945c4cb44a27c4514c5d5cdcbee790a",
-			"revisionTime": "2016-09-27T03:13:17Z"
-		},
-		{
-			"checksumSHA1": "Y/AhRCmSOvUL/IUFnJ/4CrsOpV4=",
-			"path": "github.com/cloudfoundry-community/firehose-to-syslog/extrafields",
-			"revision": "2f0289cc7945c4cb44a27c4514c5d5cdcbee790a",
-			"revisionTime": "2016-09-27T03:13:17Z"
-		},
-		{
-			"checksumSHA1": "QdVRiWtLRjyZlVxSjK3AQogYUJE=",
-			"path": "github.com/cloudfoundry-community/firehose-to-syslog/firehoseclient",
-			"revision": "2f0289cc7945c4cb44a27c4514c5d5cdcbee790a",
-			"revisionTime": "2016-09-27T03:13:17Z"
-		},
-		{
-			"checksumSHA1": "ervTF1qv4BwAc06+vAIY8yyPEAY=",
-			"path": "github.com/cloudfoundry-community/firehose-to-syslog/logging",
-			"revision": "2f0289cc7945c4cb44a27c4514c5d5cdcbee790a",
-			"revisionTime": "2016-09-27T03:13:17Z"
-		},
-		{
-			"checksumSHA1": "vbD5LDMehFJfunuZIbldxtliMq8=",
-			"path": "github.com/cloudfoundry-community/firehose-to-syslog/utils",
-			"revision": "2f0289cc7945c4cb44a27c4514c5d5cdcbee790a",
-			"revisionTime": "2016-09-27T03:13:17Z"
-		},
-		{
 			"checksumSHA1": "Nv1Xu0j8pCqBEFLEkBiKGoFHE0g=",
 			"path": "github.com/cloudfoundry-community/go-cfclient",
 			"revision": "36327f16c627105e55102559bbe9e2f9f5807bd0",
@@ -155,56 +74,48 @@
 		},
 		{
 			"checksumSHA1": "Iqf2xnWXrn9523erEXi2BMFOsAM=",
-			"origin": "github.com/cloudfoundry-community/firehose-to-syslog/vendor/github.com/cloudfoundry/noaa",
 			"path": "github.com/cloudfoundry/noaa",
 			"revision": "2f0289cc7945c4cb44a27c4514c5d5cdcbee790a",
 			"revisionTime": "2016-09-27T03:13:17Z"
 		},
 		{
 			"checksumSHA1": "THhzwZWdY7Ba3XDBkRfvF/LIjXs=",
-			"origin": "github.com/cloudfoundry-community/firehose-to-syslog/vendor/github.com/cloudfoundry/noaa/consumer",
 			"path": "github.com/cloudfoundry/noaa/consumer",
 			"revision": "2f0289cc7945c4cb44a27c4514c5d5cdcbee790a",
 			"revisionTime": "2016-09-27T03:13:17Z"
 		},
 		{
 			"checksumSHA1": "AeY557qsuU7LvBXWcHBrS6YGIOE=",
-			"origin": "github.com/cloudfoundry-community/firehose-to-syslog/vendor/github.com/cloudfoundry/noaa/consumer/internal",
 			"path": "github.com/cloudfoundry/noaa/consumer/internal",
 			"revision": "2f0289cc7945c4cb44a27c4514c5d5cdcbee790a",
 			"revisionTime": "2016-09-27T03:13:17Z"
 		},
 		{
 			"checksumSHA1": "0vp4dA8dgIqGJ99b2fICWFjyxPg=",
-			"origin": "github.com/cloudfoundry-community/firehose-to-syslog/vendor/github.com/cloudfoundry/noaa/errors",
 			"path": "github.com/cloudfoundry/noaa/errors",
 			"revision": "2f0289cc7945c4cb44a27c4514c5d5cdcbee790a",
 			"revisionTime": "2016-09-27T03:13:17Z"
 		},
 		{
 			"checksumSHA1": "Z74N9oSWSfZUvquXcJT/WvmaMKA=",
-			"origin": "github.com/cloudfoundry-community/firehose-to-syslog/vendor/github.com/cloudfoundry/sonde-go/events",
 			"path": "github.com/cloudfoundry/sonde-go/events",
 			"revision": "2f0289cc7945c4cb44a27c4514c5d5cdcbee790a",
 			"revisionTime": "2016-09-27T03:13:17Z"
 		},
 		{
 			"checksumSHA1": "+4IIV7QrpkThFD9FDGbJqEos8j0=",
-			"origin": "github.com/cloudfoundry-community/firehose-to-syslog/vendor/github.com/gogo/protobuf/gogoproto",
 			"path": "github.com/gogo/protobuf/gogoproto",
 			"revision": "2f0289cc7945c4cb44a27c4514c5d5cdcbee790a",
 			"revisionTime": "2016-09-27T03:13:17Z"
 		},
 		{
 			"checksumSHA1": "dyojUOIWcH5VOLo2R7VMqF0bttg=",
-			"origin": "github.com/cloudfoundry-community/firehose-to-syslog/vendor/github.com/gogo/protobuf/proto",
 			"path": "github.com/gogo/protobuf/proto",
 			"revision": "2f0289cc7945c4cb44a27c4514c5d5cdcbee790a",
 			"revisionTime": "2016-09-27T03:13:17Z"
 		},
 		{
 			"checksumSHA1": "VvCVRy9q3dA7x8lB/OmIRUit0g8=",
-			"origin": "github.com/cloudfoundry-community/firehose-to-syslog/vendor/github.com/gogo/protobuf/protoc-gen-gogo/descriptor",
 			"path": "github.com/gogo/protobuf/protoc-gen-gogo/descriptor",
 			"revision": "2f0289cc7945c4cb44a27c4514c5d5cdcbee790a",
 			"revisionTime": "2016-09-27T03:13:17Z"
@@ -265,7 +176,6 @@
 		},
 		{
 			"checksumSHA1": "klfNfdEPsrWYLps2qBkLgfJsNYI=",
-			"origin": "github.com/cloudfoundry-community/firehose-to-syslog/vendor/github.com/gorilla/websocket",
 			"path": "github.com/gorilla/websocket",
 			"revision": "2f0289cc7945c4cb44a27c4514c5d5cdcbee790a",
 			"revisionTime": "2016-09-27T03:13:17Z"
@@ -277,32 +187,10 @@
 			"revisionTime": "2016-09-21T17:42:30Z"
 		},
 		{
-			"checksumSHA1": "dVJ9fegloWyzJUocDst1vFmgR18=",
-			"origin": "github.com/cloudfoundry-community/firehose-to-syslog/vendor/github.com/mailru/easyjson",
-			"path": "github.com/mailru/easyjson",
-			"revision": "2f0289cc7945c4cb44a27c4514c5d5cdcbee790a",
-			"revisionTime": "2016-09-27T03:13:17Z"
-		},
-		{
-			"checksumSHA1": "urY45++NYCue4nh4k8OjUFnIGfU=",
-			"origin": "github.com/cloudfoundry-community/firehose-to-syslog/vendor/github.com/mailru/easyjson/buffer",
-			"path": "github.com/mailru/easyjson/buffer",
-			"revision": "2f0289cc7945c4cb44a27c4514c5d5cdcbee790a",
-			"revisionTime": "2016-09-27T03:13:17Z"
-		},
-		{
-			"checksumSHA1": "yTDKAM4KBgOvXRsZC50zg0OChvM=",
-			"origin": "github.com/cloudfoundry-community/firehose-to-syslog/vendor/github.com/mailru/easyjson/jlexer",
-			"path": "github.com/mailru/easyjson/jlexer",
-			"revision": "2f0289cc7945c4cb44a27c4514c5d5cdcbee790a",
-			"revisionTime": "2016-09-27T03:13:17Z"
-		},
-		{
-			"checksumSHA1": "kR0NgCTdII00QJpt+a4HFdFZT90=",
-			"origin": "github.com/cloudfoundry-community/firehose-to-syslog/vendor/github.com/mailru/easyjson/jwriter",
-			"path": "github.com/mailru/easyjson/jwriter",
-			"revision": "2f0289cc7945c4cb44a27c4514c5d5cdcbee790a",
-			"revisionTime": "2016-09-27T03:13:17Z"
+			"checksumSHA1": "sWdAYPKyaT4SW8hNQNpRS0sU4lU=",
+			"path": "github.com/mitchellh/hashstructure",
+			"revision": "ab25296c0f51f1022f01cd99dfb45f1775de8799",
+			"revisionTime": "2017-01-16T05:20:23Z"
 		},
 		{
 			"checksumSHA1": "5CYrIFTTUD3pONFo8uEO21Ajz68=",
@@ -558,7 +446,6 @@
 		},
 		{
 			"checksumSHA1": "ZF0dV9wT2Mr/e02nk0l1vgU4abw=",
-			"origin": "github.com/cloudfoundry-community/firehose-to-syslog/vendor/golang.org/x/sys/unix",
 			"path": "golang.org/x/sys/unix",
 			"revision": "2f0289cc7945c4cb44a27c4514c5d5cdcbee790a",
 			"revisionTime": "2016-09-27T03:13:17Z"

@@ -1,0 +1,144 @@
+---
+jobs:
+  - name: test-unit
+    plan:
+      - aggregate:
+        - {trigger: true,  get: stackdriver-tools,   resource: stackdriver-tools-in}
+
+      - task: unit-tests
+        file: stackdriver-tools/ci/tasks/unit-tests.yml
+        on_failure:
+          aggregate:
+            - put: slack-alert
+              params:
+                icon_emoji: ":robot_face:"
+                username: Build pipeline
+                channel: "#lambr-private"
+                text: "unit-tests failed"
+
+
+  - name: build-candidate
+    plan:
+      - aggregate:
+        - {trigger: true, passed: [test-unit],  get: stackdriver-tools,   resource: stackdriver-tools-in}
+        - {trigger: false, get: version-semver, params: {bump: patch}}
+
+      - put: version-semver
+        params: {file: version-semver/number}
+
+      - task: make-semver-public
+        file: stackdriver-tools/ci/tasks/public-semver.yml
+        config:
+          params:
+            project_id: {{project_id}}
+            service_account_key_json: {{service_account_key_json}}
+            bucket_name: {{bucket_name}}
+            semver_key: beta/stackdriver-tools/current-version
+
+      - task: build-release
+        file: stackdriver-tools/ci/tasks/build-candidate.yml
+        on_failure:
+          aggregate:
+            - put: slack-alert
+              params:
+                icon_emoji: ":robot_face:"
+                username: Build pipeline
+                channel: "#lambr-private"
+                text: "build-release failed"
+
+      - put: stackdriver-tools-artifacts
+        params: {file: candidate/*.tgz}
+
+      - put: stackdriver-tools-artifacts-sha1
+        params: {file: candidate/*.tgz.sha1}
+
+  - name: deploy-candidate
+    plan:
+      - aggregate:
+        - {trigger: true,  passed: [build-candidate],  get: stackdriver-tools,                resource: stackdriver-tools-in}
+        - {trigger: true,  passed: [build-candidate],  get: stackdriver-tools-artifacts,      resource: stackdriver-tools-artifacts}
+        - {trigger: false, passed: [build-candidate],  get: stackdriver-tools-artifacts-sha1, resource: stackdriver-tools-artifacts-sha1}
+        - {trigger: false,                             get: version-semver,                   resource: version-semver}
+
+      - task: deploy-candidate
+        file: stackdriver-tools/ci/tasks/deploy-candidate.yml
+        attempts: 2
+        on_failure:
+          aggregate:
+            - put: slack-alert
+              params:
+                icon_emoji: ":robot_face:"
+                username: Build pipeline
+                channel: "#lambr-private"
+                text: "deploy-candidate failed"
+        config:
+          params:
+            ssh_bastion_address     : {{ssh_bastion_address}}
+            ssh_user: {{ssh_user}}
+            ssh_key: {{ssh_key}}
+            bosh_director_address: {{bosh_director_address}}
+            bosh_user: {{bosh_user}}
+            bosh_password: {{bosh_password}}
+            google_region: {{google_region}}
+            google_zone: {{google_zone}}
+            network: {{network}}
+            public_subnetwork: {{public_subnetwork}}
+            private_subnetwork: {{private_subnetwork}}
+            project_id: {{project_id}}
+            cf_service_account: {{cf_service_account}}
+            nozzle_user: {{nozzle_user}}
+            nozzle_password: {{nozzle_password}}
+            vip_ip: {{vip_ip}}
+            service_account_key_json: {{service_account_key_json}}
+
+resources:
+  - name: stackdriver-tools-in
+    type: git
+    source:
+      uri: https://github.com/cloudfoundry-community/stackdriver-tools.git
+      branch: develop
+      ignore_paths:
+        - .final_builds/**/*.yml
+        - releases/**/*.yml
+
+  - name: stackdriver-tools-artifacts
+    type: gcs-resource
+    source:
+      json_key: {{service_account_key_json}}
+      bucket:   {{bucket_name}}
+      regexp:   beta/develop-stackdriver-tools/stackdriver-tools([0-9]+\.[0-9]+\.[0-9]+)\.tgz
+
+  - name: stackdriver-tools-artifacts-sha1
+    type: gcs-resource
+    source:
+      json_key: {{service_account_key_json}}
+      bucket:   {{bucket_name}}
+      regexp:   beta/develop-stackdriver-tools/stackdriver-tools([0-9]+\.[0-9]+\.[0-9]+)\.tgz.sha1
+
+  - name: version-semver
+    type: semver
+    source:
+      key:               beta/develop-stackdriver-tools/current-version
+      bucket:            {{bucket_name}}
+      access_key_id:     {{bucket_access_key}}
+      secret_access_key: {{bucket_secret_key}}
+      region:            US
+      endpoint:          storage.googleapis.com
+
+  - name: slack-alert
+    type: slack-notification
+    source:
+      url: {{slack-hook}}
+
+
+resource_types:
+  - name: gcs-resource
+    type: docker-image
+    source:
+      repository: frodenas/gcs-resource
+
+  - name: slack-notification
+    type: docker-image
+    source:
+      repository: cfcommunity/slack-notification-resource
+      tag: latest

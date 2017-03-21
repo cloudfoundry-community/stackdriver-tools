@@ -23,6 +23,7 @@ import (
 	. "github.com/onsi/ginkgo/extensions/table"
 	. "github.com/onsi/gomega"
 
+	"cloud.google.com/go/compute/metadata"
 	"github.com/cloudfoundry-community/stackdriver-tools/src/stackdriver-nozzle/config"
 )
 
@@ -44,6 +45,26 @@ var _ = Describe("Config", func() {
 
 		Expect(err).To(BeNil())
 		Expect(c.APIEndpoint).To(Equal("https://api.example.com"))
+
+		// Several config vals have defaults that can be overriden environment
+		// that can be overriden by GCE metadata. Check those.
+		funcs := []struct {
+			configVal string
+			localFn   func() (string, error)
+			gceFn     func() (string, error)
+		}{
+			{c.NozzleId, func() (string, error) { return "local-nozzle", nil }, metadata.InstanceID},
+			{c.NozzleName, func() (string, error) { return "local-nozzle", nil }, metadata.InstanceName},
+			{c.NozzleZone, func() (string, error) { return "local-nozzle", nil }, metadata.Zone},
+		}
+		for _, t := range funcs {
+			v, _ := t.localFn()
+			if metadata.OnGCE() {
+				v, _ = t.gceFn()
+			}
+			Expect(t.configVal).To(Equal(v))
+		}
+
 	})
 
 	DescribeTable("required values aren't empty", func(envName string) {
