@@ -78,6 +78,7 @@ jobs:
         - {trigger: true,  passed: [build-candidate],  get: stackdriver-tools,                resource: stackdriver-tools-in}
         - {trigger: true,  passed: [build-candidate],  get: stackdriver-tools-artifacts,      resource: stackdriver-tools-artifacts}
         - {trigger: false, passed: [build-candidate],  get: stackdriver-tools-artifacts-sha1, resource: stackdriver-tools-artifacts-sha1}
+        - {trigger: false,                             get: version-semver,                   resource: version-semver}
 
       - task: deploy-candidate
         file: stackdriver-tools/ci/tasks/deploy-candidate.yml
