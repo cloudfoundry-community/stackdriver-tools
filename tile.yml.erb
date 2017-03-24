@@ -23,6 +23,7 @@ packages:
     cpu: 2
     dynamic_ip: 0
     static_ip: 1
+    instances: (( .properties.nozzle_instances.value ))
     properties:
       firehose:
         endpoint: (( .properties.firehose_endpoint.value ))
@@ -67,4 +68,8 @@ forms:
     type: string
     label: Google Project ID
     description: Project id for project with logging and monitoring APIs enabled
-
+  - name: nozzle_instances
+    type: integer
+    label: Nozzle Instances
+    default: 2
+    description: Number of nozzle instances to run. A minimum of 2 is suggested to handle upgrades and more are required as the Cloud Foundry scales.
