@@ -33,7 +33,8 @@ packages:
         skip_ssl: (( .properties.firehose_skip_ssl.value ))
       credentials:
         application_default_credentials: (( .properties.service_account.value ))
-      project_id: (( .properties.project_id.value ))
+      gcp:
+        project_id: (( .properties.project_id.value ))
 
 
 forms:
