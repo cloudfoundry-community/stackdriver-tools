@@ -14,8 +14,6 @@ packages:
   jobs:
   - name: stackdriver-nozzle
     templates:
-    - name: credentials
-      release: stackdriver-tools
     - name: stackdriver-nozzle
       release: stackdriver-tools
     memory: 512
@@ -33,7 +31,8 @@ packages:
         skip_ssl: (( .properties.firehose_skip_ssl.value ))
       credentials:
         application_default_credentials: (( .properties.service_account.value ))
-      project_id: (( .properties.project_id.value ))
+      gcp:
+        project_id: (( .properties.project_id.value ))
 
 
 forms:
