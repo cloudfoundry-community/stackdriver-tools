@@ -2,6 +2,7 @@
 
 RUN_DIR=/var/vcap/sys/run/stackdriver-nozzle
 LOG_DIR=/var/vcap/sys/log/stackdriver-nozzle
+PKG_DIR=/var/vcap/packages/stackdriver-nozzle
 PIDFILE=$RUN_DIR/stackdriver-nozzle.pid
 
 source /var/vcap/packages/common/utils.sh
@@ -33,10 +34,13 @@ case $1 in
     <% if_p('gcp.project_id') do |prop| %>
     export GCP_PROJECT_ID=<%= prop %>
     <% end %>
+    <% if_p('credentials.application_default_credentials') do |prop| %>
+    export GOOGLE_APPLICATION_CREDENTIALS=$PKG_DIR/config/application_default_credentials.json
+    <% end %>
 
     echo $$ > $PIDFILE
 
-    exec chpst -u vcap:vcap /var/vcap/packages/stackdriver-nozzle/bin/stackdriver-nozzle \
+    exec chpst -u vcap:vcap $PKG_DIR/bin/stackdriver-nozzle \
       >>$LOG_DIR/stackdriver-nozzle.stdout.log \
       2>>$LOG_DIR/stackdriver-nozzle.stderr.log
 
