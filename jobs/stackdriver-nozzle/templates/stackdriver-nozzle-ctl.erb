@@ -2,6 +2,7 @@
 
 RUN_DIR=/var/vcap/sys/run/stackdriver-nozzle
 LOG_DIR=/var/vcap/sys/log/stackdriver-nozzle
+JOB_DIR=/var/vcap/jobs/stackdriver-nozzle
 PKG_DIR=/var/vcap/packages/stackdriver-nozzle
 PIDFILE=$RUN_DIR/stackdriver-nozzle.pid
 
@@ -35,7 +36,7 @@ case $1 in
     export GCP_PROJECT_ID=<%= prop %>
     <% end %>
     <% if_p('credentials.application_default_credentials') do |prop| %>
-    export GOOGLE_APPLICATION_CREDENTIALS=$PKG_DIR/config/application_default_credentials.json
+    export GOOGLE_APPLICATION_CREDENTIALS=$JOB_DIR/config/application_default_credentials.json
     <% end %>
 
     echo $$ > $PIDFILE
