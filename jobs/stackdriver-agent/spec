@@ -6,6 +6,7 @@ packages:
 
 templates:
   collectd-gcm.conf.tmpl: config/collectd-gcm.conf.tmpl
+  application_default_credentials.json: config/application_default_credentials.json
   stackdriver_collectd_ctl: bin/stackdriver_collectd_ctl
 
 properties: {}
