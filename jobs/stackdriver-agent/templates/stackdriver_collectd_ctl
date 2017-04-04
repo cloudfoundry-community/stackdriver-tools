@@ -44,6 +44,7 @@ NAME=stackdriver-agent
 DAEMON=${PKG_DIR}/collectd/sbin/stackdriver-collectd
 
 CONFIGFILE=${JOB_DIR}/config/collectd.conf
+CREDENTIALS_FILE=${JOB_DIR}/config/application_default_credentials.json
 CONFIG_TEMPLATE=${JOB_DIR}/config/collectd.conf.tmpl
 GCM_CONFIG_TEMPLATE=${JOB_DIR}/config/collectd-gcm.conf.tmpl
 _PIDFILE=${RUN_DIR}/stackdriver_collectd.pid
@@ -148,6 +149,9 @@ gen_config() {
         # second, see if the application default credential file is in the system location
         elif [ -f /etc/google/auth/application_default_credentials.json ]; then
             log_progress_msg "Found a credentials file"
+            USE_GCM_API="yes"
+       elif [ -f "${CREDENTIALS_FILE}" ]; then
+            log_progress_msg "Found a credentials file in BOSH job"
             USE_GCM_API="yes"
         else
             log_warning_msg "Not authorized to talk to the GCM API, falling back on legacy"

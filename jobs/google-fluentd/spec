@@ -5,9 +5,12 @@ packages:
   - google-fluentd
 
 templates:
-  google-fluentd-ctl: bin/google-fluentd-ctl
+  google-fluentd-ctl.erb: bin/google-fluentd-ctl
   google-fluentd.conf: config/google-fluentd.conf
   syslog.conf: config/config.d/syslog.conf
   vcap.conf: config/config.d/vcap.conf
+  application_default_credentials.json.erb: config/application_default_credentials.json
 
-properties: {}
+properties: 
+  credentials.application_default_credentials:
+      description: Contents of application_default_credentials.json, see https://cloud.google.com/logging/docs/agent/authorization#configuring_client_id_authorization.

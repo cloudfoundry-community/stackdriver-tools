@@ -4,12 +4,14 @@ set -e # exit immediately if a simple command exits with a non-zero status
 set -u # report the usage of uninitialized variables
 
 RUN_DIR=/var/vcap/sys/run/google-fluentd
+JOB_DIR=/var/vcap/jobs/google-fluentd
+PKG_DIR=/var/vcap/packages/google-fluentd
 LOG_DIR=/var/vcap/sys/log/google-fluentd
 POS_DIR=${RUN_DIR}/pos
 
 PIDFILE=${RUN_DIR}/google-fluentd.pid
 
-source /var/vcap/packages/google-fluentd/utils.sh
+source ${PKG_DIR}/utils.sh
 
 case $1 in
 
@@ -19,10 +21,14 @@ case $1 in
     pid_guard ${PIDFILE} "google-fluentd"
     echo $$ > "${PIDFILE}"
 
-    export PATH=/var/vcap/packages/google-fluentd/bin:${PATH}
+    export PATH=${PKG_DIR}/bin:${PATH}
 
-    exec /var/vcap/packages/google-fluentd/bin/fluentd \
-      --config /var/vcap/jobs/google-fluentd/config/google-fluentd.conf \
+<% if_p('credentials.application_default_credentials') do %>
+    export GOOGLE_APPLICATION_CREDENTIALS=${JOB_DIR}/config/application_default_credentials.json
+<% end %>
+
+    exec ${PKG_DIR}/bin/fluentd \
+      --config ${JOB_DIR}/config/google-fluentd.conf \
       --no-supervisor \
       >>  ${LOG_DIR}/google-fluentd.stdout.log \
       2>> ${LOG_DIR}/google-fluentd.stderr.log

@@ -59,7 +59,7 @@ Follow the [GCP documentation](https://cloud.google.com/iam/docs/granting-changi
 - `roles/logging.configWriter`
 - `roles/monitoring.metricWriter`
 
-You can either authenticate the job(s) by specifying the service account in the `cloud_properties` for the [resource pool](https://bosh.io/docs/deployment-manifest.html#resource-pools) running the job(s) or by configuring and colocating the [credentials](https://github.com/cloudfoundry-community/stackdriver-tools/blob/master/jobs/credentials/spec) job. 
+You can either authenticate the job(s) by specifying the service account in the `cloud_properties` for the [resource pool](https://bosh.io/docs/deployment-manifest.html#resource-pools) running the job(s) or by configuring `credentials.application_default_credentials` in the job spec. 
 
 You may also read the [access control
 documentation](https://cloud.google.com/logging/docs/access-control) for more
