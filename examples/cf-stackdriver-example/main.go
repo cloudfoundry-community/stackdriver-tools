@@ -38,14 +38,13 @@ type Entry struct {
 
 var (
 	datastoreClient *datastore.Client
-	projectID string
+	projectID       string
 )
 
 func ListRangeHandler(rw http.ResponseWriter, req *http.Request) {
 	key := mux.Vars(req)["key"]
 
 	var entries []*Entry
-	datastoreClient := HandleError(datastore.NewClient(context.Background(), projectID)).(*datastore.Client)
 
 	query := datastore.NewQuery(key).Order("created")
 	_, err := datastoreClient.GetAll(context.Background(), query, &entries)
@@ -128,6 +127,11 @@ func main() {
 
 	ctx := context.Background()
 	errorsClient = HandleError(errors.NewClient(ctx, projectID, "cf-stackdriver-example", "0.0.1", true)).(*errors.Client)
+
+	datastoreClient, err := datastore.NewClient(context.Background(), projectID)
+	if err != nil {
+		panic("error connecting to the Google Cloud Datastore. Does this project have an App Engine App? see: https://cloud.google.com/datastore/docs/activate")
+	}
 
 	r := mux.NewRouter()
 	r.Path("/lrange/{key}").Methods("GET").HandlerFunc(ListRangeHandler)
