@@ -26,8 +26,8 @@ packages:
       firehose:
         endpoint: (( .properties.firehose_endpoint.value ))
         events: (( .properties.firehose_events.value ))
-        username: (( .properties.firehose_username.value ))
-        password: (( .properties.firehose_password.value ))
+        username: (( .properties.firehose_username.value || ..cf.uaa.stackdriver_nozzle_credentials.identity ))
+        password: (( .properties.firehose_password.value || ..cf.uaa.stackdriver_nozzle_credentials.password ))
         skip_ssl: (( .properties.firehose_skip_ssl.value ))
       credentials:
         application_default_credentials: (( .properties.service_account.value ))
@@ -52,9 +52,11 @@ forms:
     type: string
     label: UAA Username
     description: UAA user with doppler.firehose and cloud_controller.admin_read_only permissions
+    optional: true
   - name: firehose_password
     type: secret
     label: UAA Password
+    optional: true
   - name: firehose_skip_ssl
     type: string
     default: 'false'
