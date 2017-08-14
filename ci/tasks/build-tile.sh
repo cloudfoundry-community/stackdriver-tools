@@ -9,6 +9,10 @@ image_name=${release_name}-${semver}.tgz
 image_path="https://storage.googleapis.com/bosh-gcp/beta/stackdriver-tools/${image_name}"
 output_path=candidate/stackdriver-nozzle-${semver}.pivotal
 
+# install dependencies
+apk update
+apk add ruby
+
 pushd "stackdriver-tools"
 	echo "Creating tile.yml"
 	RELEASE_PATH=${image_path} erb tile.yml.erb > tile.yml
