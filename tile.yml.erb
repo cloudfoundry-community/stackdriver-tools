@@ -25,7 +25,8 @@ packages:
     properties:
       firehose:
         endpoint: (( .properties.firehose_endpoint.value ))
-        events: (( .properties.firehose_events.value ))
+        events_to_stackdriver_logging: (( .properties.firehose_events_to_stackdriver_logging.value ))
+        events_to_stackdriver_monitoring: (( .properties.firehose_events_to_stackdriver_monitoring.value ))
         username: (( .properties.firehose_username.value || ..cf.uaa.stackdriver_nozzle_credentials.identity ))
         password: (( .properties.firehose_password.value || ..cf.uaa.stackdriver_nozzle_credentials.password ))
         skip_ssl: (( .properties.firehose_skip_ssl.value ))
@@ -43,11 +44,16 @@ forms:
   - name: firehose_endpoint
     type: string
     label: Cloud Foundry API Endpoint
-  - name: firehose_events
+  - name: firehose_events_to_stackdriver_logging
     type: string
-    default: HttpStart,HttpStop,HttpStartStop,LogMessage,ValueMetric,CounterEvent,Error,ContainerMetric
-    label: Events to Subscribe to
-    description: Comma separated list without spaces consisting of any or all of HttpStart, HttpStop, HttpStartStop, LogMessage, ValueMetric, CounterEvent, Error, ContainerMetric
+    default: HttpStartStop,LogMessage,Error
+    label: Whitelist for Stackdriver Logging
+    description: Comma separated list without spaces consisting of any or all of HttpStart,HttpStop,HttpStartStop,LogMessage,ValueMetric,CounterEvent,Error,ContainerMetric
+  - name: firehose_events_to_stackdriver_monitoring
+    type: string
+    default: CounterEvent,ValueMetric,ContainerMetric
+    label: Whitelist for Stackdriver Monitoring
+    description: Comma separated list without spaces consisting of any or all of ValueMetric,CounterEvent,ContainerMetric
   - name: firehose_username
     type: string
     label: UAA Username

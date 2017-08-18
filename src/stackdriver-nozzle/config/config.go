@@ -47,13 +47,14 @@ func NewConfig() (*Config, error) {
 
 type Config struct {
 	// Firehose config
-	APIEndpoint    string `envconfig:"firehose_endpoint" required:"true"`
-	Events         string `envconfig:"firehose_events" required:"true"`
-	Username       string `envconfig:"firehose_username" default:"admin"`
-	Password       string `envconfig:"firehose_password" default:"admin"`
-	SkipSSL        bool   `envconfig:"firehose_skip_ssl" default:"false"`
-	SubscriptionID string `envconfig:"firehose_subscription_id" required:"true"`
-	NewlineToken   string `envconfig:"firehose_newline_token"`
+	APIEndpoint      string `envconfig:"firehose_endpoint" required:"true"`
+	LoggingEvents    string `envconfig:"firehose_events_to_stackdriver_logging" required:"true"`
+	MonitoringEvents string `envconfig:"firehose_events_to_stackdriver_monitoring" required:"false"`
+	Username         string `envconfig:"firehose_username" default:"admin"`
+	Password         string `envconfig:"firehose_password" default:"admin"`
+	SkipSSL          bool   `envconfig:"firehose_skip_ssl" default:"false"`
+	SubscriptionID   string `envconfig:"firehose_subscription_id" required:"true"`
+	NewlineToken     string `envconfig:"firehose_newline_token"`
 
 	// Stackdriver config
 	ProjectID             string `envconfig:"gcp_project_id"`
@@ -80,8 +81,8 @@ func (c *Config) validate() error {
 		return errors.New("FIREHOSE_ENDPOINT is empty")
 	}
 
-	if c.Events == "" {
-		return errors.New("FIREHOSE_EVENTS is empty")
+	if c.LoggingEvents == "" && c.MonitoringEvents == "" {
+		return errors.New("FIREHOSE_EVENTS_TO_STACKDRIVER_LOGGING and FIREHOSE_EVENTS_TO_STACKDRIVER_MONITORING are empty")
 	}
 
 	return nil
@@ -119,18 +120,19 @@ func (c *Config) setNozzleHostInfo() {
 
 func (c *Config) ToData() lager.Data {
 	return lager.Data{
-		"APIEndpoint":        c.APIEndpoint,
-		"Username":           c.Username,
-		"Password":           "<redacted>",
-		"Events":             c.Events,
-		"SkipSSL":            c.SkipSSL,
-		"ProjectID":          c.ProjectID,
-		"BatchCount":         c.BatchCount,
-		"BatchDuration":      c.BatchDuration,
-		"HeartbeatRate":      c.HeartbeatRate,
-		"ResolveAppMetadata": c.ResolveAppMetadata,
-		"SubscriptionID":     c.SubscriptionID,
-		"DebugNozzle":        c.DebugNozzle,
-		"NewlineToken":       c.NewlineToken,
+		"APIEndpoint":                   c.APIEndpoint,
+		"Username":                      c.Username,
+		"Password":                      "<redacted>",
+		"EventsToStackdriverMonitoring": c.MonitoringEvents,
+		"EventsToStackdriverLogging":    c.LoggingEvents,
+		"SkipSSL":                       c.SkipSSL,
+		"ProjectID":                     c.ProjectID,
+		"BatchCount":                    c.BatchCount,
+		"BatchDuration":                 c.BatchDuration,
+		"HeartbeatRate":                 c.HeartbeatRate,
+		"ResolveAppMetadata":            c.ResolveAppMetadata,
+		"SubscriptionID":                c.SubscriptionID,
+		"DebugNozzle":                   c.DebugNozzle,
+		"NewlineToken":                  c.NewlineToken,
 	}
 }

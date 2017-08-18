@@ -75,21 +75,24 @@ func (n *Nozzle) Stop() {
 }
 
 func (n *Nozzle) handleEvent(envelope *events.Envelope) error {
-	var handler Sink
-	if isLog(envelope) {
-		handler = n.LogSink
-	} else {
-		handler = n.MetricSink
+	if err := n.LogSink.Receive(envelope); err != nil {
+		return err
 	}
 
-	return handler.Receive(envelope)
+	if isMetric(envelope) {
+		if err := n.MetricSink.Receive(envelope); err != nil {
+			return err
+		}
+	}
+
+	return nil
 }
 
-func isLog(envelope *events.Envelope) bool {
-	switch *envelope.EventType {
+func isMetric(envelope *events.Envelope) bool {
+	switch envelope.GetEventType() {
 	case events.Envelope_ValueMetric, events.Envelope_ContainerMetric, events.Envelope_CounterEvent:
-		return false
-	default:
 		return true
+	default:
+		return false
 	}
 }

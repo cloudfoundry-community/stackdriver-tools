@@ -18,9 +18,12 @@ properties:
   firehose.skip_ssl:
     description: Skip SSL validation (for self signed certs, useful in dev environments)
     default: false
-  firehose.events:
-    description: Whitelisted event types to send to Stackdriver (comma separated). Valid values include LogMessage,Error,HttpStartStop,CounterEvent,ValueMetric,ContainerMetric
+  firehose.events_to_stackdriver_logging:
+    description: Whitelisted event types to send to Stackdriver Logging (comma separated). Valid values include LogMessage,Error,HttpStartStop,CounterEvent,ValueMetric,ContainerMetric
     default: LogMessage,Error
+  firehose.events_to_stackdriver_monitoring:
+    description: Whitelisted event types to send to Stackdriver Monitoring (comma separated). Valid values include CounterEvent,ValueMetric,ContainerMetric
+    default: CounterEvent,ValueMetric,ContainerMetric
   firehose.subscription_id:
     description: Subscription ID for the firehose nozzle
     default: stackdriver-nozzle
