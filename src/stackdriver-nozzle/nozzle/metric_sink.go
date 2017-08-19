@@ -60,9 +60,9 @@ func (ms *metricSink) Receive(envelope *events.Envelope) error {
 		}}
 	case events.Envelope_ContainerMetric:
 		containerMetric := envelope.GetContainerMetric()
-		labels["instanceIndex"] = fmt.Sprintf("%d", containerMetric.GetInstanceIndex())
 		metrics = []stackdriver.Metric{
 			{Name: "diskBytesQuota", Value: float64(containerMetric.GetDiskBytesQuota()), EventTime: eventTime, Labels: labels},
+			{Name: "instanceIndex", Value: float64(containerMetric.GetInstanceIndex()), EventTime: eventTime, Labels: labels},
 			{Name: "cpuPercentage", Value: float64(containerMetric.GetCpuPercentage()), EventTime: eventTime, Labels: labels},
 			{Name: "diskBytes", Value: float64(containerMetric.GetDiskBytes()), EventTime: eventTime, Labels: labels},
 			{Name: "memoryBytes", Value: float64(containerMetric.GetMemoryBytes()), EventTime: eventTime, Labels: labels},
