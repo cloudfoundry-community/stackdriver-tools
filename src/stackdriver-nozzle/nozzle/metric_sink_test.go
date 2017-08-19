@@ -19,6 +19,8 @@ package nozzle_test
 import (
 	"time"
 
+	"fmt"
+
 	"github.com/cloudfoundry-community/stackdriver-tools/src/stackdriver-nozzle/mocks"
 	"github.com/cloudfoundry-community/stackdriver-tools/src/stackdriver-nozzle/nozzle"
 	"github.com/cloudfoundry-community/stackdriver-tools/src/stackdriver-nozzle/stackdriver"
@@ -92,7 +94,7 @@ var _ = Describe("MetricSink", func() {
 		eventTime := time.Now()
 
 		diskBytesQuota := uint64(1073741824)
-		instanceIndex := int32(0)
+		instanceIndex := int32(3)
 		cpuPercentage := 0.061651273460637
 		diskBytes := uint64(164634624)
 		memoryBytes := uint64(16601088)
@@ -121,14 +123,20 @@ var _ = Describe("MetricSink", func() {
 		Expect(err).To(BeNil())
 
 		metrics := metricBuffer.PostedMetrics
-		Expect(metrics).To(HaveLen(6))
+		Expect(metrics).To(HaveLen(5))
 
-		Expect(metrics).To(ContainElement(stackdriver.Metric{Name: "diskBytesQuota", Value: float64(1073741824), Labels: labels, EventTime: eventTime, Unit: ""}))
-		Expect(metrics).To(ContainElement(stackdriver.Metric{Name: "instanceIndex", Value: float64(0), Labels: labels, EventTime: eventTime, Unit: ""}))
-		Expect(metrics).To(ContainElement(stackdriver.Metric{Name: "cpuPercentage", Value: 0.061651273460637, Labels: labels, EventTime: eventTime, Unit: ""}))
-		Expect(metrics).To(ContainElement(stackdriver.Metric{Name: "diskBytes", Value: float64(164634624), Labels: labels, EventTime: eventTime, Unit: ""}))
-		Expect(metrics).To(ContainElement(stackdriver.Metric{Name: "memoryBytes", Value: float64(16601088), Labels: labels, EventTime: eventTime, Unit: ""}))
-		Expect(metrics).To(ContainElement(stackdriver.Metric{Name: "memoryBytesQuota", Value: float64(33554432), Labels: labels, EventTime: eventTime, Unit: ""}))
+		// ContainerMetric has special labels to specify the specific container
+		expectedLabels := map[string]string{}
+		for k, v := range labels {
+			expectedLabels[k] = v
+		}
+		expectedLabels["instanceIndex"] = fmt.Sprintf("%v", instanceIndex)
+
+		Expect(metrics).To(ContainElement(stackdriver.Metric{Name: "diskBytesQuota", Value: float64(1073741824), Labels: expectedLabels, EventTime: eventTime, Unit: ""}))
+		Expect(metrics).To(ContainElement(stackdriver.Metric{Name: "cpuPercentage", Value: 0.061651273460637, Labels: expectedLabels, EventTime: eventTime, Unit: ""}))
+		Expect(metrics).To(ContainElement(stackdriver.Metric{Name: "diskBytes", Value: float64(164634624), Labels: expectedLabels, EventTime: eventTime, Unit: ""}))
+		Expect(metrics).To(ContainElement(stackdriver.Metric{Name: "memoryBytes", Value: float64(16601088), Labels: expectedLabels, EventTime: eventTime, Unit: ""}))
+		Expect(metrics).To(ContainElement(stackdriver.Metric{Name: "memoryBytesQuota", Value: float64(33554432), Labels: expectedLabels, EventTime: eventTime, Unit: ""}))
 	})
 
 	It("creates total and delta metrics for CounterEvent", func() {
