@@ -31,7 +31,8 @@ var _ = Describe("Config", func() {
 
 	BeforeEach(func() {
 		os.Setenv("FIREHOSE_ENDPOINT", "https://api.example.com")
-		os.Setenv("FIREHOSE_EVENTS", "LogMessage")
+		os.Setenv("FIREHOSE_EVENTS_TO_STACKDRIVER_LOGGING", "LogMessage")
+		os.Setenv("FIREHOSE_EVENTS_TO_STACKDRIVER_MONITORING", "")
 		os.Setenv("FIREHOSE_USERNAME", "admin")
 		os.Setenv("FIREHOSE_PASSWORD", "monkey123")
 		os.Setenv("FIREHOSE_SKIP_SSL", "true")
@@ -76,7 +77,7 @@ var _ = Describe("Config", func() {
 		Expect(err.Error()).To(ContainSubstring(envName))
 	},
 		Entry("FIREHOSE_ENDPOINT", "FIREHOSE_ENDPOINT"),
-		Entry("FIREHOSE_EVENTS", "FIREHOSE_EVENTS"),
+		Entry("FIREHOSE_EVENTS_TO_STACKDRIVER_LOGGING", "FIREHOSE_EVENTS_TO_STACKDRIVER_LOGGING"),
 		Entry("FIREHOSE_SUBSCRIPTION_ID", "FIREHOSE_SUBSCRIPTION_ID"),
 	)
 })
