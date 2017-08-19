@@ -19,9 +19,11 @@ go get github.com/cloudfoundry-community/stackdriver-tools/src/stackdriver-nozzl
 #### Firehose
 
 - `FIREHOSE_ENDPOINT` - the CF API endpoint; e.g., `https://api.bosh-lite.com'
-- `FIREHOSE_EVENTS` - comma-separated list of events to pass to Stackdriver;
+- `FIREHOSE_EVENTS_TO_STACKDRIVER_LOGGING` - comma-separated list of events to pass to Stackdriver Logging;
   valid events are `LogMessage`, `ValueMetric`, `CounterEvent`, `Error`,
   `ContainerMetric`, `HttpStart`, `HttpStop`, and `HttpStartStop`
+- `FIREHOSE_EVENTS_TO_STACKDRIVER_MONITORING` - comma-separated list of events to pass to Stackdriver Monitoring;
+  valid events are  `ValueMetric`, `CounterEvent`, and `ContainerMetric`
 - `FIREHOSE_USERNAME` - CF username; defaults to `admin`
   - requires `doppler.firehose` and `cloud_controller.admin_read_only` permissions
 - `FIREHOSE_PASSWORD` - CF password; defaults to `password`
