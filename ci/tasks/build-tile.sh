@@ -5,8 +5,10 @@ source stackdriver-tools/ci/tasks/utils.sh
 release_name="stackdriver-tools"
 semver=`cat version-semver/number`
 
+check_param "image_directory"
+
 image_name=${release_name}-${semver}.tgz
-image_path="https://storage.googleapis.com/bosh-gcp/beta/stackdriver-tools/${image_name}"
+image_path="https://storage.googleapis.com/bosh-gcp/beta/${image_directory}/${image_name}"
 output_path=candidate/stackdriver-nozzle-${semver}.pivotal
 
 # install dependencies

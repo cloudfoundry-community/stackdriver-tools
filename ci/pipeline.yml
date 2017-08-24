@@ -60,6 +60,8 @@ jobs:
 
       - task: build-tile
         file: stackdriver-tools/ci/tasks/build-tile.yml
+        params:
+          image_directory: develop-stackdriver-tools
         on_failure:
           aggregate:
             - put: slack-alert
