@@ -9,6 +9,8 @@ inputs:
   - name: version-semver
 outputs:
   - name: candidate
+params:
+  image_directory: replace-me
 
 run:
   path: stackdriver-tools/ci/tasks/build-tile.sh
