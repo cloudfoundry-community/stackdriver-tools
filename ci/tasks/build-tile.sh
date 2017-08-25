@@ -9,6 +9,8 @@ tile_label="${tile_label:-'Stackdriver Nozzle'}"
 
 check_param "image_directory"
 
+check_param "image_directory"
+
 image_name=${release_name}-${semver}.tgz
 image_path="https://storage.googleapis.com/bosh-gcp/beta/${image_directory}/${image_name}"
 output_path=candidate/stackdriver-nozzle-${semver}.pivotal
