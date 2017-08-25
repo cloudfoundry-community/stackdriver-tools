@@ -4,6 +4,8 @@ source stackdriver-tools/ci/tasks/utils.sh
 
 release_name="stackdriver-tools"
 semver=`cat version-semver/number`
+tile_name="${tile_name:-stackdriver-nozzle}"
+tile_label="${tile_label:-'Stackdriver Nozzle'}"
 
 check_param "image_directory"
 
@@ -17,7 +19,7 @@ apk add ruby
 
 pushd "stackdriver-tools"
 	echo "Creating tile.yml"
-	RELEASE_PATH=${image_path} erb tile.yml.erb > tile.yml
+	RELEASE_PATH="${image_path}" TILE_NAME="${tile_name}" TILE_LABEL="${tile_label}" erb tile.yml.erb > tile.yml
 	echo "building tile"
 	tile build ${semver}
 popd

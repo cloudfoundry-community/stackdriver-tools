@@ -1,16 +1,17 @@
 <%
-release_path = ENV["RELEASE_PATH"]
-raise "RELEASE_PATH env variable required" if release_path.to_s.empty?
+["TILE_NAME", "TILE_LABEL", "RELEASE_PATH"].each do |var|
+  raise "#{var} env variable required" if ENV[var].to_s.empty?
+end
 %>
 ---
-name: stackdriver-nozzle
-label: 'Stackdriver Nozzle'
+name: <%=ENV["TILE_NAME"] %>
+label: <%=ENV["TILE_LABEL"] %>
 description: Import your Cloud Foundry logs and metrics into Stackdriver Logging and Monitoring for diagnostics and alerting 
 icon_file: gcp_logo.png
 packages:
 - name: stackdriver-tools
   type: bosh-release
-  path: <%=release_path %> 
+  path: <%=ENV["RELEASE_PATH"] %> 
   jobs:
   - name: stackdriver-nozzle
     templates:
