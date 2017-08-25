@@ -2,14 +2,15 @@
 set -e
 source stackdriver-tools/ci/tasks/utils.sh
 
+check_param "image_directory"
+check_param "tile_name"
+check_param "tile_label"
+
 release_name="stackdriver-tools"
 semver=`cat version-semver/number`
 tile_name="${tile_name:-stackdriver-nozzle}"
 tile_label="${tile_label:-'Stackdriver Nozzle'}"
 
-check_param "image_directory"
-
-check_param "image_directory"
 
 image_name=${release_name}-${semver}.tgz
 image_path="https://storage.googleapis.com/bosh-gcp/beta/${image_directory}/${image_name}"
