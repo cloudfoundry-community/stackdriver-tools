@@ -13,7 +13,6 @@ import (
 	"github.com/cloudfoundry-community/go-cfclient"
 	"github.com/cloudfoundry-community/stackdriver-tools/src/stackdriver-nozzle/cloudfoundry"
 	"github.com/cloudfoundry-community/stackdriver-tools/src/stackdriver-nozzle/config"
-	"github.com/cloudfoundry-community/stackdriver-tools/src/stackdriver-nozzle/filter"
 	"github.com/cloudfoundry-community/stackdriver-tools/src/stackdriver-nozzle/heartbeat"
 	"github.com/cloudfoundry-community/stackdriver-tools/src/stackdriver-nozzle/nozzle"
 	"github.com/cloudfoundry-community/stackdriver-tools/src/stackdriver-nozzle/stackdriver"
@@ -37,7 +36,10 @@ func main() {
 	}
 
 	producer := a.newProducer()
-	consumer := a.newConsumer(ctx)
+	consumer, err := a.newConsumer(ctx)
+	if err != nil {
+		a.logger.Fatal("construction", err)
+	}
 
 	errs, fhErrs := consumer.Start(producer)
 	defer consumer.Stop()
@@ -171,22 +173,28 @@ type app struct {
 }
 
 func (a *app) newProducer() cloudfoundry.Firehose {
-	firehose := cloudfoundry.NewFirehose(a.cfConfig, a.cfClient, a.c.SubscriptionID)
-
-	producer, err := filter.New(firehose, strings.Split(a.c.Events, ","), a.heartbeater)
-	if err != nil {
-		a.logger.Fatal("filter", err)
-	}
-
-	return producer
+	return cloudfoundry.NewFirehose(a.cfConfig, a.cfClient, a.c.SubscriptionID)
 }
 
-func (a *app) newConsumer(ctx context.Context) *nozzle.Nozzle {
-	return &nozzle.Nozzle{
-		LogSink:     a.newLogSink(),
-		MetricSink:  a.newMetricSink(ctx),
-		Heartbeater: a.heartbeater,
+func (a *app) newConsumer(ctx context.Context) (*nozzle.Nozzle, error) {
+	loggingEvents := strings.Split(a.c.LoggingEvents, ",")
+	metricEvents := strings.Split(a.c.MonitoringEvents, ",")
+
+	logSink, err := nozzle.NewFilterSink(loggingEvents, a.newLogSink())
+	if err != nil {
+		return nil, err
 	}
+
+	metricSink, err := nozzle.NewFilterSink(metricEvents, a.newMetricSink(ctx))
+	if err != nil {
+		return nil, err
+	}
+
+	return &nozzle.Nozzle{
+		LogSink:     logSink,
+		MetricSink:  metricSink,
+		Heartbeater: a.heartbeater,
+	}, nil
 }
 
 func (a *app) newLogSink() nozzle.Sink {

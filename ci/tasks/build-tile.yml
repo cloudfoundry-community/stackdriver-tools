@@ -11,6 +11,8 @@ outputs:
   - name: candidate
 params:
   image_directory: replace-me
+  tile_name: replace-me
+  tile_label: replace-me
 
 run:
   path: stackdriver-tools/ci/tasks/build-tile.sh

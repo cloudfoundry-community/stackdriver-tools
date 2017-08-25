@@ -132,6 +132,108 @@ var _ = Describe("LogSink", func() {
 			}))
 		})
 
+		It("handles ValueMetric", func() {
+			value := float64(123)
+			name := "foo"
+			unit := "units"
+			valueMetric := events.ValueMetric{
+				Value: &value,
+				Name:  &name,
+				Unit:  &unit,
+			}
+			eventType := events.Envelope_ValueMetric
+			envelope := events.Envelope{
+				EventType:   &eventType,
+				ValueMetric: &valueMetric,
+			}
+
+			subject.Receive(&envelope)
+
+			Expect(logAdapter.PostedLogs).To(HaveLen(1))
+			postedLog := logAdapter.PostedLogs[0]
+			Expect(postedLog.Labels).To(Equal(labels))
+
+			payload := (postedLog.Payload).(map[string]interface{})
+			Expect(payload).To(HaveKeyWithValue("eventType", "ValueMetric"))
+			Expect(payload).To(HaveKeyWithValue("valueMetric", map[string]interface{}{
+				"value": value,
+				"name":  name,
+				"unit":  unit,
+			}))
+		})
+
+		It("handles CounterEvent", func() {
+			name := "foo"
+			delta := uint64(123)
+			total := uint64(999)
+			counterEvent := events.CounterEvent{
+				Name:  &name,
+				Delta: &delta,
+				Total: &total,
+			}
+
+			eventType := events.Envelope_CounterEvent
+			envelope := events.Envelope{
+				EventType:    &eventType,
+				CounterEvent: &counterEvent,
+			}
+
+			subject.Receive(&envelope)
+
+			Expect(logAdapter.PostedLogs).To(HaveLen(1))
+			postedLog := logAdapter.PostedLogs[0]
+			Expect(postedLog.Labels).To(Equal(labels))
+
+			payload := (postedLog.Payload).(map[string]interface{})
+			Expect(payload).To(HaveKeyWithValue("eventType", "CounterEvent"))
+			Expect(payload).To(HaveKeyWithValue("counterEvent", map[string]interface{}{
+				"name":  name,
+				"delta": float64(delta),
+				"total": float64(total),
+			}))
+		})
+
+		It("handles ContainerMetric", func() {
+			applicationId := "abcd"
+			cpuPercentage := float64(20)
+			memoryBytes := uint64(111)
+			diskBytes := uint64(222)
+			memoryBytesQuota := uint64(333)
+			diskBytesQuota := uint64(444)
+
+			containerMetric := events.ContainerMetric{
+				ApplicationId:    &applicationId,
+				CpuPercentage:    &cpuPercentage,
+				DiskBytes:        &diskBytes,
+				MemoryBytes:      &memoryBytes,
+				MemoryBytesQuota: &memoryBytesQuota,
+				DiskBytesQuota:   &diskBytesQuota,
+			}
+
+			eventType := events.Envelope_ContainerMetric
+			envelope := events.Envelope{
+				EventType:       &eventType,
+				ContainerMetric: &containerMetric,
+			}
+
+			subject.Receive(&envelope)
+
+			Expect(logAdapter.PostedLogs).To(HaveLen(1))
+			postedLog := logAdapter.PostedLogs[0]
+			Expect(postedLog.Labels).To(Equal(labels))
+
+			payload := (postedLog.Payload).(map[string]interface{})
+			Expect(payload).To(HaveKeyWithValue("eventType", "ContainerMetric"))
+			Expect(payload).To(HaveKeyWithValue("containerMetric", map[string]interface{}{
+				"applicationId":    applicationId,
+				"cpuPercentage":    cpuPercentage,
+				"diskBytes":        float64(diskBytes),
+				"memoryBytes":      float64(memoryBytes),
+				"memoryBytesQuota": float64(memoryBytesQuota),
+				"diskBytesQuota":   float64(diskBytesQuota),
+			}))
+		})
+
 		It("has resolved labels and payloads equivalent for LogMessage", func() {
 			eventType := events.Envelope_LogMessage
 			messageType := events.LogMessage_OUT

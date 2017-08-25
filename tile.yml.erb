@@ -1,16 +1,17 @@
 <%
-release_path = ENV["RELEASE_PATH"]
-raise "RELEASE_PATH env variable required" if release_path.to_s.empty?
+["TILE_NAME", "TILE_LABEL", "RELEASE_PATH"].each do |var|
+  raise "#{var} env variable required" if ENV[var].to_s.empty?
+end
 %>
 ---
-name: stackdriver-nozzle
-label: 'Stackdriver Nozzle'
+name: <%=ENV["TILE_NAME"] %>
+label: <%=ENV["TILE_LABEL"] %>
 description: Import your Cloud Foundry logs and metrics into Stackdriver Logging and Monitoring for diagnostics and alerting 
 icon_file: gcp_logo.png
 packages:
 - name: stackdriver-tools
   type: bosh-release
-  path: <%=release_path %> 
+  path: <%=ENV["RELEASE_PATH"] %> 
   jobs:
   - name: stackdriver-nozzle
     templates:
@@ -25,7 +26,8 @@ packages:
     properties:
       firehose:
         endpoint: (( .properties.firehose_endpoint.value ))
-        events: (( .properties.firehose_events.value ))
+        events_to_stackdriver_logging: (( .properties.firehose_events_to_stackdriver_logging.value ))
+        events_to_stackdriver_monitoring: (( .properties.firehose_events_to_stackdriver_monitoring.value ))
         username: (( .properties.firehose_username.value || ..cf.uaa.stackdriver_nozzle_credentials.identity ))
         password: (( .properties.firehose_password.value || ..cf.uaa.stackdriver_nozzle_credentials.password ))
         skip_ssl: (( .properties.firehose_skip_ssl.value ))
@@ -43,11 +45,16 @@ forms:
   - name: firehose_endpoint
     type: string
     label: Cloud Foundry API Endpoint
-  - name: firehose_events
+  - name: firehose_events_to_stackdriver_logging
     type: string
-    default: HttpStart,HttpStop,HttpStartStop,LogMessage,ValueMetric,CounterEvent,Error,ContainerMetric
-    label: Events to Subscribe to
-    description: Comma separated list without spaces consisting of any or all of HttpStart, HttpStop, HttpStartStop, LogMessage, ValueMetric, CounterEvent, Error, ContainerMetric
+    default: HttpStartStop,LogMessage,Error
+    label: Whitelist for Stackdriver Logging
+    description: Comma separated list without spaces consisting of any or all of HttpStart,HttpStop,HttpStartStop,LogMessage,ValueMetric,CounterEvent,Error,ContainerMetric
+  - name: firehose_events_to_stackdriver_monitoring
+    type: string
+    default: CounterEvent,ValueMetric,ContainerMetric
+    label: Whitelist for Stackdriver Monitoring
+    description: Comma separated list without spaces consisting of any or all of ValueMetric,CounterEvent,ContainerMetric
   - name: firehose_username
     type: string
     label: UAA Username

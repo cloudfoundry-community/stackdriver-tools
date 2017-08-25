@@ -61,7 +61,9 @@ jobs:
       - task: build-tile
         file: stackdriver-tools/ci/tasks/build-tile.yml
         params:
-          image_directory: develop-stackdriver-tools
+          image_directory: stackdriver-tools
+          tile_name: stackdriver-nozzle
+          tile_label: Stackdriver Nozzle
         on_failure:
           aggregate:
             - put: slack-alert
