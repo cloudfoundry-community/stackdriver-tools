@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"fmt"
 	"net/http"
 	_ "net/http/pprof"
 	"os"
@@ -80,7 +81,7 @@ func handleFatalError(a *app, cancel context.CancelFunc) {
 				"service": version.Name,
 				"version": version.Release(),
 			},
-			"message": stackTrace,
+			"message": fmt.Sprintf("%v\n%v", e, stackTrace),
 		}
 
 		log := &stackdriver.Log{
