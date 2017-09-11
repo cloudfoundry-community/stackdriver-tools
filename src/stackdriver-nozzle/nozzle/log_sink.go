@@ -43,7 +43,7 @@ type logSink struct {
 
 func (ls *logSink) Receive(envelope *events.Envelope) error {
 	if envelope == nil {
-		return errors.New("recieved emtpy envelope")
+		return errors.New("received empty envelope")
 	}
 	log := ls.parseEnvelope(envelope)
 	ls.logAdapter.PostLog(&log)
