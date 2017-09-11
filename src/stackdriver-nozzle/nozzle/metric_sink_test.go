@@ -25,6 +25,7 @@ import (
 	"github.com/cloudfoundry/sonde-go/events"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
+	. "github.com/onsi/gomega/gstruct"
 )
 
 type mockUnitParser struct {
@@ -77,13 +78,15 @@ var _ = Describe("MetricSink", func() {
 		Expect(err).To(BeNil())
 
 		metrics := metricBuffer.PostedMetrics
-		Expect(metrics).To(ConsistOf(stackdriver.Metric{
-			Name:      "valueMetricName",
-			Value:     123.456,
-			Labels:    labels,
-			EventTime: eventTime,
-			Unit:      "{foo}",
+		Expect(metrics).To(HaveLen(1))
+		Expect(metrics[0]).To(MatchAllFields(Fields{
+			"Name":      Equal("valueMetricName"),
+			"Value":     Equal(123.456),
+			"Labels":    Equal(labels),
+			"EventTime": Ignore(),
+			"Unit":      Equal("{foo}"),
 		}))
+		Expect(metrics[0].EventTime.UnixNano()).To(Equal(timeStamp))
 
 		Expect(unitParser.lastInput).To(Equal("barUnit"))
 	})
@@ -123,12 +126,18 @@ var _ = Describe("MetricSink", func() {
 		metrics := metricBuffer.PostedMetrics
 		Expect(metrics).To(HaveLen(6))
 
-		Expect(metrics).To(ContainElement(stackdriver.Metric{Name: "diskBytesQuota", Value: float64(1073741824), Labels: labels, EventTime: eventTime, Unit: ""}))
-		Expect(metrics).To(ContainElement(stackdriver.Metric{Name: "instanceIndex", Value: float64(0), Labels: labels, EventTime: eventTime, Unit: ""}))
-		Expect(metrics).To(ContainElement(stackdriver.Metric{Name: "cpuPercentage", Value: 0.061651273460637, Labels: labels, EventTime: eventTime, Unit: ""}))
-		Expect(metrics).To(ContainElement(stackdriver.Metric{Name: "diskBytes", Value: float64(164634624), Labels: labels, EventTime: eventTime, Unit: ""}))
-		Expect(metrics).To(ContainElement(stackdriver.Metric{Name: "memoryBytes", Value: float64(16601088), Labels: labels, EventTime: eventTime, Unit: ""}))
-		Expect(metrics).To(ContainElement(stackdriver.Metric{Name: "memoryBytesQuota", Value: float64(33554432), Labels: labels, EventTime: eventTime, Unit: ""}))
+		eventName := func(element interface{}) string {
+			return element.(stackdriver.Metric).Name
+		}
+
+		Expect(metrics).To(MatchAllElements(eventName, Elements{
+			"diskBytesQuota":   MatchAllFields(Fields{"Name": Ignore(), "Value": Equal(float64(1073741824)), "Labels": Equal(labels), "EventTime": Ignore(), "Unit": Equal("")}),
+			"instanceIndex":    MatchAllFields(Fields{"Name": Ignore(), "Value": Equal(float64(0)), "Labels": Equal(labels), "EventTime": Ignore(), "Unit": Equal("")}),
+			"cpuPercentage":    MatchAllFields(Fields{"Name": Ignore(), "Value": Equal(float64(0.061651273460637)), "Labels": Equal(labels), "EventTime": Ignore(), "Unit": Equal("")}),
+			"diskBytes":        MatchAllFields(Fields{"Name": Ignore(), "Value": Equal(float64(164634624)), "Labels": Equal(labels), "EventTime": Ignore(), "Unit": Equal("")}),
+			"memoryBytes":      MatchAllFields(Fields{"Name": Ignore(), "Value": Equal(float64(16601088)), "Labels": Equal(labels), "EventTime": Ignore(), "Unit": Equal("")}),
+			"memoryBytesQuota": MatchAllFields(Fields{"Name": Ignore(), "Value": Equal(float64(33554432)), "Labels": Equal(labels), "EventTime": Ignore(), "Unit": Equal("")}),
+		}))
 	})
 
 	It("creates total and delta metrics for CounterEvent", func() {
@@ -155,26 +164,30 @@ var _ = Describe("MetricSink", func() {
 		Expect(err).To(BeNil())
 
 		metrics := metricBuffer.PostedMetrics
-		Expect(metrics).To(ConsistOf(
-			stackdriver.Metric{
-				Name:      "counterName.delta",
-				Value:     float64(654321),
-				Labels:    labels,
-				EventTime: eventTime,
-				Unit:      "",
-			},
-			stackdriver.Metric{
-				Name:      "counterName.total",
-				Value:     float64(123456),
-				Labels:    labels,
-				EventTime: eventTime,
-				Unit:      "",
-			},
-		))
+
+		eventName := func(element interface{}) string {
+			return element.(stackdriver.Metric).Name
+		}
+		Expect(metrics).To(MatchAllElements(eventName, Elements{
+			"counterName.delta": MatchAllFields(Fields{
+				"Name":      Ignore(),
+				"Value":     Equal(float64(654321)),
+				"Labels":    Equal(labels),
+				"EventTime": Ignore(),
+				"Unit":      Equal(""),
+			}),
+			"counterName.total": MatchAllFields(Fields{
+				"Name":      Ignore(),
+				"Value":     Equal(float64(123456)),
+				"Labels":    Equal(labels),
+				"EventTime": Ignore(),
+				"Unit":      Equal(""),
+			}),
+		}))
 	})
 
 	It("returns error when envelope contains unhandled event type", func() {
-		eventType := events.Envelope_HttpStart
+		eventType := events.Envelope_HttpStartStop
 		envelope := &events.Envelope{
 			EventType: &eventType,
 		}

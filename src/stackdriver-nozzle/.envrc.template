@@ -1,7 +1,7 @@
 # http://direnv.net
 
 export FIREHOSE_ENDPOINT=https://api.bosh-lite.com
-export FIREHOSE_EVENTS_TO_STACKDRIVER_LOGGING=HttpStart,HttpStop,HttpStartStop,LogMessage,ValueMetric,CounterEvent,Error,ContainerMetric
+export FIREHOSE_EVENTS_TO_STACKDRIVER_LOGGING=HttpStartStop,LogMessage,ValueMetric,CounterEvent,Error,ContainerMetric
 export FIREHOSE_EVENTS_TO_STACKDRIVER_MONITORING=ValueMetric,CounterEvent,ContainerMetric
 export FIREHOSE_USERNAME=admin
 export FIREHOSE_PASSWORD=admin

@@ -1,10 +1,10 @@
-// Copyright 2016 Google Inc. All Rights Reserved.
+// Copyright 2017, Google Inc. All rights reserved.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
 // You may obtain a copy of the License at
 //
-//      http://www.apache.org/licenses/LICENSE-2.0
+//     http://www.apache.org/licenses/LICENSE-2.0
 //
 // Unless required by applicable law or agreed to in writing, software
 // distributed under the License is distributed on an "AS IS" BASIS,
@@ -17,13 +17,13 @@
 package monitoring
 
 import (
-	"fmt"
 	"math"
-	"runtime"
 	"time"
 
+	"cloud.google.com/go/internal/version"
 	gax "github.com/googleapis/gax-go"
 	"golang.org/x/net/context"
+	"google.golang.org/api/iterator"
 	"google.golang.org/api/option"
 	"google.golang.org/api/transport"
 	metricpb "google.golang.org/genproto/googleapis/api/metric"
@@ -31,16 +31,9 @@ import (
 	monitoringpb "google.golang.org/genproto/googleapis/monitoring/v3"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
-	"google.golang.org/grpc/metadata"
 )
 
-var (
-	metricProjectPathTemplate                     = gax.MustCompilePathTemplate("projects/{project}")
-	metricMetricDescriptorPathPathTemplate        = gax.MustCompilePathTemplate("projects/{project}/metricDescriptors/{metric_descriptor_path=**}")
-	metricMonitoredResourceDescriptorPathTemplate = gax.MustCompilePathTemplate("projects/{project}/monitoredResourceDescriptors/{monitored_resource_descriptor}")
-)
-
-// MetricCallOptions contains the retry settings for each method of this client.
+// MetricCallOptions contains the retry settings for each method of MetricClient.
 type MetricCallOptions struct {
 	ListMonitoredResourceDescriptors []gax.CallOption
 	GetMonitoredResourceDescriptor   []gax.CallOption
@@ -55,7 +48,7 @@ type MetricCallOptions struct {
 func defaultMetricClientOptions() []option.ClientOption {
 	return []option.ClientOption{
 		option.WithEndpoint("monitoring.googleapis.com:443"),
-		option.WithScopes(),
+		option.WithScopes(DefaultAuthScopes()...),
 	}
 }
 
@@ -74,7 +67,6 @@ func defaultMetricCallOptions() *MetricCallOptions {
 			}),
 		},
 	}
-
 	return &MetricCallOptions{
 		ListMonitoredResourceDescriptors: retry[[2]string{"default", "idempotent"}],
 		GetMonitoredResourceDescriptor:   retry[[2]string{"default", "idempotent"}],
@@ -87,19 +79,19 @@ func defaultMetricCallOptions() *MetricCallOptions {
 	}
 }
 
-// MetricClient is a client for interacting with MetricService.
+// MetricClient is a client for interacting with Stackdriver Monitoring API.
 type MetricClient struct {
 	// The connection to the service.
 	conn *grpc.ClientConn
 
 	// The gRPC API client.
-	client monitoringpb.MetricServiceClient
+	metricClient monitoringpb.MetricServiceClient
 
 	// The call options for this service.
 	CallOptions *MetricCallOptions
 
 	// The metadata to be sent with each request.
-	metadata map[string][]string
+	xGoogHeader []string
 }
 
 // NewMetricClient creates a new metric service client.
@@ -113,10 +105,11 @@ func NewMetricClient(ctx context.Context, opts ...option.ClientOption) (*MetricC
 	}
 	c := &MetricClient{
 		conn:        conn,
-		client:      monitoringpb.NewMetricServiceClient(conn),
 		CallOptions: defaultMetricCallOptions(),
+
+		metricClient: monitoringpb.NewMetricServiceClient(conn),
 	}
-	c.SetGoogleClientInfo("gax", gax.Version)
+	c.setGoogleClientInfo()
 	return c, nil
 }
 
@@ -131,85 +124,88 @@ func (c *MetricClient) Close() error {
 	return c.conn.Close()
 }
 
-// SetGoogleClientInfo sets the name and version of the application in
+// setGoogleClientInfo sets the name and version of the application in
 // the `x-goog-api-client` header passed on each request. Intended for
 // use by Google-written clients.
-func (c *MetricClient) SetGoogleClientInfo(name, version string) {
-	c.metadata = map[string][]string{
-		"x-goog-api-client": {fmt.Sprintf("%s/%s %s gax/%s go/%s", name, version, gapicNameVersion, gax.Version, runtime.Version())},
-	}
+func (c *MetricClient) setGoogleClientInfo(keyval ...string) {
+	kv := append([]string{"gl-go", version.Go()}, keyval...)
+	kv = append(kv, "gapic", version.Repo, "gax", gax.Version, "grpc", grpc.Version)
+	c.xGoogHeader = []string{gax.XGoogHeader(kv...)}
 }
 
-// ProjectPath returns the path for the project resource.
+// MetricProjectPath returns the path for the project resource.
 func MetricProjectPath(project string) string {
-	path, err := metricProjectPathTemplate.Render(map[string]string{
-		"project": project,
-	})
-	if err != nil {
-		panic(err)
-	}
-	return path
+	return "" +
+		"projects/" +
+		project +
+		""
 }
 
-// MetricDescriptorPathPath returns the path for the metric descriptor path resource.
-func MetricMetricDescriptorPathPath(project string, metricDescriptorPath string) string {
-	path, err := metricMetricDescriptorPathPathTemplate.Render(map[string]string{
-		"project":                project,
-		"metric_descriptor_path": metricDescriptorPath,
-	})
-	if err != nil {
-		panic(err)
-	}
-	return path
+// MetricMetricDescriptorPath returns the path for the metric descriptor resource.
+func MetricMetricDescriptorPath(project, metricDescriptor string) string {
+	return "" +
+		"projects/" +
+		project +
+		"/metricDescriptors/" +
+		metricDescriptor +
+		""
 }
 
-// MonitoredResourceDescriptorPath returns the path for the monitored resource descriptor resource.
-func MetricMonitoredResourceDescriptorPath(project string, monitoredResourceDescriptor string) string {
-	path, err := metricMonitoredResourceDescriptorPathTemplate.Render(map[string]string{
-		"project":                       project,
-		"monitored_resource_descriptor": monitoredResourceDescriptor,
-	})
-	if err != nil {
-		panic(err)
-	}
-	return path
+// MetricMonitoredResourceDescriptorPath returns the path for the monitored resource descriptor resource.
+func MetricMonitoredResourceDescriptorPath(project, monitoredResourceDescriptor string) string {
+	return "" +
+		"projects/" +
+		project +
+		"/monitoredResourceDescriptors/" +
+		monitoredResourceDescriptor +
+		""
 }
 
 // ListMonitoredResourceDescriptors lists monitored resource descriptors that match a filter. This method does not require a Stackdriver account.
-func (c *MetricClient) ListMonitoredResourceDescriptors(ctx context.Context, req *monitoringpb.ListMonitoredResourceDescriptorsRequest) *MonitoredResourceDescriptorIterator {
-	ctx = metadata.NewContext(ctx, c.metadata)
+func (c *MetricClient) ListMonitoredResourceDescriptors(ctx context.Context, req *monitoringpb.ListMonitoredResourceDescriptorsRequest, opts ...gax.CallOption) *MonitoredResourceDescriptorIterator {
+	ctx = insertXGoog(ctx, c.xGoogHeader)
+	opts = append(c.CallOptions.ListMonitoredResourceDescriptors[0:len(c.CallOptions.ListMonitoredResourceDescriptors):len(c.CallOptions.ListMonitoredResourceDescriptors)], opts...)
 	it := &MonitoredResourceDescriptorIterator{}
-	it.apiCall = func() error {
+	it.InternalFetch = func(pageSize int, pageToken string) ([]*monitoredrespb.MonitoredResourceDescriptor, string, error) {
 		var resp *monitoringpb.ListMonitoredResourceDescriptorsResponse
-		err := gax.Invoke(ctx, func(ctx context.Context) error {
+		req.PageToken = pageToken
+		if pageSize > math.MaxInt32 {
+			req.PageSize = math.MaxInt32
+		} else {
+			req.PageSize = int32(pageSize)
+		}
+		err := gax.Invoke(ctx, func(ctx context.Context, settings gax.CallSettings) error {
 			var err error
-			req.PageToken = it.nextPageToken
-			req.PageSize = it.pageSize
-			resp, err = c.client.ListMonitoredResourceDescriptors(ctx, req)
+			resp, err = c.metricClient.ListMonitoredResourceDescriptors(ctx, req, settings.GRPC...)
 			return err
-		}, c.CallOptions.ListMonitoredResourceDescriptors...)
+		}, opts...)
 		if err != nil {
-			return err
+			return nil, "", err
 		}
-		if resp.NextPageToken == "" {
-			it.atLastPage = true
-		}
-		it.nextPageToken = resp.NextPageToken
-		it.items = resp.ResourceDescriptors
-		return nil
+		return resp.ResourceDescriptors, resp.NextPageToken, nil
 	}
+	fetch := func(pageSize int, pageToken string) (string, error) {
+		items, nextPageToken, err := it.InternalFetch(pageSize, pageToken)
+		if err != nil {
+			return "", err
+		}
+		it.items = append(it.items, items...)
+		return nextPageToken, nil
+	}
+	it.pageInfo, it.nextFunc = iterator.NewPageInfo(fetch, it.bufLen, it.takeBuf)
 	return it
 }
 
 // GetMonitoredResourceDescriptor gets a single monitored resource descriptor. This method does not require a Stackdriver account.
-func (c *MetricClient) GetMonitoredResourceDescriptor(ctx context.Context, req *monitoringpb.GetMonitoredResourceDescriptorRequest) (*monitoredrespb.MonitoredResourceDescriptor, error) {
-	ctx = metadata.NewContext(ctx, c.metadata)
+func (c *MetricClient) GetMonitoredResourceDescriptor(ctx context.Context, req *monitoringpb.GetMonitoredResourceDescriptorRequest, opts ...gax.CallOption) (*monitoredrespb.MonitoredResourceDescriptor, error) {
+	ctx = insertXGoog(ctx, c.xGoogHeader)
+	opts = append(c.CallOptions.GetMonitoredResourceDescriptor[0:len(c.CallOptions.GetMonitoredResourceDescriptor):len(c.CallOptions.GetMonitoredResourceDescriptor)], opts...)
 	var resp *monitoredrespb.MonitoredResourceDescriptor
-	err := gax.Invoke(ctx, func(ctx context.Context) error {
+	err := gax.Invoke(ctx, func(ctx context.Context, settings gax.CallSettings) error {
 		var err error
-		resp, err = c.client.GetMonitoredResourceDescriptor(ctx, req)
+		resp, err = c.metricClient.GetMonitoredResourceDescriptor(ctx, req, settings.GRPC...)
 		return err
-	}, c.CallOptions.GetMonitoredResourceDescriptor...)
+	}, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -217,40 +213,50 @@ func (c *MetricClient) GetMonitoredResourceDescriptor(ctx context.Context, req *
 }
 
 // ListMetricDescriptors lists metric descriptors that match a filter. This method does not require a Stackdriver account.
-func (c *MetricClient) ListMetricDescriptors(ctx context.Context, req *monitoringpb.ListMetricDescriptorsRequest) *MetricDescriptorIterator {
-	ctx = metadata.NewContext(ctx, c.metadata)
+func (c *MetricClient) ListMetricDescriptors(ctx context.Context, req *monitoringpb.ListMetricDescriptorsRequest, opts ...gax.CallOption) *MetricDescriptorIterator {
+	ctx = insertXGoog(ctx, c.xGoogHeader)
+	opts = append(c.CallOptions.ListMetricDescriptors[0:len(c.CallOptions.ListMetricDescriptors):len(c.CallOptions.ListMetricDescriptors)], opts...)
 	it := &MetricDescriptorIterator{}
-	it.apiCall = func() error {
+	it.InternalFetch = func(pageSize int, pageToken string) ([]*metricpb.MetricDescriptor, string, error) {
 		var resp *monitoringpb.ListMetricDescriptorsResponse
-		err := gax.Invoke(ctx, func(ctx context.Context) error {
+		req.PageToken = pageToken
+		if pageSize > math.MaxInt32 {
+			req.PageSize = math.MaxInt32
+		} else {
+			req.PageSize = int32(pageSize)
+		}
+		err := gax.Invoke(ctx, func(ctx context.Context, settings gax.CallSettings) error {
 			var err error
-			req.PageToken = it.nextPageToken
-			req.PageSize = it.pageSize
-			resp, err = c.client.ListMetricDescriptors(ctx, req)
+			resp, err = c.metricClient.ListMetricDescriptors(ctx, req, settings.GRPC...)
 			return err
-		}, c.CallOptions.ListMetricDescriptors...)
+		}, opts...)
 		if err != nil {
-			return err
+			return nil, "", err
 		}
-		if resp.NextPageToken == "" {
-			it.atLastPage = true
-		}
-		it.nextPageToken = resp.NextPageToken
-		it.items = resp.MetricDescriptors
-		return nil
+		return resp.MetricDescriptors, resp.NextPageToken, nil
 	}
+	fetch := func(pageSize int, pageToken string) (string, error) {
+		items, nextPageToken, err := it.InternalFetch(pageSize, pageToken)
+		if err != nil {
+			return "", err
+		}
+		it.items = append(it.items, items...)
+		return nextPageToken, nil
+	}
+	it.pageInfo, it.nextFunc = iterator.NewPageInfo(fetch, it.bufLen, it.takeBuf)
 	return it
 }
 
 // GetMetricDescriptor gets a single metric descriptor. This method does not require a Stackdriver account.
-func (c *MetricClient) GetMetricDescriptor(ctx context.Context, req *monitoringpb.GetMetricDescriptorRequest) (*metricpb.MetricDescriptor, error) {
-	ctx = metadata.NewContext(ctx, c.metadata)
+func (c *MetricClient) GetMetricDescriptor(ctx context.Context, req *monitoringpb.GetMetricDescriptorRequest, opts ...gax.CallOption) (*metricpb.MetricDescriptor, error) {
+	ctx = insertXGoog(ctx, c.xGoogHeader)
+	opts = append(c.CallOptions.GetMetricDescriptor[0:len(c.CallOptions.GetMetricDescriptor):len(c.CallOptions.GetMetricDescriptor)], opts...)
 	var resp *metricpb.MetricDescriptor
-	err := gax.Invoke(ctx, func(ctx context.Context) error {
+	err := gax.Invoke(ctx, func(ctx context.Context, settings gax.CallSettings) error {
 		var err error
-		resp, err = c.client.GetMetricDescriptor(ctx, req)
+		resp, err = c.metricClient.GetMetricDescriptor(ctx, req, settings.GRPC...)
 		return err
-	}, c.CallOptions.GetMetricDescriptor...)
+	}, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -259,15 +265,16 @@ func (c *MetricClient) GetMetricDescriptor(ctx context.Context, req *monitoringp
 
 // CreateMetricDescriptor creates a new metric descriptor.
 // User-created metric descriptors define
-// [custom metrics](/monitoring/custom-metrics).
-func (c *MetricClient) CreateMetricDescriptor(ctx context.Context, req *monitoringpb.CreateMetricDescriptorRequest) (*metricpb.MetricDescriptor, error) {
-	ctx = metadata.NewContext(ctx, c.metadata)
+// custom metrics (at /monitoring/custom-metrics).
+func (c *MetricClient) CreateMetricDescriptor(ctx context.Context, req *monitoringpb.CreateMetricDescriptorRequest, opts ...gax.CallOption) (*metricpb.MetricDescriptor, error) {
+	ctx = insertXGoog(ctx, c.xGoogHeader)
+	opts = append(c.CallOptions.CreateMetricDescriptor[0:len(c.CallOptions.CreateMetricDescriptor):len(c.CallOptions.CreateMetricDescriptor)], opts...)
 	var resp *metricpb.MetricDescriptor
-	err := gax.Invoke(ctx, func(ctx context.Context) error {
+	err := gax.Invoke(ctx, func(ctx context.Context, settings gax.CallSettings) error {
 		var err error
-		resp, err = c.client.CreateMetricDescriptor(ctx, req)
+		resp, err = c.metricClient.CreateMetricDescriptor(ctx, req, settings.GRPC...)
 		return err
-	}, c.CallOptions.CreateMetricDescriptor...)
+	}, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -275,40 +282,50 @@ func (c *MetricClient) CreateMetricDescriptor(ctx context.Context, req *monitori
 }
 
 // DeleteMetricDescriptor deletes a metric descriptor. Only user-created
-// [custom metrics](/monitoring/custom-metrics) can be deleted.
-func (c *MetricClient) DeleteMetricDescriptor(ctx context.Context, req *monitoringpb.DeleteMetricDescriptorRequest) error {
-	ctx = metadata.NewContext(ctx, c.metadata)
-	err := gax.Invoke(ctx, func(ctx context.Context) error {
+// custom metrics (at /monitoring/custom-metrics) can be deleted.
+func (c *MetricClient) DeleteMetricDescriptor(ctx context.Context, req *monitoringpb.DeleteMetricDescriptorRequest, opts ...gax.CallOption) error {
+	ctx = insertXGoog(ctx, c.xGoogHeader)
+	opts = append(c.CallOptions.DeleteMetricDescriptor[0:len(c.CallOptions.DeleteMetricDescriptor):len(c.CallOptions.DeleteMetricDescriptor)], opts...)
+	err := gax.Invoke(ctx, func(ctx context.Context, settings gax.CallSettings) error {
 		var err error
-		_, err = c.client.DeleteMetricDescriptor(ctx, req)
+		_, err = c.metricClient.DeleteMetricDescriptor(ctx, req, settings.GRPC...)
 		return err
-	}, c.CallOptions.DeleteMetricDescriptor...)
+	}, opts...)
 	return err
 }
 
 // ListTimeSeries lists time series that match a filter. This method does not require a Stackdriver account.
-func (c *MetricClient) ListTimeSeries(ctx context.Context, req *monitoringpb.ListTimeSeriesRequest) *TimeSeriesIterator {
-	ctx = metadata.NewContext(ctx, c.metadata)
+func (c *MetricClient) ListTimeSeries(ctx context.Context, req *monitoringpb.ListTimeSeriesRequest, opts ...gax.CallOption) *TimeSeriesIterator {
+	ctx = insertXGoog(ctx, c.xGoogHeader)
+	opts = append(c.CallOptions.ListTimeSeries[0:len(c.CallOptions.ListTimeSeries):len(c.CallOptions.ListTimeSeries)], opts...)
 	it := &TimeSeriesIterator{}
-	it.apiCall = func() error {
+	it.InternalFetch = func(pageSize int, pageToken string) ([]*monitoringpb.TimeSeries, string, error) {
 		var resp *monitoringpb.ListTimeSeriesResponse
-		err := gax.Invoke(ctx, func(ctx context.Context) error {
+		req.PageToken = pageToken
+		if pageSize > math.MaxInt32 {
+			req.PageSize = math.MaxInt32
+		} else {
+			req.PageSize = int32(pageSize)
+		}
+		err := gax.Invoke(ctx, func(ctx context.Context, settings gax.CallSettings) error {
 			var err error
-			req.PageToken = it.nextPageToken
-			req.PageSize = it.pageSize
-			resp, err = c.client.ListTimeSeries(ctx, req)
+			resp, err = c.metricClient.ListTimeSeries(ctx, req, settings.GRPC...)
 			return err
-		}, c.CallOptions.ListTimeSeries...)
+		}, opts...)
 		if err != nil {
-			return err
+			return nil, "", err
 		}
-		if resp.NextPageToken == "" {
-			it.atLastPage = true
-		}
-		it.nextPageToken = resp.NextPageToken
-		it.items = resp.TimeSeries
-		return nil
+		return resp.TimeSeries, resp.NextPageToken, nil
 	}
+	fetch := func(pageSize int, pageToken string) (string, error) {
+		items, nextPageToken, err := it.InternalFetch(pageSize, pageToken)
+		if err != nil {
+			return "", err
+		}
+		it.items = append(it.items, items...)
+		return nextPageToken, nil
+	}
+	it.pageInfo, it.nextFunc = iterator.NewPageInfo(fetch, it.bufLen, it.takeBuf)
 	return it
 }
 
@@ -316,264 +333,139 @@ func (c *MetricClient) ListTimeSeries(ctx context.Context, req *monitoringpb.Lis
 // The response is empty if all time series in the request were written.
 // If any time series could not be written, a corresponding failure message is
 // included in the error response.
-func (c *MetricClient) CreateTimeSeries(ctx context.Context, req *monitoringpb.CreateTimeSeriesRequest) error {
-	ctx = metadata.NewContext(ctx, c.metadata)
-	err := gax.Invoke(ctx, func(ctx context.Context) error {
+func (c *MetricClient) CreateTimeSeries(ctx context.Context, req *monitoringpb.CreateTimeSeriesRequest, opts ...gax.CallOption) error {
+	ctx = insertXGoog(ctx, c.xGoogHeader)
+	opts = append(c.CallOptions.CreateTimeSeries[0:len(c.CallOptions.CreateTimeSeries):len(c.CallOptions.CreateTimeSeries)], opts...)
+	err := gax.Invoke(ctx, func(ctx context.Context, settings gax.CallSettings) error {
 		var err error
-		_, err = c.client.CreateTimeSeries(ctx, req)
+		_, err = c.metricClient.CreateTimeSeries(ctx, req, settings.GRPC...)
 		return err
-	}, c.CallOptions.CreateTimeSeries...)
+	}, opts...)
 	return err
-}
-
-// MonitoredResourceDescriptorIterator manages a stream of *monitoredrespb.MonitoredResourceDescriptor.
-type MonitoredResourceDescriptorIterator struct {
-	// The current page data.
-	items         []*monitoredrespb.MonitoredResourceDescriptor
-	atLastPage    bool
-	currentIndex  int
-	pageSize      int32
-	nextPageToken string
-	apiCall       func() error
-}
-
-// NextPage returns the next page of results.
-// It will return at most the number of results specified by the last call to SetPageSize.
-// If SetPageSize was never called or was called with a value less than 1,
-// the page size is determined by the underlying service.
-//
-// NextPage may return a second return value of Done along with the last page of results. After
-// NextPage returns Done, all subsequent calls to NextPage will return (nil, Done).
-//
-// Next and NextPage should not be used with the same iterator.
-func (it *MonitoredResourceDescriptorIterator) NextPage() ([]*monitoredrespb.MonitoredResourceDescriptor, error) {
-	if it.atLastPage {
-		// We already returned Done with the last page of items. Continue to
-		// return Done, but with no items.
-		return nil, Done
-	}
-	if err := it.apiCall(); err != nil {
-		return nil, err
-	}
-	if it.atLastPage {
-		return it.items, Done
-	}
-	return it.items, nil
-}
-
-// Next returns the next result. Its second return value is Done if there are no more results.
-// Once next returns Done, all subsequent calls will return Done.
-//
-// Internally, Next retrieves results in bulk. You can call SetPageSize as a performance hint to
-// affect how many results are retrieved in a single RPC.
-//
-// SetPageToken should not be called when using Next.
-//
-// Next and NextPage should not be used with the same iterator.
-func (it *MonitoredResourceDescriptorIterator) Next() (*monitoredrespb.MonitoredResourceDescriptor, error) {
-	for it.currentIndex >= len(it.items) {
-		if it.atLastPage {
-			return nil, Done
-		}
-		if err := it.apiCall(); err != nil {
-			return nil, err
-		}
-		it.currentIndex = 0
-	}
-	result := it.items[it.currentIndex]
-	it.currentIndex++
-	return result, nil
-}
-
-// PageSize returns the page size for all subsequent calls to NextPage.
-func (it *MonitoredResourceDescriptorIterator) PageSize() int {
-	return int(it.pageSize)
-}
-
-// SetPageSize sets the page size for all subsequent calls to NextPage.
-func (it *MonitoredResourceDescriptorIterator) SetPageSize(pageSize int) {
-	if pageSize > math.MaxInt32 {
-		pageSize = math.MaxInt32
-	}
-	it.pageSize = int32(pageSize)
-}
-
-// SetPageToken sets the page token for the next call to NextPage, to resume the iteration from
-// a previous point.
-func (it *MonitoredResourceDescriptorIterator) SetPageToken(token string) {
-	it.nextPageToken = token
-}
-
-// NextPageToken returns a page token that can be used with SetPageToken to resume
-// iteration from the next page. It returns the empty string if there are no more pages.
-func (it *MonitoredResourceDescriptorIterator) NextPageToken() string {
-	return it.nextPageToken
 }
 
 // MetricDescriptorIterator manages a stream of *metricpb.MetricDescriptor.
 type MetricDescriptorIterator struct {
-	// The current page data.
-	items         []*metricpb.MetricDescriptor
-	atLastPage    bool
-	currentIndex  int
-	pageSize      int32
-	nextPageToken string
-	apiCall       func() error
+	items    []*metricpb.MetricDescriptor
+	pageInfo *iterator.PageInfo
+	nextFunc func() error
+
+	// InternalFetch is for use by the Google Cloud Libraries only.
+	// It is not part of the stable interface of this package.
+	//
+	// InternalFetch returns results from a single call to the underlying RPC.
+	// The number of results is no greater than pageSize.
+	// If there are no more results, nextPageToken is empty and err is nil.
+	InternalFetch func(pageSize int, pageToken string) (results []*metricpb.MetricDescriptor, nextPageToken string, err error)
 }
 
-// NextPage returns the next page of results.
-// It will return at most the number of results specified by the last call to SetPageSize.
-// If SetPageSize was never called or was called with a value less than 1,
-// the page size is determined by the underlying service.
-//
-// NextPage may return a second return value of Done along with the last page of results. After
-// NextPage returns Done, all subsequent calls to NextPage will return (nil, Done).
-//
-// Next and NextPage should not be used with the same iterator.
-func (it *MetricDescriptorIterator) NextPage() ([]*metricpb.MetricDescriptor, error) {
-	if it.atLastPage {
-		// We already returned Done with the last page of items. Continue to
-		// return Done, but with no items.
-		return nil, Done
-	}
-	if err := it.apiCall(); err != nil {
-		return nil, err
-	}
-	if it.atLastPage {
-		return it.items, Done
-	}
-	return it.items, nil
+// PageInfo supports pagination. See the google.golang.org/api/iterator package for details.
+func (it *MetricDescriptorIterator) PageInfo() *iterator.PageInfo {
+	return it.pageInfo
 }
 
-// Next returns the next result. Its second return value is Done if there are no more results.
-// Once next returns Done, all subsequent calls will return Done.
-//
-// Internally, Next retrieves results in bulk. You can call SetPageSize as a performance hint to
-// affect how many results are retrieved in a single RPC.
-//
-// SetPageToken should not be called when using Next.
-//
-// Next and NextPage should not be used with the same iterator.
+// Next returns the next result. Its second return value is iterator.Done if there are no more
+// results. Once Next returns Done, all subsequent calls will return Done.
 func (it *MetricDescriptorIterator) Next() (*metricpb.MetricDescriptor, error) {
-	for it.currentIndex >= len(it.items) {
-		if it.atLastPage {
-			return nil, Done
-		}
-		if err := it.apiCall(); err != nil {
-			return nil, err
-		}
-		it.currentIndex = 0
+	var item *metricpb.MetricDescriptor
+	if err := it.nextFunc(); err != nil {
+		return item, err
 	}
-	result := it.items[it.currentIndex]
-	it.currentIndex++
-	return result, nil
+	item = it.items[0]
+	it.items = it.items[1:]
+	return item, nil
 }
 
-// PageSize returns the page size for all subsequent calls to NextPage.
-func (it *MetricDescriptorIterator) PageSize() int {
-	return int(it.pageSize)
+func (it *MetricDescriptorIterator) bufLen() int {
+	return len(it.items)
 }
 
-// SetPageSize sets the page size for all subsequent calls to NextPage.
-func (it *MetricDescriptorIterator) SetPageSize(pageSize int) {
-	if pageSize > math.MaxInt32 {
-		pageSize = math.MaxInt32
+func (it *MetricDescriptorIterator) takeBuf() interface{} {
+	b := it.items
+	it.items = nil
+	return b
+}
+
+// MonitoredResourceDescriptorIterator manages a stream of *monitoredrespb.MonitoredResourceDescriptor.
+type MonitoredResourceDescriptorIterator struct {
+	items    []*monitoredrespb.MonitoredResourceDescriptor
+	pageInfo *iterator.PageInfo
+	nextFunc func() error
+
+	// InternalFetch is for use by the Google Cloud Libraries only.
+	// It is not part of the stable interface of this package.
+	//
+	// InternalFetch returns results from a single call to the underlying RPC.
+	// The number of results is no greater than pageSize.
+	// If there are no more results, nextPageToken is empty and err is nil.
+	InternalFetch func(pageSize int, pageToken string) (results []*monitoredrespb.MonitoredResourceDescriptor, nextPageToken string, err error)
+}
+
+// PageInfo supports pagination. See the google.golang.org/api/iterator package for details.
+func (it *MonitoredResourceDescriptorIterator) PageInfo() *iterator.PageInfo {
+	return it.pageInfo
+}
+
+// Next returns the next result. Its second return value is iterator.Done if there are no more
+// results. Once Next returns Done, all subsequent calls will return Done.
+func (it *MonitoredResourceDescriptorIterator) Next() (*monitoredrespb.MonitoredResourceDescriptor, error) {
+	var item *monitoredrespb.MonitoredResourceDescriptor
+	if err := it.nextFunc(); err != nil {
+		return item, err
 	}
-	it.pageSize = int32(pageSize)
+	item = it.items[0]
+	it.items = it.items[1:]
+	return item, nil
 }
 
-// SetPageToken sets the page token for the next call to NextPage, to resume the iteration from
-// a previous point.
-func (it *MetricDescriptorIterator) SetPageToken(token string) {
-	it.nextPageToken = token
+func (it *MonitoredResourceDescriptorIterator) bufLen() int {
+	return len(it.items)
 }
 
-// NextPageToken returns a page token that can be used with SetPageToken to resume
-// iteration from the next page. It returns the empty string if there are no more pages.
-func (it *MetricDescriptorIterator) NextPageToken() string {
-	return it.nextPageToken
+func (it *MonitoredResourceDescriptorIterator) takeBuf() interface{} {
+	b := it.items
+	it.items = nil
+	return b
 }
 
 // TimeSeriesIterator manages a stream of *monitoringpb.TimeSeries.
 type TimeSeriesIterator struct {
-	// The current page data.
-	items         []*monitoringpb.TimeSeries
-	atLastPage    bool
-	currentIndex  int
-	pageSize      int32
-	nextPageToken string
-	apiCall       func() error
+	items    []*monitoringpb.TimeSeries
+	pageInfo *iterator.PageInfo
+	nextFunc func() error
+
+	// InternalFetch is for use by the Google Cloud Libraries only.
+	// It is not part of the stable interface of this package.
+	//
+	// InternalFetch returns results from a single call to the underlying RPC.
+	// The number of results is no greater than pageSize.
+	// If there are no more results, nextPageToken is empty and err is nil.
+	InternalFetch func(pageSize int, pageToken string) (results []*monitoringpb.TimeSeries, nextPageToken string, err error)
 }
 
-// NextPage returns the next page of results.
-// It will return at most the number of results specified by the last call to SetPageSize.
-// If SetPageSize was never called or was called with a value less than 1,
-// the page size is determined by the underlying service.
-//
-// NextPage may return a second return value of Done along with the last page of results. After
-// NextPage returns Done, all subsequent calls to NextPage will return (nil, Done).
-//
-// Next and NextPage should not be used with the same iterator.
-func (it *TimeSeriesIterator) NextPage() ([]*monitoringpb.TimeSeries, error) {
-	if it.atLastPage {
-		// We already returned Done with the last page of items. Continue to
-		// return Done, but with no items.
-		return nil, Done
-	}
-	if err := it.apiCall(); err != nil {
-		return nil, err
-	}
-	if it.atLastPage {
-		return it.items, Done
-	}
-	return it.items, nil
+// PageInfo supports pagination. See the google.golang.org/api/iterator package for details.
+func (it *TimeSeriesIterator) PageInfo() *iterator.PageInfo {
+	return it.pageInfo
 }
 
-// Next returns the next result. Its second return value is Done if there are no more results.
-// Once next returns Done, all subsequent calls will return Done.
-//
-// Internally, Next retrieves results in bulk. You can call SetPageSize as a performance hint to
-// affect how many results are retrieved in a single RPC.
-//
-// SetPageToken should not be called when using Next.
-//
-// Next and NextPage should not be used with the same iterator.
+// Next returns the next result. Its second return value is iterator.Done if there are no more
+// results. Once Next returns Done, all subsequent calls will return Done.
 func (it *TimeSeriesIterator) Next() (*monitoringpb.TimeSeries, error) {
-	for it.currentIndex >= len(it.items) {
-		if it.atLastPage {
-			return nil, Done
-		}
-		if err := it.apiCall(); err != nil {
-			return nil, err
-		}
-		it.currentIndex = 0
+	var item *monitoringpb.TimeSeries
+	if err := it.nextFunc(); err != nil {
+		return item, err
 	}
-	result := it.items[it.currentIndex]
-	it.currentIndex++
-	return result, nil
+	item = it.items[0]
+	it.items = it.items[1:]
+	return item, nil
 }
 
-// PageSize returns the page size for all subsequent calls to NextPage.
-func (it *TimeSeriesIterator) PageSize() int {
-	return int(it.pageSize)
+func (it *TimeSeriesIterator) bufLen() int {
+	return len(it.items)
 }
 
-// SetPageSize sets the page size for all subsequent calls to NextPage.
-func (it *TimeSeriesIterator) SetPageSize(pageSize int) {
-	if pageSize > math.MaxInt32 {
-		pageSize = math.MaxInt32
-	}
-	it.pageSize = int32(pageSize)
-}
-
-// SetPageToken sets the page token for the next call to NextPage, to resume the iteration from
-// a previous point.
-func (it *TimeSeriesIterator) SetPageToken(token string) {
-	it.nextPageToken = token
-}
-
-// NextPageToken returns a page token that can be used with SetPageToken to resume
-// iteration from the next page. It returns the empty string if there are no more pages.
-func (it *TimeSeriesIterator) NextPageToken() string {
-	return it.nextPageToken
+func (it *TimeSeriesIterator) takeBuf() interface{} {
+	b := it.items
+	it.items = nil
+	return b
 }

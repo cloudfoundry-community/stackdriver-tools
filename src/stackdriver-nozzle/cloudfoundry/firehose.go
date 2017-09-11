@@ -68,8 +68,8 @@ func (ct *cfClientTokenRefresh) RefreshAuthToken() (token string, err error) {
 	//
 	// TODO: Track https://github.com/cloudfoundry-community/go-cfclient/issues/34 for
 	// updates on proper refresh token handling.
-	token = ct.cfClient.GetToken()
-	if token == "" {
+	token, err = ct.cfClient.GetToken()
+	if token == "" && err == nil {
 		err = fmt.Errorf("Fatal: error getting refresh token")
 	}
 	return

@@ -142,7 +142,10 @@ func newApp() *app {
 		Username:          c.Username,
 		Password:          c.Password,
 		SkipSslValidation: c.SkipSSL}
-	cfClient := cfclient.NewClient(cfConfig)
+	cfClient, err := cfclient.NewClient(cfConfig)
+	if err != nil {
+		logger.Error("cfClient", err)
+	}
 
 	var appInfoRepository cloudfoundry.AppInfoRepository
 	if c.ResolveAppMetadata {
