@@ -50,8 +50,7 @@ func main() {
 		}
 	}()
 
-	fatalErr := <-fhErrs
-	if fatalErr != nil {
+	if fatalErr := <-fhErrs; fatalErr != nil {
 		cancel()
 		t := time.NewTimer(5 * time.Second)
 		for {
