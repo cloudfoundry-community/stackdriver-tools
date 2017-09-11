@@ -17,8 +17,6 @@ var _ = Describe("SinkFilter", func() {
 
 	BeforeEach(func() {
 		allEventTypes = []events.Envelope_EventType{
-			events.Envelope_HttpStart,
-			events.Envelope_HttpStop,
 			events.Envelope_HttpStartStop,
 			events.Envelope_LogMessage,
 			events.Envelope_ValueMetric,

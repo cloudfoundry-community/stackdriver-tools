@@ -174,7 +174,7 @@ var _ = Describe("MetricSink", func() {
 	})
 
 	It("returns error when envelope contains unhandled event type", func() {
-		eventType := events.Envelope_HttpStart
+		eventType := events.Envelope_HttpStartStop
 		envelope := &events.Envelope{
 			EventType: &eventType,
 		}
