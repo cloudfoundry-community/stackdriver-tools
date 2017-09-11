@@ -8,9 +8,11 @@ package stenographer
 
 import (
 	"fmt"
+	"io"
 	"runtime"
 	"strings"
 
+	"github.com/onsi/ginkgo/reporters/stenographer/support/go-colorable"
 	"github.com/onsi/ginkgo/types"
 )
 
@@ -35,7 +37,8 @@ const (
 type Stenographer interface {
 	AnnounceSuite(description string, randomSeed int64, randomizingAll bool, succinct bool)
 	AnnounceAggregatedParallelRun(nodes int, succinct bool)
-	AnnounceParallelRun(node int, nodes int, specsToRun int, totalSpecs int, succinct bool)
+	AnnounceParallelRun(node int, nodes int, succinct bool)
+	AnnounceTotalNumberOfSpecs(total int, succinct bool)
 	AnnounceNumberOfSpecs(specsToRun int, total int, succinct bool)
 	AnnounceSpecRunCompletion(summary *types.SuiteSummary, succinct bool)
 
@@ -69,15 +72,16 @@ func New(color bool, enableFlakes bool) Stenographer {
 		denoter:      denoter,
 		cursorState:  cursorStateTop,
 		enableFlakes: enableFlakes,
+		w:            colorable.NewColorableStdout(),
 	}
 }
 
 type consoleStenographer struct {
-	color       bool
-	denoter     string
-	cursorState cursorStateType
-	// Whether to print flake counts.
+	color        bool
+	denoter      string
+	cursorState  cursorStateType
 	enableFlakes bool
+	w            io.Writer
 }
 
 var alternatingColors = []string{defaultStyle, grayColor}
@@ -95,17 +99,15 @@ func (s *consoleStenographer) AnnounceSuite(description string, randomSeed int64
 	s.printNewLine()
 }
 
-func (s *consoleStenographer) AnnounceParallelRun(node int, nodes int, specsToRun int, totalSpecs int, succinct bool) {
+func (s *consoleStenographer) AnnounceParallelRun(node int, nodes int, succinct bool) {
 	if succinct {
 		s.print(0, "- node #%d ", node)
 		return
 	}
 	s.println(0,
-		"Parallel test node %s/%s. Assigned %s of %s specs.",
+		"Parallel test node %s/%s.",
 		s.colorize(boldStyle, "%d", node),
 		s.colorize(boldStyle, "%d", nodes),
-		s.colorize(boldStyle, "%d", specsToRun),
-		s.colorize(boldStyle, "%d", totalSpecs),
 	)
 	s.printNewLine()
 }
@@ -131,6 +133,20 @@ func (s *consoleStenographer) AnnounceNumberOfSpecs(specsToRun int, total int, s
 	s.println(0,
 		"Will run %s of %s specs",
 		s.colorize(boldStyle, "%d", specsToRun),
+		s.colorize(boldStyle, "%d", total),
+	)
+
+	s.printNewLine()
+}
+
+func (s *consoleStenographer) AnnounceTotalNumberOfSpecs(total int, succinct bool) {
+	if succinct {
+		s.print(0, "- %d specs ", total)
+		s.stream()
+		return
+	}
+	s.println(0,
+		"Will run %s specs",
 		s.colorize(boldStyle, "%d", total),
 	)
 

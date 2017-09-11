@@ -3,16 +3,18 @@ package cfclient
 import (
 	"encoding/json"
 	"io/ioutil"
-	"log"
+	"net/url"
+
+	"github.com/pkg/errors"
 )
 
-type ServiceResponse struct {
-	Count     int               `json:"total_results"`
-	Pages     int               `json:"total_pages"`
-	Resources []ServiceResource `json:"resources"`
+type ServicesResponse struct {
+	Count     int                `json:"total_results"`
+	Pages     int                `json:"total_pages"`
+	Resources []ServicesResource `json:"resources"`
 }
 
-type ServiceResource struct {
+type ServicesResource struct {
 	Meta   Meta    `json:"metadata"`
 	Entity Service `json:"entity"`
 }
@@ -23,27 +25,37 @@ type Service struct {
 	c     *Client
 }
 
-func (c *Client) ListServices() []Service {
+type ServiceSummary struct {
+	Guid          string `json:"guid"`
+	Name          string `json:"name"`
+	BoundAppCount int    `json:"bound_app_count"`
+}
+
+func (c *Client) ListServicesByQuery(query url.Values) ([]Service, error) {
 	var services []Service
-	var serviceResp ServiceResponse
-	r := c.newRequest("GET", "/v2/services")
-	resp, err := c.doRequest(r)
+	var serviceResp ServicesResponse
+	r := c.NewRequest("GET", "/v2/services?"+query.Encode())
+	resp, err := c.DoRequest(r)
 	if err != nil {
-		log.Printf("Error requesting services %v", err)
+		return nil, errors.Wrap(err, "Error requesting services")
 	}
 	resBody, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
-		log.Printf("Error reading services request %v", resBody)
+		return nil, errors.Wrap(err, "Error reading services request:")
 	}
 
 	err = json.Unmarshal(resBody, &serviceResp)
 	if err != nil {
-		log.Printf("Error unmarshaling services %v", err)
+		return nil, errors.Wrap(err, "Error unmarshaling services")
 	}
 	for _, service := range serviceResp.Resources {
 		service.Entity.Guid = service.Meta.Guid
 		service.Entity.c = c
 		services = append(services, service.Entity)
 	}
-	return services
+	return services, nil
+}
+
+func (c *Client) ListServices() ([]Service, error) {
+	return c.ListServicesByQuery(nil)
 }

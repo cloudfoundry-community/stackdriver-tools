@@ -1,10 +1,10 @@
-// Copyright 2016 Google Inc. All Rights Reserved.
+// Copyright 2017, Google Inc. All rights reserved.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
 // You may obtain a copy of the License at
 //
-//      http://www.apache.org/licenses/LICENSE-2.0
+//     http://www.apache.org/licenses/LICENSE-2.0
 //
 // Unless required by applicable law or agreed to in writing, software
 // distributed under the License is distributed on an "AS IS" BASIS,
@@ -17,28 +17,22 @@
 package monitoring
 
 import (
-	"fmt"
 	"math"
-	"runtime"
 	"time"
 
+	"cloud.google.com/go/internal/version"
 	gax "github.com/googleapis/gax-go"
 	"golang.org/x/net/context"
+	"google.golang.org/api/iterator"
 	"google.golang.org/api/option"
 	"google.golang.org/api/transport"
 	monitoredrespb "google.golang.org/genproto/googleapis/api/monitoredres"
 	monitoringpb "google.golang.org/genproto/googleapis/monitoring/v3"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
-	"google.golang.org/grpc/metadata"
 )
 
-var (
-	groupProjectPathTemplate = gax.MustCompilePathTemplate("projects/{project}")
-	groupGroupPathTemplate   = gax.MustCompilePathTemplate("projects/{project}/groups/{group}")
-)
-
-// GroupCallOptions contains the retry settings for each method of this client.
+// GroupCallOptions contains the retry settings for each method of GroupClient.
 type GroupCallOptions struct {
 	ListGroups       []gax.CallOption
 	GetGroup         []gax.CallOption
@@ -51,7 +45,7 @@ type GroupCallOptions struct {
 func defaultGroupClientOptions() []option.ClientOption {
 	return []option.ClientOption{
 		option.WithEndpoint("monitoring.googleapis.com:443"),
-		option.WithScopes(),
+		option.WithScopes(DefaultAuthScopes()...),
 	}
 }
 
@@ -70,7 +64,6 @@ func defaultGroupCallOptions() *GroupCallOptions {
 			}),
 		},
 	}
-
 	return &GroupCallOptions{
 		ListGroups:       retry[[2]string{"default", "idempotent"}],
 		GetGroup:         retry[[2]string{"default", "idempotent"}],
@@ -81,25 +74,25 @@ func defaultGroupCallOptions() *GroupCallOptions {
 	}
 }
 
-// GroupClient is a client for interacting with GroupService.
+// GroupClient is a client for interacting with Stackdriver Monitoring API.
 type GroupClient struct {
 	// The connection to the service.
 	conn *grpc.ClientConn
 
 	// The gRPC API client.
-	client monitoringpb.GroupServiceClient
+	groupClient monitoringpb.GroupServiceClient
 
 	// The call options for this service.
 	CallOptions *GroupCallOptions
 
 	// The metadata to be sent with each request.
-	metadata map[string][]string
+	xGoogHeader []string
 }
 
 // NewGroupClient creates a new group service client.
 //
 // The Group API lets you inspect and manage your
-// [groups](google.monitoring.v3.Group).
+// groups (at google.monitoring.v3.Group).
 //
 // A group is a named filter that is used to identify
 // a collection of monitored resources. Groups are typically used to
@@ -117,10 +110,11 @@ func NewGroupClient(ctx context.Context, opts ...option.ClientOption) (*GroupCli
 	}
 	c := &GroupClient{
 		conn:        conn,
-		client:      monitoringpb.NewGroupServiceClient(conn),
 		CallOptions: defaultGroupCallOptions(),
+
+		groupClient: monitoringpb.NewGroupServiceClient(conn),
 	}
-	c.SetGoogleClientInfo("gax", gax.Version)
+	c.setGoogleClientInfo()
 	return c, nil
 }
 
@@ -135,91 +129,94 @@ func (c *GroupClient) Close() error {
 	return c.conn.Close()
 }
 
-// SetGoogleClientInfo sets the name and version of the application in
+// setGoogleClientInfo sets the name and version of the application in
 // the `x-goog-api-client` header passed on each request. Intended for
 // use by Google-written clients.
-func (c *GroupClient) SetGoogleClientInfo(name, version string) {
-	c.metadata = map[string][]string{
-		"x-goog-api-client": {fmt.Sprintf("%s/%s %s gax/%s go/%s", name, version, gapicNameVersion, gax.Version, runtime.Version())},
-	}
+func (c *GroupClient) setGoogleClientInfo(keyval ...string) {
+	kv := append([]string{"gl-go", version.Go()}, keyval...)
+	kv = append(kv, "gapic", version.Repo, "gax", gax.Version, "grpc", grpc.Version)
+	c.xGoogHeader = []string{gax.XGoogHeader(kv...)}
 }
 
-// ProjectPath returns the path for the project resource.
+// GroupProjectPath returns the path for the project resource.
 func GroupProjectPath(project string) string {
-	path, err := groupProjectPathTemplate.Render(map[string]string{
-		"project": project,
-	})
-	if err != nil {
-		panic(err)
-	}
-	return path
+	return "" +
+		"projects/" +
+		project +
+		""
 }
 
-// GroupPath returns the path for the group resource.
-func GroupGroupPath(project string, group string) string {
-	path, err := groupGroupPathTemplate.Render(map[string]string{
-		"project": project,
-		"group":   group,
-	})
-	if err != nil {
-		panic(err)
-	}
-	return path
+// GroupGroupPath returns the path for the group resource.
+func GroupGroupPath(project, group string) string {
+	return "" +
+		"projects/" +
+		project +
+		"/groups/" +
+		group +
+		""
 }
 
-// ListGroups lists the existing groups. The project ID in the URL path must refer
-// to a Stackdriver account.
-func (c *GroupClient) ListGroups(ctx context.Context, req *monitoringpb.ListGroupsRequest) *GroupIterator {
-	ctx = metadata.NewContext(ctx, c.metadata)
+// ListGroups lists the existing groups.
+func (c *GroupClient) ListGroups(ctx context.Context, req *monitoringpb.ListGroupsRequest, opts ...gax.CallOption) *GroupIterator {
+	ctx = insertXGoog(ctx, c.xGoogHeader)
+	opts = append(c.CallOptions.ListGroups[0:len(c.CallOptions.ListGroups):len(c.CallOptions.ListGroups)], opts...)
 	it := &GroupIterator{}
-	it.apiCall = func() error {
+	it.InternalFetch = func(pageSize int, pageToken string) ([]*monitoringpb.Group, string, error) {
 		var resp *monitoringpb.ListGroupsResponse
-		err := gax.Invoke(ctx, func(ctx context.Context) error {
+		req.PageToken = pageToken
+		if pageSize > math.MaxInt32 {
+			req.PageSize = math.MaxInt32
+		} else {
+			req.PageSize = int32(pageSize)
+		}
+		err := gax.Invoke(ctx, func(ctx context.Context, settings gax.CallSettings) error {
 			var err error
-			req.PageToken = it.nextPageToken
-			req.PageSize = it.pageSize
-			resp, err = c.client.ListGroups(ctx, req)
+			resp, err = c.groupClient.ListGroups(ctx, req, settings.GRPC...)
 			return err
-		}, c.CallOptions.ListGroups...)
+		}, opts...)
 		if err != nil {
-			return err
+			return nil, "", err
 		}
-		if resp.NextPageToken == "" {
-			it.atLastPage = true
-		}
-		it.nextPageToken = resp.NextPageToken
-		it.items = resp.Group
-		return nil
+		return resp.Group, resp.NextPageToken, nil
 	}
+	fetch := func(pageSize int, pageToken string) (string, error) {
+		items, nextPageToken, err := it.InternalFetch(pageSize, pageToken)
+		if err != nil {
+			return "", err
+		}
+		it.items = append(it.items, items...)
+		return nextPageToken, nil
+	}
+	it.pageInfo, it.nextFunc = iterator.NewPageInfo(fetch, it.bufLen, it.takeBuf)
 	return it
 }
 
-// GetGroup gets a single group. The project ID in the URL path must refer to a
-// Stackdriver account.
-func (c *GroupClient) GetGroup(ctx context.Context, req *monitoringpb.GetGroupRequest) (*monitoringpb.Group, error) {
-	ctx = metadata.NewContext(ctx, c.metadata)
+// GetGroup gets a single group.
+func (c *GroupClient) GetGroup(ctx context.Context, req *monitoringpb.GetGroupRequest, opts ...gax.CallOption) (*monitoringpb.Group, error) {
+	ctx = insertXGoog(ctx, c.xGoogHeader)
+	opts = append(c.CallOptions.GetGroup[0:len(c.CallOptions.GetGroup):len(c.CallOptions.GetGroup)], opts...)
 	var resp *monitoringpb.Group
-	err := gax.Invoke(ctx, func(ctx context.Context) error {
+	err := gax.Invoke(ctx, func(ctx context.Context, settings gax.CallSettings) error {
 		var err error
-		resp, err = c.client.GetGroup(ctx, req)
+		resp, err = c.groupClient.GetGroup(ctx, req, settings.GRPC...)
 		return err
-	}, c.CallOptions.GetGroup...)
+	}, opts...)
 	if err != nil {
 		return nil, err
 	}
 	return resp, nil
 }
 
-// CreateGroup creates a new group. The project ID in the URL path must refer to a
-// Stackdriver account.
-func (c *GroupClient) CreateGroup(ctx context.Context, req *monitoringpb.CreateGroupRequest) (*monitoringpb.Group, error) {
-	ctx = metadata.NewContext(ctx, c.metadata)
+// CreateGroup creates a new group.
+func (c *GroupClient) CreateGroup(ctx context.Context, req *monitoringpb.CreateGroupRequest, opts ...gax.CallOption) (*monitoringpb.Group, error) {
+	ctx = insertXGoog(ctx, c.xGoogHeader)
+	opts = append(c.CallOptions.CreateGroup[0:len(c.CallOptions.CreateGroup):len(c.CallOptions.CreateGroup)], opts...)
 	var resp *monitoringpb.Group
-	err := gax.Invoke(ctx, func(ctx context.Context) error {
+	err := gax.Invoke(ctx, func(ctx context.Context, settings gax.CallSettings) error {
 		var err error
-		resp, err = c.client.CreateGroup(ctx, req)
+		resp, err = c.groupClient.CreateGroup(ctx, req, settings.GRPC...)
 		return err
-	}, c.CallOptions.CreateGroup...)
+	}, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -227,225 +224,149 @@ func (c *GroupClient) CreateGroup(ctx context.Context, req *monitoringpb.CreateG
 }
 
 // UpdateGroup updates an existing group.
-// You can change any group attributes except `name`.
-// The project ID in the URL path must refer to a Stackdriver account.
-func (c *GroupClient) UpdateGroup(ctx context.Context, req *monitoringpb.UpdateGroupRequest) (*monitoringpb.Group, error) {
-	ctx = metadata.NewContext(ctx, c.metadata)
+// You can change any group attributes except name.
+func (c *GroupClient) UpdateGroup(ctx context.Context, req *monitoringpb.UpdateGroupRequest, opts ...gax.CallOption) (*monitoringpb.Group, error) {
+	ctx = insertXGoog(ctx, c.xGoogHeader)
+	opts = append(c.CallOptions.UpdateGroup[0:len(c.CallOptions.UpdateGroup):len(c.CallOptions.UpdateGroup)], opts...)
 	var resp *monitoringpb.Group
-	err := gax.Invoke(ctx, func(ctx context.Context) error {
+	err := gax.Invoke(ctx, func(ctx context.Context, settings gax.CallSettings) error {
 		var err error
-		resp, err = c.client.UpdateGroup(ctx, req)
+		resp, err = c.groupClient.UpdateGroup(ctx, req, settings.GRPC...)
 		return err
-	}, c.CallOptions.UpdateGroup...)
+	}, opts...)
 	if err != nil {
 		return nil, err
 	}
 	return resp, nil
 }
 
-// DeleteGroup deletes an existing group. The project ID in the URL path must refer to a
-// Stackdriver account.
-func (c *GroupClient) DeleteGroup(ctx context.Context, req *monitoringpb.DeleteGroupRequest) error {
-	ctx = metadata.NewContext(ctx, c.metadata)
-	err := gax.Invoke(ctx, func(ctx context.Context) error {
+// DeleteGroup deletes an existing group.
+func (c *GroupClient) DeleteGroup(ctx context.Context, req *monitoringpb.DeleteGroupRequest, opts ...gax.CallOption) error {
+	ctx = insertXGoog(ctx, c.xGoogHeader)
+	opts = append(c.CallOptions.DeleteGroup[0:len(c.CallOptions.DeleteGroup):len(c.CallOptions.DeleteGroup)], opts...)
+	err := gax.Invoke(ctx, func(ctx context.Context, settings gax.CallSettings) error {
 		var err error
-		_, err = c.client.DeleteGroup(ctx, req)
+		_, err = c.groupClient.DeleteGroup(ctx, req, settings.GRPC...)
 		return err
-	}, c.CallOptions.DeleteGroup...)
+	}, opts...)
 	return err
 }
 
-// ListGroupMembers lists the monitored resources that are members of a group. The project ID
-// in the URL path must refer to a Stackdriver account.
-func (c *GroupClient) ListGroupMembers(ctx context.Context, req *monitoringpb.ListGroupMembersRequest) *MonitoredResourceIterator {
-	ctx = metadata.NewContext(ctx, c.metadata)
+// ListGroupMembers lists the monitored resources that are members of a group.
+func (c *GroupClient) ListGroupMembers(ctx context.Context, req *monitoringpb.ListGroupMembersRequest, opts ...gax.CallOption) *MonitoredResourceIterator {
+	ctx = insertXGoog(ctx, c.xGoogHeader)
+	opts = append(c.CallOptions.ListGroupMembers[0:len(c.CallOptions.ListGroupMembers):len(c.CallOptions.ListGroupMembers)], opts...)
 	it := &MonitoredResourceIterator{}
-	it.apiCall = func() error {
+	it.InternalFetch = func(pageSize int, pageToken string) ([]*monitoredrespb.MonitoredResource, string, error) {
 		var resp *monitoringpb.ListGroupMembersResponse
-		err := gax.Invoke(ctx, func(ctx context.Context) error {
+		req.PageToken = pageToken
+		if pageSize > math.MaxInt32 {
+			req.PageSize = math.MaxInt32
+		} else {
+			req.PageSize = int32(pageSize)
+		}
+		err := gax.Invoke(ctx, func(ctx context.Context, settings gax.CallSettings) error {
 			var err error
-			req.PageToken = it.nextPageToken
-			req.PageSize = it.pageSize
-			resp, err = c.client.ListGroupMembers(ctx, req)
+			resp, err = c.groupClient.ListGroupMembers(ctx, req, settings.GRPC...)
 			return err
-		}, c.CallOptions.ListGroupMembers...)
+		}, opts...)
 		if err != nil {
-			return err
+			return nil, "", err
 		}
-		if resp.NextPageToken == "" {
-			it.atLastPage = true
-		}
-		it.nextPageToken = resp.NextPageToken
-		it.items = resp.Members
-		return nil
+		return resp.Members, resp.NextPageToken, nil
 	}
+	fetch := func(pageSize int, pageToken string) (string, error) {
+		items, nextPageToken, err := it.InternalFetch(pageSize, pageToken)
+		if err != nil {
+			return "", err
+		}
+		it.items = append(it.items, items...)
+		return nextPageToken, nil
+	}
+	it.pageInfo, it.nextFunc = iterator.NewPageInfo(fetch, it.bufLen, it.takeBuf)
 	return it
 }
 
 // GroupIterator manages a stream of *monitoringpb.Group.
 type GroupIterator struct {
-	// The current page data.
-	items         []*monitoringpb.Group
-	atLastPage    bool
-	currentIndex  int
-	pageSize      int32
-	nextPageToken string
-	apiCall       func() error
+	items    []*monitoringpb.Group
+	pageInfo *iterator.PageInfo
+	nextFunc func() error
+
+	// InternalFetch is for use by the Google Cloud Libraries only.
+	// It is not part of the stable interface of this package.
+	//
+	// InternalFetch returns results from a single call to the underlying RPC.
+	// The number of results is no greater than pageSize.
+	// If there are no more results, nextPageToken is empty and err is nil.
+	InternalFetch func(pageSize int, pageToken string) (results []*monitoringpb.Group, nextPageToken string, err error)
 }
 
-// NextPage returns the next page of results.
-// It will return at most the number of results specified by the last call to SetPageSize.
-// If SetPageSize was never called or was called with a value less than 1,
-// the page size is determined by the underlying service.
-//
-// NextPage may return a second return value of Done along with the last page of results. After
-// NextPage returns Done, all subsequent calls to NextPage will return (nil, Done).
-//
-// Next and NextPage should not be used with the same iterator.
-func (it *GroupIterator) NextPage() ([]*monitoringpb.Group, error) {
-	if it.atLastPage {
-		// We already returned Done with the last page of items. Continue to
-		// return Done, but with no items.
-		return nil, Done
-	}
-	if err := it.apiCall(); err != nil {
-		return nil, err
-	}
-	if it.atLastPage {
-		return it.items, Done
-	}
-	return it.items, nil
+// PageInfo supports pagination. See the google.golang.org/api/iterator package for details.
+func (it *GroupIterator) PageInfo() *iterator.PageInfo {
+	return it.pageInfo
 }
 
-// Next returns the next result. Its second return value is Done if there are no more results.
-// Once next returns Done, all subsequent calls will return Done.
-//
-// Internally, Next retrieves results in bulk. You can call SetPageSize as a performance hint to
-// affect how many results are retrieved in a single RPC.
-//
-// SetPageToken should not be called when using Next.
-//
-// Next and NextPage should not be used with the same iterator.
+// Next returns the next result. Its second return value is iterator.Done if there are no more
+// results. Once Next returns Done, all subsequent calls will return Done.
 func (it *GroupIterator) Next() (*monitoringpb.Group, error) {
-	for it.currentIndex >= len(it.items) {
-		if it.atLastPage {
-			return nil, Done
-		}
-		if err := it.apiCall(); err != nil {
-			return nil, err
-		}
-		it.currentIndex = 0
+	var item *monitoringpb.Group
+	if err := it.nextFunc(); err != nil {
+		return item, err
 	}
-	result := it.items[it.currentIndex]
-	it.currentIndex++
-	return result, nil
+	item = it.items[0]
+	it.items = it.items[1:]
+	return item, nil
 }
 
-// PageSize returns the page size for all subsequent calls to NextPage.
-func (it *GroupIterator) PageSize() int {
-	return int(it.pageSize)
+func (it *GroupIterator) bufLen() int {
+	return len(it.items)
 }
 
-// SetPageSize sets the page size for all subsequent calls to NextPage.
-func (it *GroupIterator) SetPageSize(pageSize int) {
-	if pageSize > math.MaxInt32 {
-		pageSize = math.MaxInt32
-	}
-	it.pageSize = int32(pageSize)
-}
-
-// SetPageToken sets the page token for the next call to NextPage, to resume the iteration from
-// a previous point.
-func (it *GroupIterator) SetPageToken(token string) {
-	it.nextPageToken = token
-}
-
-// NextPageToken returns a page token that can be used with SetPageToken to resume
-// iteration from the next page. It returns the empty string if there are no more pages.
-func (it *GroupIterator) NextPageToken() string {
-	return it.nextPageToken
+func (it *GroupIterator) takeBuf() interface{} {
+	b := it.items
+	it.items = nil
+	return b
 }
 
 // MonitoredResourceIterator manages a stream of *monitoredrespb.MonitoredResource.
 type MonitoredResourceIterator struct {
-	// The current page data.
-	items         []*monitoredrespb.MonitoredResource
-	atLastPage    bool
-	currentIndex  int
-	pageSize      int32
-	nextPageToken string
-	apiCall       func() error
+	items    []*monitoredrespb.MonitoredResource
+	pageInfo *iterator.PageInfo
+	nextFunc func() error
+
+	// InternalFetch is for use by the Google Cloud Libraries only.
+	// It is not part of the stable interface of this package.
+	//
+	// InternalFetch returns results from a single call to the underlying RPC.
+	// The number of results is no greater than pageSize.
+	// If there are no more results, nextPageToken is empty and err is nil.
+	InternalFetch func(pageSize int, pageToken string) (results []*monitoredrespb.MonitoredResource, nextPageToken string, err error)
 }
 
-// NextPage returns the next page of results.
-// It will return at most the number of results specified by the last call to SetPageSize.
-// If SetPageSize was never called or was called with a value less than 1,
-// the page size is determined by the underlying service.
-//
-// NextPage may return a second return value of Done along with the last page of results. After
-// NextPage returns Done, all subsequent calls to NextPage will return (nil, Done).
-//
-// Next and NextPage should not be used with the same iterator.
-func (it *MonitoredResourceIterator) NextPage() ([]*monitoredrespb.MonitoredResource, error) {
-	if it.atLastPage {
-		// We already returned Done with the last page of items. Continue to
-		// return Done, but with no items.
-		return nil, Done
-	}
-	if err := it.apiCall(); err != nil {
-		return nil, err
-	}
-	if it.atLastPage {
-		return it.items, Done
-	}
-	return it.items, nil
+// PageInfo supports pagination. See the google.golang.org/api/iterator package for details.
+func (it *MonitoredResourceIterator) PageInfo() *iterator.PageInfo {
+	return it.pageInfo
 }
 
-// Next returns the next result. Its second return value is Done if there are no more results.
-// Once next returns Done, all subsequent calls will return Done.
-//
-// Internally, Next retrieves results in bulk. You can call SetPageSize as a performance hint to
-// affect how many results are retrieved in a single RPC.
-//
-// SetPageToken should not be called when using Next.
-//
-// Next and NextPage should not be used with the same iterator.
+// Next returns the next result. Its second return value is iterator.Done if there are no more
+// results. Once Next returns Done, all subsequent calls will return Done.
 func (it *MonitoredResourceIterator) Next() (*monitoredrespb.MonitoredResource, error) {
-	for it.currentIndex >= len(it.items) {
-		if it.atLastPage {
-			return nil, Done
-		}
-		if err := it.apiCall(); err != nil {
-			return nil, err
-		}
-		it.currentIndex = 0
+	var item *monitoredrespb.MonitoredResource
+	if err := it.nextFunc(); err != nil {
+		return item, err
 	}
-	result := it.items[it.currentIndex]
-	it.currentIndex++
-	return result, nil
+	item = it.items[0]
+	it.items = it.items[1:]
+	return item, nil
 }
 
-// PageSize returns the page size for all subsequent calls to NextPage.
-func (it *MonitoredResourceIterator) PageSize() int {
-	return int(it.pageSize)
+func (it *MonitoredResourceIterator) bufLen() int {
+	return len(it.items)
 }
 
-// SetPageSize sets the page size for all subsequent calls to NextPage.
-func (it *MonitoredResourceIterator) SetPageSize(pageSize int) {
-	if pageSize > math.MaxInt32 {
-		pageSize = math.MaxInt32
-	}
-	it.pageSize = int32(pageSize)
-}
-
-// SetPageToken sets the page token for the next call to NextPage, to resume the iteration from
-// a previous point.
-func (it *MonitoredResourceIterator) SetPageToken(token string) {
-	it.nextPageToken = token
-}
-
-// NextPageToken returns a page token that can be used with SetPageToken to resume
-// iteration from the next page. It returns the empty string if there are no more pages.
-func (it *MonitoredResourceIterator) NextPageToken() string {
-	return it.nextPageToken
+func (it *MonitoredResourceIterator) takeBuf() interface{} {
+	b := it.items
+	it.items = nil
+	return b
 }
