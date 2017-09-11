@@ -11,7 +11,7 @@ RUN apt-get update; apt-get -y upgrade; apt-get clean
 RUN apt-get -y install build-essential git-core curl wget jq sudo; apt-get clean
 
 # Install Golang
-ENV GOLANG_VERSION 1.7.1
+ENV GOLANG_VERSION 1.9
 RUN curl -sSL https://storage.googleapis.com/golang/go${GOLANG_VERSION}.linux-amd64.tar.gz | tar -v -C /usr/local -xz
 ENV GOROOT /usr/local/go
 ENV PATH $PATH:$GOROOT/bin
