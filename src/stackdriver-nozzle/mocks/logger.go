@@ -88,3 +88,10 @@ func (m *MockLogger) LastLog() Log {
 	}
 	return m.logs[len(m.logs)-1]
 }
+
+func (m *MockLogger) Logs() []Log {
+	m.mutex.Lock()
+	defer m.mutex.Unlock()
+
+	return m.logs
+}
