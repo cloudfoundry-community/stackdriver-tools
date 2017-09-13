@@ -3,12 +3,24 @@ package main
 import (
 	"context"
 	_ "net/http/pprof"
+	"os"
 
 	"github.com/cloudfoundry-community/stackdriver-tools/src/stackdriver-nozzle/app"
+	"github.com/cloudfoundry-community/stackdriver-tools/src/stackdriver-nozzle/config"
+	"github.com/cloudfoundry/lager"
 )
 
 func main() {
+	logger := lager.NewLogger("stackdriver-nozzle")
+	logger.RegisterSink(lager.NewWriterSink(os.Stdout, lager.DEBUG))
+
+	cfg, err := config.NewConfig()
+	if err != nil {
+		logger.Fatal("config", err)
+	}
+
+	a := app.New(cfg, logger)
+
 	ctx := context.Background()
-	a := app.New()
 	app.Run(ctx, a)
 }

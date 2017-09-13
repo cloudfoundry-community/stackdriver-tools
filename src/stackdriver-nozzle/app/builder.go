@@ -3,7 +3,6 @@ package app
 import (
 	"context"
 	_ "net/http/pprof"
-	"os"
 	"strings"
 	"time"
 
@@ -27,16 +26,8 @@ type App struct {
 	bufferEmpty func() bool
 }
 
-func New() *App {
-	logger := lager.NewLogger("stackdriver-nozzle")
-	logger.RegisterSink(lager.NewWriterSink(os.Stdout, lager.DEBUG))
+func New(c *config.Config, logger lager.Logger) *App {
 	logger.Info("version", lager.Data{"name": version.Name, "release": version.Release(), "user_agent": version.UserAgent()})
-
-	c, err := config.NewConfig()
-	if err != nil {
-		logger.Fatal("config", err)
-	}
-
 	logger.Info("arguments", c.ToData())
 
 	metricClient, err := stackdriver.NewMetricClient()
