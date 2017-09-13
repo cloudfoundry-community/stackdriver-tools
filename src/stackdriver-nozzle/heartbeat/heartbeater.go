@@ -78,6 +78,11 @@ func NewLoggerMetricHeartbeater(metricHandler Handler, logger lager.Logger, trig
 	}
 }
 func (h *heartbeater) Start() {
+	if h.started {
+		h.logger.Error("heartbeater", errors.New("attempting to start an already running heartbeater"))
+		return
+	}
+
 	h.logger.Info("heartbeater", lager.Data{"debug": "Starting heartbeater"})
 	h.started = true
 	go func() {
@@ -95,12 +100,14 @@ func (h *heartbeater) Start() {
 					ha.Handle(name)
 				}
 			case <-h.done:
-				h.logger.Info("hearbeater", lager.Data{"debug": fmt.Sprintf("Heartbeat polling done for %v handlers", len(h.handlers))})
+				h.logger.Info("heartbeater", lager.Data{"debug": fmt.Sprintf("Heartbeat polling done for %v handlers", len(h.handlers))})
 				for _, ha := range h.handlers {
+					h.logger.Info("heartbeater", lager.Data{"debug": "Flushing", "handler": ha.Name()})
 					if err := ha.Flush(); err != nil {
 						h.logger.Error("heartbeater", err, lager.Data{"handler": ha.Name()})
 					}
 				}
+				h.logger.Info("heartbeater", lager.Data{"debug": "all handlers flushed"})
 				return
 			}
 		}

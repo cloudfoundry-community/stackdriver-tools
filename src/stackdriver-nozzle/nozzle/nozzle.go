@@ -17,7 +17,9 @@
 package nozzle
 
 import (
+	"errors"
 	"strings"
+	"sync"
 
 	"github.com/cloudfoundry-community/stackdriver-tools/src/stackdriver-nozzle/cloudfoundry"
 	"github.com/cloudfoundry-community/stackdriver-tools/src/stackdriver-nozzle/heartbeat"
@@ -42,12 +44,18 @@ type Nozzle struct {
 
 	Heartbeater heartbeat.Heartbeater
 
-	done chan struct{}
+	session state
+}
+
+type state struct {
+	sync.Mutex
+	done    chan struct{}
+	running bool
 }
 
 func (n *Nozzle) Start(firehose cloudfoundry.Firehose) (errs chan error, fhErrs <-chan error) {
 	n.Heartbeater.Start()
-	n.done = make(chan struct{})
+	n.session = state{done: make(chan struct{}), running: true}
 
 	errs = make(chan error)
 	messages, fhErrs := firehose.Connect()
@@ -60,7 +68,7 @@ func (n *Nozzle) Start(firehose cloudfoundry.Firehose) (errs chan error, fhErrs 
 				if err != nil {
 					errs <- err
 				}
-			case <-n.done:
+			case <-n.session.done:
 				return
 			}
 		}
@@ -69,9 +77,18 @@ func (n *Nozzle) Start(firehose cloudfoundry.Firehose) (errs chan error, fhErrs 
 	return errs, fhErrs
 }
 
-func (n *Nozzle) Stop() {
+func (n *Nozzle) Stop() error {
+	n.session.Lock()
+	defer n.session.Unlock()
+
+	if !n.session.running {
+		return errors.New("nozzle is not running")
+	}
 	n.Heartbeater.Stop()
-	n.done <- struct{}{}
+	close(n.session.done)
+	n.session.running = false
+
+	return nil
 }
 
 func (n *Nozzle) handleEvent(envelope *events.Envelope) error {

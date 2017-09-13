@@ -129,11 +129,10 @@ var _ = Describe("Heartbeater", func() {
 		for i := 0; i < 5; i++ {
 			subject.Increment("foo")
 		}
+		trigger <- time.Now()
 		subject.Stop()
 
-		Eventually(func() mocks.Log {
-			return logger.LastLog()
-		}).Should(Equal(mocks.Log{
+		Expect(logger.Logs()).To(ContainElement(mocks.Log{
 			Level:  lager.INFO,
 			Action: "heartbeater",
 			Datas: []lager.Data{
