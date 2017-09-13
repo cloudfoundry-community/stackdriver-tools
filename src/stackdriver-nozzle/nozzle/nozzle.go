@@ -85,7 +85,6 @@ func (n *Nozzle) Stop() error {
 		return errors.New("nozzle is not running")
 	}
 	n.Heartbeater.Stop()
-	n.session.done <- struct{}{}
 	close(n.session.done)
 	n.session.running = false
 
