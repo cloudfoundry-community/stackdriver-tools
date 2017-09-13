@@ -160,4 +160,13 @@ var _ = Describe("Nozzle", func() {
 
 		Eventually(fhErrs).Should(Receive(Equal(err)))
 	})
+
+	It("is resilient to multiple exists", func(done Done) {
+		Expect(subject.Stop()).NotTo(HaveOccurred())
+		Expect(subject.Stop()).To(HaveOccurred())
+		Expect(subject.Stop()).To(HaveOccurred())
+
+		Expect(heartbeater.IsRunning()).To(Equal(false))
+		close(done)
+	}, 0.2)
 })

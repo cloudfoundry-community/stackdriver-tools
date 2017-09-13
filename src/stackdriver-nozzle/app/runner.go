@@ -34,7 +34,11 @@ func Run(ctx context.Context, a *App) {
 	}
 
 	errs, fhErrs := consumer.Start(producer)
-	defer consumer.Stop()
+	defer func() {
+		if err := consumer.Stop(); err != nil {
+			a.logger.Error("nozzle.stop", err)
+		}
+	}()
 
 	go func() {
 		for err := range errs {
