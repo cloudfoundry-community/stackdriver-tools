@@ -18,7 +18,6 @@ package nozzle
 
 import (
 	"encoding/json"
-	"errors"
 
 	"strings"
 
@@ -41,13 +40,17 @@ type logSink struct {
 	newlineToken string
 }
 
-func (ls *logSink) Receive(envelope *events.Envelope) error {
+func (ls *logSink) Receive(envelope *events.Envelope) (err error) {
 	if envelope == nil {
-		return errors.New("received empty envelope")
+		// This happens when we get a fatal error from firehose,
+		// It also happens a few thousand times in a row.
+		// Quietly ignore the error and let other parts of the system handle the logging.
+		return
 	}
 	log := ls.parseEnvelope(envelope)
 	ls.logAdapter.PostLog(&log)
-	return nil
+
+	return
 }
 
 func structToMap(obj interface{}) map[string]interface{} {
