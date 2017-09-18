@@ -4,10 +4,13 @@ import (
 	"bytes"
 	"sort"
 	"time"
+
+	"github.com/cloudfoundry/sonde-go/events"
 )
 
 type Metric struct {
 	Name      string
+	Type      events.Envelope_EventType
 	Value     float64
 	Labels    map[string]string
 	EventTime time.Time

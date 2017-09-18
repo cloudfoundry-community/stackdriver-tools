@@ -55,6 +55,7 @@ func (ms *metricSink) Receive(envelope *events.Envelope) error {
 		valueMetric := envelope.GetValueMetric()
 		metrics = []messages.Metric{{
 			Name:      valueMetric.GetName(),
+			Type:      envelope.GetEventType(),
 			Value:     valueMetric.GetValue(),
 			Labels:    labels,
 			EventTime: eventTime,
@@ -63,24 +64,26 @@ func (ms *metricSink) Receive(envelope *events.Envelope) error {
 	case events.Envelope_ContainerMetric:
 		containerMetric := envelope.GetContainerMetric()
 		metrics = []messages.Metric{
-			{Name: "diskBytesQuota", Value: float64(containerMetric.GetDiskBytesQuota()), EventTime: eventTime, Labels: labels},
-			{Name: "instanceIndex", Value: float64(containerMetric.GetInstanceIndex()), EventTime: eventTime, Labels: labels},
-			{Name: "cpuPercentage", Value: float64(containerMetric.GetCpuPercentage()), EventTime: eventTime, Labels: labels},
-			{Name: "diskBytes", Value: float64(containerMetric.GetDiskBytes()), EventTime: eventTime, Labels: labels},
-			{Name: "memoryBytes", Value: float64(containerMetric.GetMemoryBytes()), EventTime: eventTime, Labels: labels},
-			{Name: "memoryBytesQuota", Value: float64(containerMetric.GetMemoryBytesQuota()), EventTime: eventTime, Labels: labels},
+			{Name: "diskBytesQuota", Type: envelope.GetEventType(), Value: float64(containerMetric.GetDiskBytesQuota()), EventTime: eventTime, Labels: labels},
+			{Name: "instanceIndex", Type: envelope.GetEventType(), Value: float64(containerMetric.GetInstanceIndex()), EventTime: eventTime, Labels: labels},
+			{Name: "cpuPercentage", Type: envelope.GetEventType(), Value: float64(containerMetric.GetCpuPercentage()), EventTime: eventTime, Labels: labels},
+			{Name: "diskBytes", Type: envelope.GetEventType(), Value: float64(containerMetric.GetDiskBytes()), EventTime: eventTime, Labels: labels},
+			{Name: "memoryBytes", Type: envelope.GetEventType(), Value: float64(containerMetric.GetMemoryBytes()), EventTime: eventTime, Labels: labels},
+			{Name: "memoryBytesQuota", Type: envelope.GetEventType(), Value: float64(containerMetric.GetMemoryBytesQuota()), EventTime: eventTime, Labels: labels},
 		}
 	case events.Envelope_CounterEvent:
 		counterEvent := envelope.GetCounterEvent()
 		metrics = []messages.Metric{
 			{
 				Name:      fmt.Sprintf("%v.delta", counterEvent.GetName()),
+				Type:      envelope.GetEventType(),
 				Value:     float64(counterEvent.GetDelta()),
 				EventTime: eventTime,
 				Labels:    labels,
 			},
 			{
 				Name:      fmt.Sprintf("%v.total", counterEvent.GetName()),
+				Type:      envelope.GetEventType(),
 				Value:     float64(counterEvent.GetTotal()),
 				EventTime: eventTime,
 				Labels:    labels,
