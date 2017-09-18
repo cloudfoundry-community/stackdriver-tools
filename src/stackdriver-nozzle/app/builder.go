@@ -10,6 +10,7 @@ import (
 	"github.com/cloudfoundry-community/stackdriver-tools/src/stackdriver-nozzle/cloudfoundry"
 	"github.com/cloudfoundry-community/stackdriver-tools/src/stackdriver-nozzle/config"
 	"github.com/cloudfoundry-community/stackdriver-tools/src/stackdriver-nozzle/heartbeat"
+	"github.com/cloudfoundry-community/stackdriver-tools/src/stackdriver-nozzle/metrics_buffer"
 	"github.com/cloudfoundry-community/stackdriver-tools/src/stackdriver-nozzle/nozzle"
 	"github.com/cloudfoundry-community/stackdriver-tools/src/stackdriver-nozzle/stackdriver"
 	"github.com/cloudfoundry-community/stackdriver-tools/src/stackdriver-nozzle/version"
@@ -136,7 +137,7 @@ func (a *App) newMetricSink(ctx context.Context) nozzle.Sink {
 		a.logger.Error("metricAdapter", err)
 	}
 
-	metricBuffer, errs := stackdriver.NewAutoCulledMetricsBuffer(ctx, a.logger, time.Duration(a.c.MetricsBufferDuration)*time.Second, a.c.MetricsBufferSize, metricAdapter)
+	metricBuffer, errs := metrics_buffer.NewAutoCulledMetricsBuffer(ctx, a.logger, time.Duration(a.c.MetricsBufferDuration)*time.Second, a.c.MetricsBufferSize, metricAdapter)
 	a.bufferEmpty = metricBuffer.IsEmpty
 	go func() {
 		for err = range errs {

@@ -26,6 +26,11 @@ func (m *MetricsBuffer) PostMetric(metric *stackdriver.Metric) {
 	m.PostedMetrics = append(m.PostedMetrics, *metric)
 }
 
+func (m *MetricsBuffer) PostMetrics(metrics []stackdriver.Metric) error {
+	m.PostedMetrics = append(m.PostedMetrics, metrics...)
+	return nil
+}
+
 func (m *MetricsBuffer) IsEmpty() bool {
 	return true
 }
