@@ -48,6 +48,7 @@ type metricAdapter struct {
 	heartbeater           Heartbeater
 }
 
+// NewMetricAdapter returns a MetricAdapater that can write to Stackdriver Monitoring
 func NewMetricAdapter(projectID string, client MetricClient, heartbeater Heartbeater) (MetricAdapter, error) {
 	ma := &metricAdapter{
 		projectID:             projectID,

@@ -35,6 +35,7 @@ type LogAdapter interface {
 	Flush()
 }
 
+// NewLogAdapter returns a LogAdapter that can post to Stackdriver Logging.
 func NewLogAdapter(projectID string, batchCount int, batchDuration time.Duration, heartbeater Heartbeater) (LogAdapter, <-chan error) {
 	errs := make(chan error)
 	loggingClient, err := logging.NewClient(context.Background(), projectID, option.WithUserAgent(version.UserAgent()))
@@ -63,6 +64,7 @@ type logAdapter struct {
 	heartBeater Heartbeater
 }
 
+// PostLog sends a single message to Stackdriver Logging
 func (s *logAdapter) PostLog(log *messages.Log) {
 	s.heartBeater.Increment("logs.count")
 	entry := logging.Entry{

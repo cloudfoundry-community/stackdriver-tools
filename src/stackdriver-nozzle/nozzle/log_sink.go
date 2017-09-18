@@ -27,6 +27,7 @@ import (
 	"github.com/cloudfoundry/sonde-go/events"
 )
 
+// NewLogSink returns a Sink that can receive sonde Events, translate them and send them to a stackdriver.LogAdapter
 func NewLogSink(labelMaker LabelMaker, logAdapter stackdriver.LogAdapter, newlineToken string) Sink {
 	return &logSink{
 		labelMaker:   labelMaker,
