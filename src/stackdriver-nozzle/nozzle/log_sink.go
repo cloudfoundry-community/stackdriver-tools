@@ -22,6 +22,7 @@ import (
 	"strings"
 
 	"cloud.google.com/go/logging"
+	"github.com/cloudfoundry-community/stackdriver-tools/src/stackdriver-nozzle/messages"
 	"github.com/cloudfoundry-community/stackdriver-tools/src/stackdriver-nozzle/stackdriver"
 	"github.com/cloudfoundry/sonde-go/events"
 )
@@ -61,7 +62,7 @@ func structToMap(obj interface{}) map[string]interface{} {
 	return unmarshaled_map
 }
 
-func (ls *logSink) parseEnvelope(envelope *events.Envelope) stackdriver.Log {
+func (ls *logSink) parseEnvelope(envelope *events.Envelope) messages.Log {
 	payload := structToMap(envelope)
 	payload["eventType"] = envelope.GetEventType().String()
 
@@ -113,7 +114,7 @@ func (ls *logSink) parseEnvelope(envelope *events.Envelope) stackdriver.Log {
 		}
 	}
 
-	log := stackdriver.Log{
+	log := messages.Log{
 		Payload:  payload,
 		Labels:   labels,
 		Severity: severity,

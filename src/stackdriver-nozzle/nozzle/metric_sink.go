@@ -20,6 +20,7 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/cloudfoundry-community/stackdriver-tools/src/stackdriver-nozzle/messages"
 	"github.com/cloudfoundry-community/stackdriver-tools/src/stackdriver-nozzle/stackdriver"
 	"github.com/cloudfoundry/sonde-go/events"
 )
@@ -47,11 +48,11 @@ func (ms *metricSink) Receive(envelope *events.Envelope) error {
 		int64(timestamp%time.Second),
 	)
 
-	var metrics []stackdriver.Metric
+	var metrics []messages.Metric
 	switch envelope.GetEventType() {
 	case events.Envelope_ValueMetric:
 		valueMetric := envelope.GetValueMetric()
-		metrics = []stackdriver.Metric{{
+		metrics = []messages.Metric{{
 			Name:      valueMetric.GetName(),
 			Value:     valueMetric.GetValue(),
 			Labels:    labels,
@@ -60,7 +61,7 @@ func (ms *metricSink) Receive(envelope *events.Envelope) error {
 		}}
 	case events.Envelope_ContainerMetric:
 		containerMetric := envelope.GetContainerMetric()
-		metrics = []stackdriver.Metric{
+		metrics = []messages.Metric{
 			{Name: "diskBytesQuota", Value: float64(containerMetric.GetDiskBytesQuota()), EventTime: eventTime, Labels: labels},
 			{Name: "instanceIndex", Value: float64(containerMetric.GetInstanceIndex()), EventTime: eventTime, Labels: labels},
 			{Name: "cpuPercentage", Value: float64(containerMetric.GetCpuPercentage()), EventTime: eventTime, Labels: labels},
@@ -70,7 +71,7 @@ func (ms *metricSink) Receive(envelope *events.Envelope) error {
 		}
 	case events.Envelope_CounterEvent:
 		counterEvent := envelope.GetCounterEvent()
-		metrics = []stackdriver.Metric{
+		metrics = []messages.Metric{
 			{
 				Name:      fmt.Sprintf("%v.delta", counterEvent.GetName()),
 				Value:     float64(counterEvent.GetDelta()),

@@ -20,6 +20,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/cloudfoundry-community/stackdriver-tools/src/stackdriver-nozzle/messages"
 	"github.com/cloudfoundry-community/stackdriver-tools/src/stackdriver-nozzle/stackdriver"
 	"github.com/cloudfoundry/lager"
 )
@@ -64,10 +65,10 @@ func (h *metricHandler) Flush() error {
 	h.counterMu.Lock()
 	defer h.counterMu.Unlock()
 
-	metrics := []stackdriver.Metric{}
+	metrics := []messages.Metric{}
 	t := time.Now()
 	for k, v := range h.counter {
-		metrics = append(metrics, stackdriver.Metric{
+		metrics = append(metrics, messages.Metric{
 			Name:  "heartbeat." + k,
 			Value: float64(v),
 			Labels: map[string]string{

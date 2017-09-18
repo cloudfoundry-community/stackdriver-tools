@@ -17,13 +17,12 @@
 package stackdriver
 
 import (
-	"bytes"
 	"fmt"
 	"path"
-	"sort"
 	"sync"
 	"time"
 
+	"github.com/cloudfoundry-community/stackdriver-tools/src/stackdriver-nozzle/messages"
 	"github.com/golang/protobuf/ptypes/timestamp"
 	"github.com/pkg/errors"
 	labelpb "google.golang.org/genproto/googleapis/api/label"
@@ -31,33 +30,8 @@ import (
 	monitoringpb "google.golang.org/genproto/googleapis/monitoring/v3"
 )
 
-type Metric struct {
-	Name      string
-	Value     float64
-	Labels    map[string]string
-	EventTime time.Time
-	Unit      string // TODO Should this be "1" if it's empty?
-}
-
-func (m *Metric) Hash() string {
-	var b bytes.Buffer
-	b.Write([]byte(m.Name))
-
-	// Extract keys to a slice and sort it
-	keys := make([]string, len(m.Labels), len(m.Labels))
-	for k, _ := range m.Labels {
-		keys = append(keys, k)
-	}
-	sort.Strings(keys)
-	for _, k := range keys {
-		b.Write([]byte(k))
-		b.Write([]byte(m.Labels[k]))
-	}
-	return b.String()
-}
-
 type MetricAdapter interface {
-	PostMetrics([]Metric) error
+	PostMetrics([]messages.Metric) error
 }
 
 type Heartbeater interface {
@@ -87,7 +61,7 @@ func NewMetricAdapter(projectID string, client MetricClient, heartbeater Heartbe
 	return ma, err
 }
 
-func (ma *metricAdapter) PostMetrics(metrics []Metric) error {
+func (ma *metricAdapter) PostMetrics(metrics []messages.Metric) error {
 	if len(metrics) == 0 {
 		return nil
 	}
@@ -128,7 +102,7 @@ func (ma *metricAdapter) PostMetrics(metrics []Metric) error {
 	return err
 }
 
-func (ma *metricAdapter) CreateMetricDescriptor(metric Metric) error {
+func (ma *metricAdapter) CreateMetricDescriptor(metric messages.Metric) error {
 	projectName := path.Join("projects", ma.projectID)
 	metricType := path.Join("custom.googleapis.com", metric.Name)
 	metricName := path.Join(projectName, "metricDescriptors", metricType)
@@ -175,7 +149,7 @@ func (ma *metricAdapter) fetchMetricDescriptorNames() error {
 	return nil
 }
 
-func (ma *metricAdapter) ensureMetricDescriptor(metric Metric) error {
+func (ma *metricAdapter) ensureMetricDescriptor(metric messages.Metric) error {
 	if metric.Unit == "" {
 		return nil
 	}

@@ -20,6 +20,7 @@ import (
 	"time"
 
 	"cloud.google.com/go/logging"
+	"github.com/cloudfoundry-community/stackdriver-tools/src/stackdriver-nozzle/messages"
 	"github.com/cloudfoundry-community/stackdriver-tools/src/stackdriver-nozzle/version"
 	"golang.org/x/net/context"
 	"google.golang.org/api/option"
@@ -30,14 +31,8 @@ const (
 )
 
 type LogAdapter interface {
-	PostLog(*Log)
+	PostLog(*messages.Log)
 	Flush()
-}
-
-type Log struct {
-	Payload  interface{}
-	Labels   map[string]string
-	Severity logging.Severity
 }
 
 func NewLogAdapter(projectID string, batchCount int, batchDuration time.Duration, heartbeater Heartbeater) (LogAdapter, <-chan error) {
@@ -68,7 +63,7 @@ type logAdapter struct {
 	heartBeater Heartbeater
 }
 
-func (s *logAdapter) PostLog(log *Log) {
+func (s *logAdapter) PostLog(log *messages.Log) {
 	s.heartBeater.Increment("logs.count")
 	entry := logging.Entry{
 		Payload:  log.Payload,

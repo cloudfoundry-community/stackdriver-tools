@@ -22,6 +22,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/cloudfoundry-community/stackdriver-tools/src/stackdriver-nozzle/messages"
 	"github.com/cloudfoundry-community/stackdriver-tools/src/stackdriver-nozzle/stackdriver"
 	"github.com/cloudfoundry/lager"
 )
@@ -35,7 +36,7 @@ type autoCulledMetricsBuffer struct {
 	logger  lager.Logger
 
 	metricsMu sync.Mutex // Guard metrics
-	metrics   map[string]*stackdriver.Metric
+	metrics   map[string]*messages.Metric
 }
 
 // NewAutoCulledMetricsBuffer provides a MetricsBuffer that will cull like metrics over the defined frequency.
@@ -46,7 +47,7 @@ func NewAutoCulledMetricsBuffer(ctx context.Context, logger lager.Logger, freque
 	mb := &autoCulledMetricsBuffer{
 		adapter: adapter,
 		errs:    errs,
-		metrics: make(map[string]*stackdriver.Metric),
+		metrics: make(map[string]*messages.Metric),
 		size:    size,
 		ctx:     ctx,
 		logger:  logger,
@@ -56,11 +57,11 @@ func NewAutoCulledMetricsBuffer(ctx context.Context, logger lager.Logger, freque
 	return mb, errs
 }
 
-func (mb *autoCulledMetricsBuffer) PostMetric(metric *stackdriver.Metric) {
+func (mb *autoCulledMetricsBuffer) PostMetric(metric *messages.Metric) {
 	mb.addMetric(metric)
 }
 
-func (mb *autoCulledMetricsBuffer) PostMetrics(metrics []stackdriver.Metric) error {
+func (mb *autoCulledMetricsBuffer) PostMetrics(metrics []messages.Metric) error {
 	for i, _ := range metrics {
 		metric := metrics[i]
 		mb.addMetric(&metric)
@@ -73,7 +74,7 @@ func (mb *autoCulledMetricsBuffer) IsEmpty() bool {
 	return len(mb.metrics) == 0
 }
 
-func (mb *autoCulledMetricsBuffer) addMetric(newMetric *stackdriver.Metric) {
+func (mb *autoCulledMetricsBuffer) addMetric(newMetric *messages.Metric) {
 	mb.metricsMu.Lock()
 	defer mb.metricsMu.Unlock()
 	mb.metrics[newMetric.Hash()] = newMetric
@@ -99,7 +100,7 @@ func (mb *autoCulledMetricsBuffer) flush() {
 			mb.errs <- err
 		}
 	}
-	mb.metrics = make(map[string]*stackdriver.Metric)
+	mb.metrics = make(map[string]*messages.Metric)
 	mb.metricsMu.Unlock()
 }
 
@@ -120,8 +121,8 @@ func (mb *autoCulledMetricsBuffer) start() {
 	}()
 }
 
-func metricsMapToSlice(m map[string]*stackdriver.Metric) []stackdriver.Metric {
-	slice := make([]stackdriver.Metric, 0, len(m))
+func metricsMapToSlice(m map[string]*messages.Metric) []messages.Metric {
+	slice := make([]messages.Metric, 0, len(m))
 	for _, v := range m {
 		slice = append(slice, *v)
 	}

@@ -19,17 +19,17 @@ package mocks
 import (
 	"sync"
 
-	"github.com/cloudfoundry-community/stackdriver-tools/src/stackdriver-nozzle/stackdriver"
+	"github.com/cloudfoundry-community/stackdriver-tools/src/stackdriver-nozzle/messages"
 )
 
 type MetricAdapter struct {
-	PostMetricsFn   func(metrics []stackdriver.Metric) error
+	PostMetricsFn   func(metrics []messages.Metric) error
 	PostMetricError error
-	PostedMetrics   []stackdriver.Metric
+	PostedMetrics   []messages.Metric
 	Mutex           sync.Mutex
 }
 
-func (m *MetricAdapter) PostMetrics(metrics []stackdriver.Metric) error {
+func (m *MetricAdapter) PostMetrics(metrics []messages.Metric) error {
 	if m.PostMetricsFn != nil {
 		return m.PostMetricsFn(metrics)
 	}
@@ -40,7 +40,7 @@ func (m *MetricAdapter) PostMetrics(metrics []stackdriver.Metric) error {
 	return m.PostMetricError
 }
 
-func (m *MetricAdapter) GetPostedMetrics() []stackdriver.Metric {
+func (m *MetricAdapter) GetPostedMetrics() []messages.Metric {
 	m.Mutex.Lock()
 	defer m.Mutex.Unlock()
 
