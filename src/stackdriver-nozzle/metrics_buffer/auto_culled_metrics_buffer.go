@@ -81,27 +81,39 @@ func (mb *autoCulledMetricsBuffer) addMetric(newMetric *messages.Metric) {
 }
 
 func (mb *autoCulledMetricsBuffer) flush() {
-	mb.metricsMu.Lock()
-	mb.logger.Info("autoCulledMetricsBuffer", lager.Data{"info": fmt.Sprintf("Flushing %v metrics", len(mb.metrics))})
-	metricsSlice := metricsMapToSlice(mb.metrics)
-	l := len(metricsSlice)
-	chunks := l/mb.size + 1
-	mb.logger.Info("autoCulledMetricsBuffer", lager.Data{"info": fmt.Sprintf("%v metrics will be flushed in %v batches", l, chunks)})
+	metrics := mb.flushInternalBuffer()
+	count := len(metrics)
+	chunks := count/mb.size + 1
+
+	mb.logger.Info("autoCulledMetricsBuffer", lager.Data{"info": fmt.Sprintf("%v metrics will be flushed in %v batches", count, chunks)})
 	var low, high int
 	for i := 0; i < chunks; i++ {
 		low = i * mb.size
 		high = low + mb.size
 		if i == chunks-1 {
-			high = l
+			high = count
 		}
-		err := mb.adapter.PostMetrics(metricsSlice[low:high])
+		err := mb.adapter.PostMetrics(metrics[low:high])
 
 		if err != nil {
 			mb.errs <- err
 		}
 	}
+}
+
+func (mb *autoCulledMetricsBuffer) flushInternalBuffer() []messages.Metric {
+	mb.metricsMu.Lock()
+	defer mb.metricsMu.Unlock()
+	mb.logger.Info("autoCulledMetricsBuffer", lager.Data{"info": fmt.Sprintf("Flushing %v metrics", len(mb.metrics))})
+
+	metrics := make([]messages.Metric, 0, len(mb.metrics))
+	for _, v := range mb.metrics {
+		metrics = append(metrics, *v)
+	}
+
 	mb.metrics = make(map[string]*messages.Metric)
-	mb.metricsMu.Unlock()
+
+	return metrics
 }
 
 func (mb *autoCulledMetricsBuffer) start() {
@@ -119,13 +131,4 @@ func (mb *autoCulledMetricsBuffer) start() {
 			}
 		}
 	}()
-}
-
-func metricsMapToSlice(m map[string]*messages.Metric) []messages.Metric {
-	slice := make([]messages.Metric, 0, len(m))
-	for _, v := range m {
-		slice = append(slice, *v)
-	}
-
-	return slice
 }

@@ -171,6 +171,37 @@ var _ = Describe("autoCulledMetricsBuffer", func() {
 		Eventually(errs).Should(Receive(&err))
 		Expect(err).To(Equal(expectedErr))
 	})
+
+	Describe("with a slow MetricAdapter", func() {
+		var (
+			metricPosted chan interface{}
+			subject      MetricsBuffer
+		)
+
+		BeforeEach(func() {
+			metricPosted = make(chan interface{})
+			metricAdapter.PostMetricsFn = func([]messages.Metric) error {
+				metricPosted <- struct{}{}
+				time.Sleep(30 * time.Second)
+				return nil
+			}
+
+			subject, _ = NewAutoCulledMetricsBuffer(context.TODO(), logger, 1*time.Millisecond, 5, metricAdapter)
+		})
+
+		It("doesn't block new metrics during flush", func() {
+			metric := []messages.Metric{{}}
+			subject.PostMetrics(metric)
+
+			Eventually(metricPosted).Should(Receive())
+			unblocked := make(chan interface{})
+			go func() {
+				subject.PostMetrics(metric)
+				unblocked <- struct{}{}
+			}()
+			Eventually(unblocked).Should(Receive())
+		})
+	})
 })
 
 type sortableMetrics []messages.Metric
