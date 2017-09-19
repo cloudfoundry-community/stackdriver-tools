@@ -11,6 +11,7 @@ import (
 	"github.com/cloudfoundry-community/stackdriver-tools/src/stackdriver-nozzle/config"
 	"github.com/cloudfoundry-community/stackdriver-tools/src/stackdriver-nozzle/heartbeat"
 	"github.com/cloudfoundry-community/stackdriver-tools/src/stackdriver-nozzle/metrics_buffer"
+	"github.com/cloudfoundry-community/stackdriver-tools/src/stackdriver-nozzle/metrics_router"
 	"github.com/cloudfoundry-community/stackdriver-tools/src/stackdriver-nozzle/nozzle"
 	"github.com/cloudfoundry-community/stackdriver-tools/src/stackdriver-nozzle/stackdriver"
 	"github.com/cloudfoundry-community/stackdriver-tools/src/stackdriver-nozzle/version"
@@ -103,8 +104,15 @@ func (a *App) newConsumer(ctx context.Context) (*nozzle.Nozzle, error) {
 		return nil, err
 	}
 
+	// Destination for metrics
 	metricAdapter := a.newMetricAdapter()
-	filteredMetricSink, err := nozzle.NewFilterSink(metricEvents, a.newMetricSink(ctx, metricAdapter))
+	// Routes metrics to Stackdriver Logging/Stackdriver Monitoring
+	metricRouter := metrics_router.NewMetricsRouter(metricAdapter, metricEvents, logAdapter, logEvents)
+	// Handles and translates Firehose events. Performs buffering/culling.
+	metricSink := a.newMetricSink(ctx, metricRouter)
+	// Filter Firehose events to what the user selects
+	metricRouterEvents := append(logEvents, metricEvents...)
+	filteredMetricSink, err := nozzle.NewFilterSink(metricRouterEvents, metricSink)
 	if err != nil {
 		return nil, err
 	}
