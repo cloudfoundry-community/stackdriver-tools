@@ -8,6 +8,13 @@ import (
 )
 
 var _ = Describe("ParseEvents", func() {
+	It("handles empty events", func() {
+		valid := []string{""}
+		eventNames, err := nozzle.ParseEvents(valid)
+		Expect(err).NotTo(HaveOccurred())
+		Expect(eventNames).To(BeEmpty())
+	})
+
 	It("rejects invalid events", func() {
 		invalidFilter := []string{"Error", "FakeEvent111"}
 		eventNames, err := nozzle.ParseEvents(invalidFilter)

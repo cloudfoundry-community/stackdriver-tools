@@ -11,6 +11,10 @@ func ParseEvents(names []string) ([]events.Envelope_EventType, error) {
 	events := []events.Envelope_EventType{}
 
 	for _, name := range names {
+		if name == "" {
+			continue
+		}
+
 		event, err := parseEventName(name)
 		if err != nil {
 			return nil, err
