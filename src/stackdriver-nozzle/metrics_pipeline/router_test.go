@@ -1,10 +1,10 @@
-package metrics_router_test
+package metrics_pipeline_test
 
 import (
 	"time"
 
 	"github.com/cloudfoundry-community/stackdriver-tools/src/stackdriver-nozzle/messages"
-	"github.com/cloudfoundry-community/stackdriver-tools/src/stackdriver-nozzle/metrics_router"
+	. "github.com/cloudfoundry-community/stackdriver-tools/src/stackdriver-nozzle/metrics_pipeline"
 	"github.com/cloudfoundry-community/stackdriver-tools/src/stackdriver-nozzle/mocks"
 	"github.com/cloudfoundry/sonde-go/events"
 	. "github.com/onsi/ginkgo"
@@ -24,7 +24,7 @@ var _ = Describe("Router", func() {
 		metricEvent := events.Envelope_ContainerMetric
 		logEvent := events.Envelope_ValueMetric
 
-		router := metrics_router.NewMetricsRouter(metricAdapter, []events.Envelope_EventType{metricEvent}, logAdapter, []events.Envelope_EventType{logEvent})
+		router := NewRouter(metricAdapter, []events.Envelope_EventType{metricEvent}, logAdapter, []events.Envelope_EventType{logEvent})
 		err := router.PostMetrics([]messages.Metric{
 			{Type: metricEvent},
 			{Type: logEvent},
@@ -42,7 +42,7 @@ var _ = Describe("Router", func() {
 		logEvent := events.Envelope_ValueMetric
 		events := []events.Envelope_EventType{metricEvent, logEvent}
 
-		router := metrics_router.NewMetricsRouter(metricAdapter, events, logAdapter, events)
+		router := NewRouter(metricAdapter, events, logAdapter, events)
 		err := router.PostMetrics([]messages.Metric{
 			{Type: metricEvent},
 			{Type: logEvent},
@@ -67,7 +67,7 @@ var _ = Describe("Router", func() {
 			EventTime: time.Now(),
 			Unit:      "f",
 		}
-		router := metrics_router.NewMetricsRouter(nil, nil, logAdapter, []events.Envelope_EventType{logEvent})
+		router := NewRouter(nil, nil, logAdapter, []events.Envelope_EventType{logEvent})
 		router.PostMetrics([]messages.Metric{metric})
 		Expect(logAdapter.PostedLogs).To(HaveLen(1))
 		log := logAdapter.PostedLogs[0]

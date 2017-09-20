@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package metrics_buffer
+package metrics_pipeline
 
 import (
 	"context"

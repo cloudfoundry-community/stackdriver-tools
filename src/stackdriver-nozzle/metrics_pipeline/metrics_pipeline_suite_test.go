@@ -1,4 +1,4 @@
-package metrics_router_test
+package metrics_pipeline_test
 
 import (
 	. "github.com/onsi/ginkgo"
@@ -7,7 +7,7 @@ import (
 	"testing"
 )
 
-func TestMetricsRouter(t *testing.T) {
+func TestMetricsBuffer(t *testing.T) {
 	RegisterFailHandler(Fail)
-	RunSpecs(t, "MetricsRouter Suite")
+	RunSpecs(t, "MetricsBuffer Suite")
 }

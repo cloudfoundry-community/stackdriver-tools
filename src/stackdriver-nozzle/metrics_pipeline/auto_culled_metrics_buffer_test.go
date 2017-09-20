@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package metrics_buffer_test
+package metrics_pipeline_test
 
 import (
 	"context"
@@ -25,7 +25,7 @@ import (
 	"time"
 
 	"github.com/cloudfoundry-community/stackdriver-tools/src/stackdriver-nozzle/messages"
-	. "github.com/cloudfoundry-community/stackdriver-tools/src/stackdriver-nozzle/metrics_buffer"
+	. "github.com/cloudfoundry-community/stackdriver-tools/src/stackdriver-nozzle/metrics_pipeline"
 	"github.com/cloudfoundry-community/stackdriver-tools/src/stackdriver-nozzle/mocks"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"

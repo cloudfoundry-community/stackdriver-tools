@@ -1,4 +1,4 @@
-package metrics_buffer
+package metrics_pipeline
 
 import "github.com/cloudfoundry-community/stackdriver-tools/src/stackdriver-nozzle/stackdriver"
 
