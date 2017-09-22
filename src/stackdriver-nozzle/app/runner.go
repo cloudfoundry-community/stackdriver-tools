@@ -16,6 +16,7 @@ import (
 
 func Run(ctx context.Context, a *App) {
 	ctx, cancel := context.WithCancel(ctx)
+	defer cancel()
 
 	if a.c.DebugNozzle {
 		defer handleFatalError(a, cancel)
