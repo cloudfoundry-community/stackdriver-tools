@@ -10,6 +10,7 @@ import (
 	"github.com/cloudfoundry-community/stackdriver-tools/src/stackdriver-nozzle/cloudfoundry"
 	"github.com/cloudfoundry-community/stackdriver-tools/src/stackdriver-nozzle/config"
 	"github.com/cloudfoundry-community/stackdriver-tools/src/stackdriver-nozzle/heartbeat"
+	"github.com/cloudfoundry-community/stackdriver-tools/src/stackdriver-nozzle/metrics_pipeline"
 	"github.com/cloudfoundry-community/stackdriver-tools/src/stackdriver-nozzle/nozzle"
 	"github.com/cloudfoundry-community/stackdriver-tools/src/stackdriver-nozzle/stackdriver"
 	"github.com/cloudfoundry-community/stackdriver-tools/src/stackdriver-nozzle/version"
@@ -86,46 +87,58 @@ func (a *App) newProducer() cloudfoundry.Firehose {
 }
 
 func (a *App) newConsumer(ctx context.Context) (*nozzle.Nozzle, error) {
-	loggingEvents := strings.Split(a.c.LoggingEvents, ",")
-	metricEvents := strings.Split(a.c.MonitoringEvents, ",")
-
-	logSink, err := nozzle.NewFilterSink(loggingEvents, a.newLogSink())
+	logEvents, err := nozzle.ParseEvents(strings.Split(a.c.LoggingEvents, ","))
 	if err != nil {
 		return nil, err
 	}
 
-	metricSink, err := nozzle.NewFilterSink(metricEvents, a.newMetricSink(ctx))
+	metricEvents, err := nozzle.ParseEvents(strings.Split(a.c.MonitoringEvents, ","))
+	if err != nil {
+		return nil, err
+	}
+
+	logAdapter := a.newLogAdapter()
+	filteredLogSink, err := nozzle.NewFilterSink(logEvents, nozzle.NewLogSink(a.labelMaker, logAdapter, a.c.NewlineToken))
+	if err != nil {
+		return nil, err
+	}
+
+	// Destination for metrics
+	metricAdapter := a.newMetricAdapter()
+	// Routes metrics to Stackdriver Logging/Stackdriver Monitoring
+	metricRouter := metrics_pipeline.NewRouter(metricAdapter, metricEvents, logAdapter, logEvents)
+	// Handles and translates Firehose events. Performs buffering/culling.
+	metricSink := a.newMetricSink(ctx, metricRouter)
+	// Filter Firehose events to what the user selects
+	metricRouterEvents := append(logEvents, metricEvents...)
+	filteredMetricSink, err := nozzle.NewFilterSink(metricRouterEvents, metricSink)
 	if err != nil {
 		return nil, err
 	}
 
 	return &nozzle.Nozzle{
-		LogSink:     logSink,
-		MetricSink:  metricSink,
+		LogSink:     filteredLogSink,
+		MetricSink:  filteredMetricSink,
 		Heartbeater: a.heartbeater,
 	}, nil
 }
 
-func (a *App) newLogSink() nozzle.Sink {
-	logAdapter, logErrs := a.newLogAdapter()
-	go func() {
-		err := <-logErrs
-		a.logger.Error("logAdapter", err)
-	}()
-
-	return nozzle.NewLogSink(a.labelMaker, logAdapter, a.c.NewlineToken)
-}
-
-func (a *App) newLogAdapter() (stackdriver.LogAdapter, <-chan error) {
-	return stackdriver.NewLogAdapter(
+func (a *App) newLogAdapter() stackdriver.LogAdapter {
+	logAdapter, logErrs := stackdriver.NewLogAdapter(
 		a.c.ProjectID,
 		a.c.BatchCount,
 		time.Duration(a.c.BatchDuration)*time.Second,
 		a.heartbeater,
 	)
+	go func() {
+		err := <-logErrs
+		a.logger.Error("logAdapter", err)
+	}()
+
+	return logAdapter
 }
 
-func (a *App) newMetricSink(ctx context.Context) nozzle.Sink {
+func (a *App) newMetricAdapter() stackdriver.MetricAdapter {
 	metricClient, err := stackdriver.NewMetricClient()
 	if err != nil {
 		a.logger.Fatal("metricClient", err)
@@ -136,10 +149,14 @@ func (a *App) newMetricSink(ctx context.Context) nozzle.Sink {
 		a.logger.Error("metricAdapter", err)
 	}
 
-	metricBuffer, errs := stackdriver.NewAutoCulledMetricsBuffer(ctx, a.logger, time.Duration(a.c.MetricsBufferDuration)*time.Second, a.c.MetricsBufferSize, metricAdapter)
+	return metricAdapter
+}
+
+func (a *App) newMetricSink(ctx context.Context, metricAdapter stackdriver.MetricAdapter) nozzle.Sink {
+	metricBuffer, errs := metrics_pipeline.NewAutoCulledMetricsBuffer(ctx, a.logger, time.Duration(a.c.MetricsBufferDuration)*time.Second, a.c.MetricsBufferSize, metricAdapter)
 	a.bufferEmpty = metricBuffer.IsEmpty
 	go func() {
-		for err = range errs {
+		for err := range errs {
 			a.logger.Error("metricsBuffer", err)
 		}
 	}()

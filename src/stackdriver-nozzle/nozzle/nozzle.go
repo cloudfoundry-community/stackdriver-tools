@@ -92,12 +92,12 @@ func (n *Nozzle) Stop() error {
 }
 
 func (n *Nozzle) handleEvent(envelope *events.Envelope) error {
-	if err := n.LogSink.Receive(envelope); err != nil {
-		return err
-	}
-
 	if isMetric(envelope) {
 		if err := n.MetricSink.Receive(envelope); err != nil {
+			return err
+		}
+	} else {
+		if err := n.LogSink.Receive(envelope); err != nil {
 			return err
 		}
 	}

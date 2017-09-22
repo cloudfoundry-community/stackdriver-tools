@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package stackdriver_test
+package metrics_pipeline_test
 
 import (
 	"context"
@@ -24,8 +24,9 @@ import (
 	"strconv"
 	"time"
 
+	"github.com/cloudfoundry-community/stackdriver-tools/src/stackdriver-nozzle/messages"
+	. "github.com/cloudfoundry-community/stackdriver-tools/src/stackdriver-nozzle/metrics_pipeline"
 	"github.com/cloudfoundry-community/stackdriver-tools/src/stackdriver-nozzle/mocks"
-	"github.com/cloudfoundry-community/stackdriver-tools/src/stackdriver-nozzle/stackdriver"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 )
@@ -46,15 +47,17 @@ var _ = Describe("autoCulledMetricsBuffer", func() {
 
 	It("culls duplicate metrics", func() {
 		d := 100 * time.Millisecond
-		subject, _ := stackdriver.NewAutoCulledMetricsBuffer(context.TODO(), logger, d, 5,
+		subject, _ := NewAutoCulledMetricsBuffer(context.TODO(), logger, d, 5,
 			metricAdapter)
 
-		subject.PostMetric(&stackdriver.Metric{Name: "a", Value: 1})
-		subject.PostMetric(&stackdriver.Metric{Name: "b", Value: 2})
-		subject.PostMetric(&stackdriver.Metric{Name: "a", Value: 2})
+		subject.PostMetrics([]messages.Metric{
+			{Name: "a", Value: 1},
+			{Name: "b", Value: 2},
+			{Name: "a", Value: 2},
+		})
 		Eventually(metricAdapter.GetPostedMetrics).Should(HaveLen(2))
 
-		expected := []stackdriver.Metric{
+		expected := []messages.Metric{
 			{Name: "a", Value: 2},
 			{Name: "b", Value: 2},
 		}
@@ -63,15 +66,18 @@ var _ = Describe("autoCulledMetricsBuffer", func() {
 		sort.Sort(sortableMetrics(actual))
 		Expect(actual).To(BeEquivalentTo(expected))
 
-		subject.PostMetric(&stackdriver.Metric{Name: "c", Value: 1})
-		subject.PostMetric(&stackdriver.Metric{Name: "d", Value: 2, Labels: map[string]string{"d1": "a"}})
-		subject.PostMetric(&stackdriver.Metric{Name: "d", Value: 2, Labels: map[string]string{"d2": "a"}})
-		subject.PostMetric(&stackdriver.Metric{Name: "e", Value: 2, Labels: map[string]string{"a": "a1"}})
-		subject.PostMetric(&stackdriver.Metric{Name: "e", Value: 3, Labels: map[string]string{"a": "a1"}})
-		subject.PostMetric(&stackdriver.Metric{Name: "e", Value: 3, Labels: map[string]string{"a": "a1"}})
+		subject.PostMetrics([]messages.Metric{
+			{Name: "c", Value: 1},
+			{Name: "d", Value: 2, Labels: map[string]string{"d1": "a"}},
+			{Name: "d", Value: 2, Labels: map[string]string{"d2": "a"}},
+			{Name: "e", Value: 2, Labels: map[string]string{"a": "a1"}},
+			{Name: "e", Value: 3, Labels: map[string]string{"a": "a1"}},
+			{Name: "e", Value: 3, Labels: map[string]string{"a": "a1"}},
+		})
+
 		Eventually(metricAdapter.GetPostedMetrics).Should(HaveLen(6))
 
-		expected = []stackdriver.Metric{
+		expected = []messages.Metric{
 			{Name: "a", Value: 2},
 			{Name: "b", Value: 2},
 			{Name: "c", Value: 1},
@@ -87,12 +93,14 @@ var _ = Describe("autoCulledMetricsBuffer", func() {
 
 	It("it buffers metrics for the expected duration before flushing", func() {
 		d := 500 * time.Millisecond
-		subject, _ := stackdriver.NewAutoCulledMetricsBuffer(context.TODO(), logger, d, 5,
+		subject, _ := NewAutoCulledMetricsBuffer(context.TODO(), logger, d, 5,
 			metricAdapter)
 
-		subject.PostMetric(&stackdriver.Metric{Name: "a", Value: 1})
-		subject.PostMetric(&stackdriver.Metric{Name: "b", Value: 2})
-		subject.PostMetric(&stackdriver.Metric{Name: "a", Value: 2})
+		subject.PostMetrics([]messages.Metric{
+			{Name: "a", Value: 1},
+			{Name: "b", Value: 2},
+			{Name: "a", Value: 2},
+		})
 		Expect(metricAdapter.GetPostedMetrics()).Should(HaveLen(0))
 		Eventually(metricAdapter.GetPostedMetrics).Should(HaveLen(2))
 	})
@@ -100,12 +108,14 @@ var _ = Describe("autoCulledMetricsBuffer", func() {
 	It("it flushes metrics when the context is canceled", func() {
 		d := 500 * time.Second
 		ctx, cancel := context.WithCancel(context.Background())
-		subject, _ := stackdriver.NewAutoCulledMetricsBuffer(ctx, logger, d, 5,
+		subject, _ := NewAutoCulledMetricsBuffer(ctx, logger, d, 5,
 			metricAdapter)
 
-		subject.PostMetric(&stackdriver.Metric{Name: "a", Value: 1})
-		subject.PostMetric(&stackdriver.Metric{Name: "b", Value: 2})
-		subject.PostMetric(&stackdriver.Metric{Name: "a", Value: 2})
+		subject.PostMetrics([]messages.Metric{
+			{Name: "a", Value: 1},
+			{Name: "b", Value: 2},
+			{Name: "a", Value: 2},
+		})
 		cancel()
 		Eventually(metricAdapter.GetPostedMetrics).Should(HaveLen(2))
 	})
@@ -114,7 +124,7 @@ var _ = Describe("autoCulledMetricsBuffer", func() {
 		d := 10 * time.Millisecond
 		batchSize := 200
 
-		metricAdapter.PostMetricsFn = func(metrics []stackdriver.Metric) error {
+		metricAdapter.PostMetricsFn = func(metrics []messages.Metric) error {
 			if len(metrics) > batchSize {
 				return fmt.Errorf("Batch size (%v) exceeded max (%v)", len(metrics), batchSize)
 			}
@@ -129,12 +139,12 @@ var _ = Describe("autoCulledMetricsBuffer", func() {
 		// Test various numbers of metrics being posted to the buffer
 		for _, groupSize := range metricGroupSizes {
 			ctx, cancel := context.WithCancel(context.Background())
-			metricAdapter.PostedMetrics = []stackdriver.Metric{}
+			metricAdapter.PostedMetrics = []messages.Metric{}
 			metricAdapter.PostMetricError = nil
-			subject, errs := stackdriver.NewAutoCulledMetricsBuffer(ctx, logger, d, batchSize,
+			subject, errs := NewAutoCulledMetricsBuffer(ctx, logger, d, batchSize,
 				metricAdapter)
 			for i := 0; i < groupSize; i++ {
-				subject.PostMetric(&stackdriver.Metric{Name: strconv.Itoa(i), Value: 1})
+				subject.PostMetrics([]messages.Metric{{Name: strconv.Itoa(i), Value: 1}})
 			}
 			cancel()
 			err := <-errs
@@ -146,14 +156,14 @@ var _ = Describe("autoCulledMetricsBuffer", func() {
 
 	It("sends errors through the error channel", func() {
 		d := 1 * time.Millisecond
-		subject, errs := stackdriver.NewAutoCulledMetricsBuffer(context.TODO(), logger, d, 5,
+		subject, errs := NewAutoCulledMetricsBuffer(context.TODO(), logger, d, 5,
 			metricAdapter)
 
 		expectedErr := errors.New("fail")
 		metricAdapter.PostMetricError = expectedErr
 
-		metric := &stackdriver.Metric{}
-		subject.PostMetric(metric)
+		metric := []messages.Metric{{}}
+		subject.PostMetrics(metric)
 
 		Eventually(metricAdapter.GetPostedMetrics).Should(HaveLen(1))
 
@@ -161,9 +171,40 @@ var _ = Describe("autoCulledMetricsBuffer", func() {
 		Eventually(errs).Should(Receive(&err))
 		Expect(err).To(Equal(expectedErr))
 	})
+
+	Describe("with a slow MetricAdapter", func() {
+		var (
+			metricPosted chan interface{}
+			subject      MetricsBuffer
+		)
+
+		BeforeEach(func() {
+			metricPosted = make(chan interface{})
+			metricAdapter.PostMetricsFn = func([]messages.Metric) error {
+				metricPosted <- struct{}{}
+				time.Sleep(30 * time.Second)
+				return nil
+			}
+
+			subject, _ = NewAutoCulledMetricsBuffer(context.TODO(), logger, 1*time.Millisecond, 5, metricAdapter)
+		})
+
+		It("doesn't block new metrics during flush", func() {
+			metric := []messages.Metric{{}}
+			subject.PostMetrics(metric)
+
+			Eventually(metricPosted).Should(Receive())
+			unblocked := make(chan interface{})
+			go func() {
+				subject.PostMetrics(metric)
+				unblocked <- struct{}{}
+			}()
+			Eventually(unblocked).Should(Receive())
+		})
+	})
 })
 
-type sortableMetrics []stackdriver.Metric
+type sortableMetrics []messages.Metric
 
 func (b sortableMetrics) Len() int {
 	return len(b)

@@ -99,7 +99,6 @@ var _ = Describe("Nozzle", func() {
 		firehose.Messages <- envelope
 
 		Eventually(logSink.LastEnvelope).Should(Equal(envelope))
-
 	})
 
 	It("handles Error event", func() {
@@ -117,7 +116,6 @@ var _ = Describe("Nozzle", func() {
 
 		firehose.Messages <- envelope
 
-		Eventually(logSink.LastEnvelope).Should(Equal(envelope))
 		Eventually(metricSink.LastEnvelope).Should(Equal(envelope))
 	})
 
@@ -127,7 +125,6 @@ var _ = Describe("Nozzle", func() {
 
 		firehose.Messages <- envelope
 
-		Eventually(logSink.LastEnvelope).Should(Equal(envelope))
 		Eventually(metricSink.LastEnvelope).Should(Equal(envelope))
 	})
 
@@ -137,7 +134,6 @@ var _ = Describe("Nozzle", func() {
 
 		firehose.Messages <- envelope
 
-		Eventually(logSink.LastEnvelope).Should(Equal(envelope))
 		Eventually(metricSink.LastEnvelope).Should(Equal(envelope))
 	})
 

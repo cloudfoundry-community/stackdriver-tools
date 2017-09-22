@@ -26,7 +26,7 @@ var _ = Describe("SinkFilter", func() {
 		sink = &mocks.Sink{}
 	})
 	It("can accept an empty filter and blocks all events", func() {
-		f, err := nozzle.NewFilterSink([]string{}, sink)
+		f, err := nozzle.NewFilterSink([]events.Envelope_EventType{}, sink)
 		Expect(err).To(BeNil())
 		Expect(f).NotTo(BeNil())
 
@@ -38,7 +38,7 @@ var _ = Describe("SinkFilter", func() {
 	})
 
 	It("can accept a single event", func() {
-		f, err := nozzle.NewFilterSink([]string{"LogMessage"}, sink)
+		f, err := nozzle.NewFilterSink([]events.Envelope_EventType{events.Envelope_LogMessage}, sink)
 		Expect(err).To(BeNil())
 		Expect(f).NotTo(BeNil())
 
@@ -51,7 +51,7 @@ var _ = Describe("SinkFilter", func() {
 	})
 
 	It("can accept multiple events to filter", func() {
-		f, err := nozzle.NewFilterSink([]string{"ValueMetric", "LogMessage"}, sink)
+		f, err := nozzle.NewFilterSink([]events.Envelope_EventType{events.Envelope_ValueMetric, events.Envelope_LogMessage}, sink)
 		Expect(err).To(BeNil())
 		Expect(f).NotTo(BeNil())
 
@@ -63,16 +63,8 @@ var _ = Describe("SinkFilter", func() {
 	})
 
 	It("requires a sink", func() {
-		f, err := nozzle.NewFilterSink([]string{}, nil)
+		f, err := nozzle.NewFilterSink([]events.Envelope_EventType{}, nil)
 		Expect(err).NotTo(BeNil())
 		Expect(f).To(BeNil())
 	})
-
-	It("rejects invalid events", func() {
-		invalidFilter := []string{"Error", "FakeEvent111"}
-		f, err := nozzle.NewFilterSink(invalidFilter, nil)
-		Expect(err).NotTo(BeNil())
-		Expect(f).To(BeNil())
-	})
-
 })

@@ -19,9 +19,9 @@ package nozzle_test
 import (
 	"time"
 
+	"github.com/cloudfoundry-community/stackdriver-tools/src/stackdriver-nozzle/messages"
 	"github.com/cloudfoundry-community/stackdriver-tools/src/stackdriver-nozzle/mocks"
 	"github.com/cloudfoundry-community/stackdriver-tools/src/stackdriver-nozzle/nozzle"
-	"github.com/cloudfoundry-community/stackdriver-tools/src/stackdriver-nozzle/stackdriver"
 	"github.com/cloudfoundry/sonde-go/events"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -81,6 +81,7 @@ var _ = Describe("MetricSink", func() {
 		Expect(metrics).To(HaveLen(1))
 		Expect(metrics[0]).To(MatchAllFields(Fields{
 			"Name":      Equal("valueMetricName"),
+			"Type":      Equal(events.Envelope_ValueMetric),
 			"Value":     Equal(123.456),
 			"Labels":    Equal(labels),
 			"EventTime": Ignore(),
@@ -127,16 +128,16 @@ var _ = Describe("MetricSink", func() {
 		Expect(metrics).To(HaveLen(6))
 
 		eventName := func(element interface{}) string {
-			return element.(stackdriver.Metric).Name
+			return element.(messages.Metric).Name
 		}
 
 		Expect(metrics).To(MatchAllElements(eventName, Elements{
-			"diskBytesQuota":   MatchAllFields(Fields{"Name": Ignore(), "Value": Equal(float64(1073741824)), "Labels": Equal(labels), "EventTime": Ignore(), "Unit": Equal("")}),
-			"instanceIndex":    MatchAllFields(Fields{"Name": Ignore(), "Value": Equal(float64(0)), "Labels": Equal(labels), "EventTime": Ignore(), "Unit": Equal("")}),
-			"cpuPercentage":    MatchAllFields(Fields{"Name": Ignore(), "Value": Equal(float64(0.061651273460637)), "Labels": Equal(labels), "EventTime": Ignore(), "Unit": Equal("")}),
-			"diskBytes":        MatchAllFields(Fields{"Name": Ignore(), "Value": Equal(float64(164634624)), "Labels": Equal(labels), "EventTime": Ignore(), "Unit": Equal("")}),
-			"memoryBytes":      MatchAllFields(Fields{"Name": Ignore(), "Value": Equal(float64(16601088)), "Labels": Equal(labels), "EventTime": Ignore(), "Unit": Equal("")}),
-			"memoryBytesQuota": MatchAllFields(Fields{"Name": Ignore(), "Value": Equal(float64(33554432)), "Labels": Equal(labels), "EventTime": Ignore(), "Unit": Equal("")}),
+			"diskBytesQuota":   MatchAllFields(Fields{"Name": Ignore(), "Type": Equal(events.Envelope_ContainerMetric), "Value": Equal(float64(1073741824)), "Labels": Equal(labels), "EventTime": Ignore(), "Unit": Equal("")}),
+			"instanceIndex":    MatchAllFields(Fields{"Name": Ignore(), "Type": Equal(events.Envelope_ContainerMetric), "Value": Equal(float64(0)), "Labels": Equal(labels), "EventTime": Ignore(), "Unit": Equal("")}),
+			"cpuPercentage":    MatchAllFields(Fields{"Name": Ignore(), "Type": Equal(events.Envelope_ContainerMetric), "Value": Equal(float64(0.061651273460637)), "Labels": Equal(labels), "EventTime": Ignore(), "Unit": Equal("")}),
+			"diskBytes":        MatchAllFields(Fields{"Name": Ignore(), "Type": Equal(events.Envelope_ContainerMetric), "Value": Equal(float64(164634624)), "Labels": Equal(labels), "EventTime": Ignore(), "Unit": Equal("")}),
+			"memoryBytes":      MatchAllFields(Fields{"Name": Ignore(), "Type": Equal(events.Envelope_ContainerMetric), "Value": Equal(float64(16601088)), "Labels": Equal(labels), "EventTime": Ignore(), "Unit": Equal("")}),
+			"memoryBytesQuota": MatchAllFields(Fields{"Name": Ignore(), "Type": Equal(events.Envelope_ContainerMetric), "Value": Equal(float64(33554432)), "Labels": Equal(labels), "EventTime": Ignore(), "Unit": Equal("")}),
 		}))
 	})
 
@@ -166,11 +167,12 @@ var _ = Describe("MetricSink", func() {
 		metrics := metricBuffer.PostedMetrics
 
 		eventName := func(element interface{}) string {
-			return element.(stackdriver.Metric).Name
+			return element.(messages.Metric).Name
 		}
 		Expect(metrics).To(MatchAllElements(eventName, Elements{
 			"counterName.delta": MatchAllFields(Fields{
 				"Name":      Ignore(),
+				"Type":      Equal(events.Envelope_CounterEvent),
 				"Value":     Equal(float64(654321)),
 				"Labels":    Equal(labels),
 				"EventTime": Ignore(),
@@ -178,6 +180,7 @@ var _ = Describe("MetricSink", func() {
 			}),
 			"counterName.total": MatchAllFields(Fields{
 				"Name":      Ignore(),
+				"Type":      Equal(events.Envelope_CounterEvent),
 				"Value":     Equal(float64(123456)),
 				"Labels":    Equal(labels),
 				"EventTime": Ignore(),

@@ -9,7 +9,7 @@ import (
 	"time"
 
 	"cloud.google.com/go/logging"
-	"github.com/cloudfoundry-community/stackdriver-tools/src/stackdriver-nozzle/stackdriver"
+	"github.com/cloudfoundry-community/stackdriver-tools/src/stackdriver-nozzle/messages"
 	"github.com/cloudfoundry-community/stackdriver-tools/src/stackdriver-nozzle/version"
 	"github.com/cloudfoundry/lager"
 )
@@ -79,7 +79,7 @@ func handleFatalError(a *App, cancel context.CancelFunc) {
 			"message": fmt.Sprintf("%v\n%v", e, stackTrace),
 		}
 
-		log := &stackdriver.Log{
+		log := &messages.Log{
 			Payload:  payload,
 			Labels:   map[string]string{},
 			Severity: logging.Error,
@@ -87,7 +87,7 @@ func handleFatalError(a *App, cancel context.CancelFunc) {
 
 		// Purposefully get a new log adapter here since there
 		// were issues re-using the one that the nozzle uses.
-		logAdapter, _ := a.newLogAdapter()
+		logAdapter := a.newLogAdapter()
 		logAdapter.PostLog(log)
 		logAdapter.Flush()
 

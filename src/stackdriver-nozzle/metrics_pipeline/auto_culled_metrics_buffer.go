@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package stackdriver
+package metrics_pipeline
 
 import (
 	"context"
@@ -22,11 +22,13 @@ import (
 	"sync"
 	"time"
 
+	"github.com/cloudfoundry-community/stackdriver-tools/src/stackdriver-nozzle/messages"
+	"github.com/cloudfoundry-community/stackdriver-tools/src/stackdriver-nozzle/stackdriver"
 	"github.com/cloudfoundry/lager"
 )
 
 type autoCulledMetricsBuffer struct {
-	adapter MetricAdapter
+	adapter stackdriver.MetricAdapter
 	errs    chan error
 	size    int
 	ticker  *time.Ticker
@@ -34,16 +36,18 @@ type autoCulledMetricsBuffer struct {
 	logger  lager.Logger
 
 	metricsMu sync.Mutex // Guard metrics
-	metrics   map[string]*Metric
+	metrics   map[string]*messages.Metric
 }
 
+// NewAutoCulledMetricsBuffer provides a MetricsBuffer that will cull like metrics over the defined frequency.
+// A like metric is defined as a metric with the same stackdriver.Metric.Hash()
 func NewAutoCulledMetricsBuffer(ctx context.Context, logger lager.Logger, frequency time.Duration,
-	size int, adapter MetricAdapter) (MetricsBuffer, <-chan error) {
+	size int, adapter stackdriver.MetricAdapter) (MetricsBuffer, <-chan error) {
 	errs := make(chan error)
 	mb := &autoCulledMetricsBuffer{
 		adapter: adapter,
 		errs:    errs,
-		metrics: make(map[string]*Metric),
+		metrics: make(map[string]*messages.Metric),
 		size:    size,
 		ctx:     ctx,
 		logger:  logger,
@@ -53,42 +57,63 @@ func NewAutoCulledMetricsBuffer(ctx context.Context, logger lager.Logger, freque
 	return mb, errs
 }
 
-func (mb *autoCulledMetricsBuffer) PostMetric(metric *Metric) {
+func (mb *autoCulledMetricsBuffer) PostMetric(metric *messages.Metric) {
 	mb.addMetric(metric)
+}
+
+func (mb *autoCulledMetricsBuffer) PostMetrics(metrics []messages.Metric) error {
+	for i, _ := range metrics {
+		metric := metrics[i]
+		mb.addMetric(&metric)
+	}
+
+	return nil
 }
 
 func (mb *autoCulledMetricsBuffer) IsEmpty() bool {
 	return len(mb.metrics) == 0
 }
 
-func (mb *autoCulledMetricsBuffer) addMetric(newMetric *Metric) {
+func (mb *autoCulledMetricsBuffer) addMetric(newMetric *messages.Metric) {
 	mb.metricsMu.Lock()
 	defer mb.metricsMu.Unlock()
 	mb.metrics[newMetric.Hash()] = newMetric
 }
 
 func (mb *autoCulledMetricsBuffer) flush() {
-	mb.metricsMu.Lock()
-	mb.logger.Info("autoCulledMetricsBuffer", lager.Data{"info": fmt.Sprintf("Flushing %v metrics", len(mb.metrics))})
-	metricsSlice := metricsMapToSlice(mb.metrics)
-	l := len(metricsSlice)
-	chunks := l/mb.size + 1
-	mb.logger.Info("autoCulledMetricsBuffer", lager.Data{"info": fmt.Sprintf("%v metrics will be flushed in %v batches", l, chunks)})
+	metrics := mb.flushInternalBuffer()
+	count := len(metrics)
+	chunks := count/mb.size + 1
+
+	mb.logger.Info("autoCulledMetricsBuffer", lager.Data{"info": fmt.Sprintf("%v metrics will be flushed in %v batches", count, chunks)})
 	var low, high int
 	for i := 0; i < chunks; i++ {
 		low = i * mb.size
 		high = low + mb.size
 		if i == chunks-1 {
-			high = l
+			high = count
 		}
-		err := mb.adapter.PostMetrics(metricsSlice[low:high])
+		err := mb.adapter.PostMetrics(metrics[low:high])
 
 		if err != nil {
 			mb.errs <- err
 		}
 	}
-	mb.metrics = make(map[string]*Metric)
-	mb.metricsMu.Unlock()
+}
+
+func (mb *autoCulledMetricsBuffer) flushInternalBuffer() []messages.Metric {
+	mb.metricsMu.Lock()
+	defer mb.metricsMu.Unlock()
+	mb.logger.Info("autoCulledMetricsBuffer", lager.Data{"info": fmt.Sprintf("Flushing %v metrics", len(mb.metrics))})
+
+	metrics := make([]messages.Metric, 0, len(mb.metrics))
+	for _, v := range mb.metrics {
+		metrics = append(metrics, *v)
+	}
+
+	mb.metrics = make(map[string]*messages.Metric)
+
+	return metrics
 }
 
 func (mb *autoCulledMetricsBuffer) start() {

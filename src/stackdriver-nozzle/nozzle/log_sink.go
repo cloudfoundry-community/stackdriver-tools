@@ -22,10 +22,12 @@ import (
 	"strings"
 
 	"cloud.google.com/go/logging"
+	"github.com/cloudfoundry-community/stackdriver-tools/src/stackdriver-nozzle/messages"
 	"github.com/cloudfoundry-community/stackdriver-tools/src/stackdriver-nozzle/stackdriver"
 	"github.com/cloudfoundry/sonde-go/events"
 )
 
+// NewLogSink returns a Sink that can receive sonde Events, translate them and send them to a stackdriver.LogAdapter
 func NewLogSink(labelMaker LabelMaker, logAdapter stackdriver.LogAdapter, newlineToken string) Sink {
 	return &logSink{
 		labelMaker:   labelMaker,
@@ -61,7 +63,7 @@ func structToMap(obj interface{}) map[string]interface{} {
 	return unmarshaled_map
 }
 
-func (ls *logSink) parseEnvelope(envelope *events.Envelope) stackdriver.Log {
+func (ls *logSink) parseEnvelope(envelope *events.Envelope) messages.Log {
 	payload := structToMap(envelope)
 	payload["eventType"] = envelope.GetEventType().String()
 
@@ -113,7 +115,7 @@ func (ls *logSink) parseEnvelope(envelope *events.Envelope) stackdriver.Log {
 		}
 	}
 
-	log := stackdriver.Log{
+	log := messages.Log{
 		Payload:  payload,
 		Labels:   labels,
 		Severity: severity,

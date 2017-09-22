@@ -77,7 +77,28 @@ var _ = Describe("Config", func() {
 		Expect(err.Error()).To(ContainSubstring(envName))
 	},
 		Entry("FIREHOSE_ENDPOINT", "FIREHOSE_ENDPOINT"),
-		Entry("FIREHOSE_EVENTS_TO_STACKDRIVER_LOGGING", "FIREHOSE_EVENTS_TO_STACKDRIVER_LOGGING"),
 		Entry("FIREHOSE_SUBSCRIPTION_ID", "FIREHOSE_SUBSCRIPTION_ID"),
 	)
+
+	Describe("event selection", func() {
+		BeforeEach(func() {
+			os.Setenv("FIREHOSE_EVENTS_TO_STACKDRIVER_LOGGING", "")
+			os.Setenv("FIREHOSE_EVENTS_TO_STACKDRIVER_MONITORING", "")
+		})
+		It("is invalid with no events", func() {
+			_, err := config.NewConfig()
+			Expect(err).To(HaveOccurred())
+		})
+		It("a single event for logging is valid", func() {
+			os.Setenv("FIREHOSE_EVENTS_TO_STACKDRIVER_LOGGING", "LogMessage")
+			_, err := config.NewConfig()
+			Expect(err).NotTo(HaveOccurred())
+		})
+		It("a single event for monitoring is valid", func() {
+			os.Setenv("FIREHOSE_EVENTS_TO_STACKDRIVER_MONITORING", "ValueMetric")
+			_, err := config.NewConfig()
+			Expect(err).NotTo(HaveOccurred())
+		})
+	})
+
 })

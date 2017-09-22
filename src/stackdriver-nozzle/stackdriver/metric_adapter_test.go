@@ -22,6 +22,7 @@ import (
 
 	"sync"
 
+	"github.com/cloudfoundry-community/stackdriver-tools/src/stackdriver-nozzle/messages"
 	"github.com/cloudfoundry-community/stackdriver-tools/src/stackdriver-nozzle/mocks"
 	"github.com/cloudfoundry-community/stackdriver-tools/src/stackdriver-nozzle/stackdriver"
 	. "github.com/onsi/ginkgo"
@@ -47,7 +48,7 @@ var _ = Describe("MetricAdapter", func() {
 	It("takes metrics and posts a time series", func() {
 		eventTime := time.Now()
 
-		metrics := []stackdriver.Metric{
+		metrics := []messages.Metric{
 			{
 				Name:  "metricName",
 				Value: 123.45,
@@ -100,7 +101,7 @@ var _ = Describe("MetricAdapter", func() {
 	})
 
 	It("creates metric descriptors", func() {
-		metrics := []stackdriver.Metric{
+		metrics := []messages.Metric{
 			{
 				Name:   "metricWithUnit",
 				Labels: map[string]string{"key": "value"},
@@ -130,7 +131,7 @@ var _ = Describe("MetricAdapter", func() {
 	})
 
 	It("only creates the same descriptor once", func() {
-		metrics := []stackdriver.Metric{
+		metrics := []messages.Metric{
 			{
 				Name: "metricWithUnit",
 				Unit: "{foobar}",
@@ -155,8 +156,8 @@ var _ = Describe("MetricAdapter", func() {
 	})
 
 	It("handles concurrent metric descriptor creation", func() {
-		metricsWithName := func(name string) []stackdriver.Metric {
-			return []stackdriver.Metric{
+		metricsWithName := func(name string) []messages.Metric {
+			return []messages.Metric{
 				{
 					Name: name,
 					Unit: "{foobar}",
@@ -198,7 +199,7 @@ var _ = Describe("MetricAdapter", func() {
 	})
 
 	It("increments metrics counters", func() {
-		metrics := []stackdriver.Metric{
+		metrics := []messages.Metric{
 			{
 				Name: "metricWithUnit",
 				Unit: "{foobar}",

@@ -16,14 +16,19 @@
 
 package mocks
 
-import "github.com/cloudfoundry-community/stackdriver-tools/src/stackdriver-nozzle/stackdriver"
+import "github.com/cloudfoundry-community/stackdriver-tools/src/stackdriver-nozzle/messages"
 
 type MetricsBuffer struct {
-	PostedMetrics []stackdriver.Metric
+	PostedMetrics []messages.Metric
 }
 
-func (m *MetricsBuffer) PostMetric(metric *stackdriver.Metric) {
+func (m *MetricsBuffer) PostMetric(metric *messages.Metric) {
 	m.PostedMetrics = append(m.PostedMetrics, *metric)
+}
+
+func (m *MetricsBuffer) PostMetrics(metrics []messages.Metric) error {
+	m.PostedMetrics = append(m.PostedMetrics, metrics...)
+	return nil
 }
 
 func (m *MetricsBuffer) IsEmpty() bool {
