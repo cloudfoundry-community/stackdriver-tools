@@ -31,7 +31,7 @@ func (air *appInfoRepository) GetAppInfo(guid string) AppInfo {
 	appInfo, ok := air.cache[guid]
 	if !ok {
 		app, err := air.cfClient.AppByGuid(guid)
-		if err != nil {
+		if err == nil {
 			appInfo = AppInfo{
 				AppName:   app.Name,
 				SpaceGUID: app.SpaceData.Entity.Guid,
