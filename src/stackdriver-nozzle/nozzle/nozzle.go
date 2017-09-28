@@ -24,6 +24,7 @@ import (
 	"github.com/cloudfoundry-community/stackdriver-tools/src/stackdriver-nozzle/cloudfoundry"
 	"github.com/cloudfoundry-community/stackdriver-tools/src/stackdriver-nozzle/heartbeat"
 	"github.com/cloudfoundry/sonde-go/events"
+	"github.com/gorilla/websocket"
 )
 
 type PostMetricError struct {
@@ -70,6 +71,9 @@ func (n *Nozzle) Start(firehose cloudfoundry.Firehose) (errs chan error, fhErrs 
 				}
 			case <-n.session.done:
 				return
+			case fhErr := <-fhErrs:
+				n.handleFirehoseError(fhErr)
+				errs <- fhErr
 			}
 		}
 	}()
@@ -103,6 +107,23 @@ func (n *Nozzle) handleEvent(envelope *events.Envelope) error {
 	}
 
 	return nil
+}
+
+func (n *Nozzle) handleFirehoseError(err error) {
+	closeErr, ok := err.(*websocket.CloseError)
+	if !ok {
+		n.Heartbeater.Increment("firehose.errors.unknwon")
+		return
+	}
+
+	switch closeErr.Code {
+	case websocket.CloseNormalClosure:
+		n.Heartbeater.Increment("firehose.errors.close.normal_close")
+	case websocket.ClosePolicyViolation:
+		n.Heartbeater.Increment("firehose.errors.close.policy_violation")
+	default:
+		n.Heartbeater.Increment("firehose.errors.close.unknown")
+	}
 }
 
 func isMetric(envelope *events.Envelope) bool {
