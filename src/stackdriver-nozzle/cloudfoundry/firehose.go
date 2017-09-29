@@ -53,7 +53,7 @@ func (c *firehose) Connect() (<-chan *events.Envelope, <-chan error) {
 	refresher := cfClientTokenRefresh{cfClient: c.cfClient}
 	cfConsumer.SetIdleTimeout(time.Duration(30) * time.Second)
 	cfConsumer.RefreshTokenFrom(&refresher)
-	return cfConsumer.FirehoseWithoutReconnect(c.subscriptionID, "")
+	return cfConsumer.Firehose(c.subscriptionID, "")
 }
 
 type cfClientTokenRefresh struct {

@@ -54,12 +54,13 @@ type state struct {
 	running bool
 }
 
-func (n *Nozzle) Start(firehose cloudfoundry.Firehose) (errs chan error, fhErrs <-chan error) {
+func (n *Nozzle) Start(firehose cloudfoundry.Firehose) (errs chan error, firehoseErrs chan error) {
 	n.Heartbeater.Start()
 	n.session = state{done: make(chan struct{}), running: true}
 
 	errs = make(chan error)
-	messages, fhErrs := firehose.Connect()
+	firehoseErrs = make(chan error)
+	messages, fhErrInternal := firehose.Connect()
 	go func() {
 		for {
 			select {
@@ -71,14 +72,14 @@ func (n *Nozzle) Start(firehose cloudfoundry.Firehose) (errs chan error, fhErrs 
 				}
 			case <-n.session.done:
 				return
-			case fhErr := <-fhErrs:
+			case fhErr := <-fhErrInternal:
 				n.handleFirehoseError(fhErr)
-				errs <- fhErr
+				firehoseErrs <- fhErr
 			}
 		}
 	}()
 
-	return errs, fhErrs
+	return errs, firehoseErrs
 }
 
 func (n *Nozzle) Stop() error {
