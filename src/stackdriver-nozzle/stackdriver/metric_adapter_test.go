@@ -48,7 +48,7 @@ var _ = Describe("MetricAdapter", func() {
 	It("takes metrics and posts a time series", func() {
 		eventTime := time.Now()
 
-		metrics := []messages.Metric{
+		metrics := []*messages.Metric{
 			{
 				Name:  "metricName",
 				Value: 123.45,
@@ -66,8 +66,9 @@ var _ = Describe("MetricAdapter", func() {
 				EventTime: eventTime,
 			},
 		}
+		metricEvents := []*messages.MetricEvent{{Metrics: metrics}}
 
-		subject.PostMetrics(metrics)
+		subject.PostMetricEvents(metricEvents)
 
 		Expect(client.MetricReqs).To(HaveLen(1))
 
@@ -101,7 +102,7 @@ var _ = Describe("MetricAdapter", func() {
 	})
 
 	It("creates metric descriptors", func() {
-		metrics := []messages.Metric{
+		metrics := []*messages.Metric{
 			{
 				Name:   "metricWithUnit",
 				Labels: map[string]string{"key": "value"},
@@ -112,8 +113,9 @@ var _ = Describe("MetricAdapter", func() {
 				Labels: map[string]string{"key": "value"},
 			},
 		}
+		metricEvents := []*messages.MetricEvent{{Metrics: metrics}}
 
-		subject.PostMetrics(metrics)
+		subject.PostMetricEvents(metricEvents)
 
 		Expect(client.DescriptorReqs).To(HaveLen(1))
 		req := client.DescriptorReqs[0]
@@ -131,7 +133,7 @@ var _ = Describe("MetricAdapter", func() {
 	})
 
 	It("only creates the same descriptor once", func() {
-		metrics := []messages.Metric{
+		metrics := []*messages.Metric{
 			{
 				Name: "metricWithUnit",
 				Unit: "{foobar}",
@@ -149,20 +151,21 @@ var _ = Describe("MetricAdapter", func() {
 				Unit: "{lalala}",
 			},
 		}
+		metricEvents := []*messages.MetricEvent{{Metrics: metrics}}
 
-		subject.PostMetrics(metrics)
+		subject.PostMetricEvents(metricEvents)
 
 		Expect(client.DescriptorReqs).To(HaveLen(2))
 	})
 
 	It("handles concurrent metric descriptor creation", func() {
-		metricsWithName := func(name string) []messages.Metric {
-			return []messages.Metric{
+		metricEventFromName := func(name string) []*messages.MetricEvent {
+			return []*messages.MetricEvent{{Metrics: []*messages.Metric{
 				{
 					Name: name,
 					Unit: "{foobar}",
 				},
-			}
+			}}}
 		}
 
 		var mutex sync.Mutex
@@ -176,11 +179,11 @@ var _ = Describe("MetricAdapter", func() {
 			return nil
 		}
 
-		go subject.PostMetrics(metricsWithName("a"))
-		go subject.PostMetrics(metricsWithName("b"))
-		go subject.PostMetrics(metricsWithName("a"))
-		go subject.PostMetrics(metricsWithName("c"))
-		go subject.PostMetrics(metricsWithName("b"))
+		go subject.PostMetricEvents(metricEventFromName("a"))
+		go subject.PostMetricEvents(metricEventFromName("b"))
+		go subject.PostMetricEvents(metricEventFromName("a"))
+		go subject.PostMetricEvents(metricEventFromName("c"))
+		go subject.PostMetricEvents(metricEventFromName("b"))
 
 		Eventually(func() int {
 			mutex.Lock()
@@ -199,27 +202,31 @@ var _ = Describe("MetricAdapter", func() {
 	})
 
 	It("increments metrics counters", func() {
-		metrics := []messages.Metric{
-			{
-				Name: "metricWithUnit",
-				Unit: "{foobar}",
-			},
-			{
-				Name: "metricWithUnitToo",
-				Unit: "{barfoo}",
-			},
-			{
-				Name: "anExistingMetric",
-				Unit: "{lalala}",
-			},
-		}
+		metricEvents := []*messages.MetricEvent{
+			{Metrics: []*messages.Metric{
+				{
+					Name: "metricWithUnit",
+					Unit: "{foobar}",
+				},
+				{
+					Name: "metricWithUnitToo",
+					Unit: "{barfoo}",
+				}}},
+			{Metrics: []*messages.Metric{
+				{
+					Name: "anExistingMetric",
+					Unit: "{lalala}",
+				},
+			}}}
 
-		subject.PostMetrics(metrics)
+		subject.PostMetricEvents(metricEvents)
+		Expect(heartbeater.GetCount("metrics.events.count")).To(Equal(2))
 		Expect(heartbeater.GetCount("metrics.count")).To(Equal(3))
-		Expect(heartbeater.GetCount("metrics.requests")).To(Equal(1))
-
-		subject.PostMetrics(metrics)
-		Expect(heartbeater.GetCount("metrics.count")).To(Equal(6))
 		Expect(heartbeater.GetCount("metrics.requests")).To(Equal(2))
+
+		subject.PostMetricEvents(metricEvents)
+		Expect(heartbeater.GetCount("metrics.events.count")).To(Equal(4))
+		Expect(heartbeater.GetCount("metrics.count")).To(Equal(6))
+		Expect(heartbeater.GetCount("metrics.requests")).To(Equal(4))
 	})
 })

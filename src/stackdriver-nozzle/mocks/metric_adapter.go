@@ -23,26 +23,28 @@ import (
 )
 
 type MetricAdapter struct {
-	PostMetricsFn   func(metrics []messages.Metric) error
-	PostMetricError error
-	PostedMetrics   []messages.Metric
-	Mutex           sync.Mutex
+	sync.Mutex
+
+	PostMetricEventsFn    func(metrics []*messages.MetricEvent) error
+	PostMetricEventsError error
+	PostedMetricEvents    []*messages.MetricEvent
 }
 
-func (m *MetricAdapter) PostMetrics(metrics []messages.Metric) error {
-	if m.PostMetricsFn != nil {
-		return m.PostMetricsFn(metrics)
+func (m *MetricAdapter) PostMetricEvents(events []*messages.MetricEvent) error {
+	m.Lock()
+	defer m.Unlock()
+
+	if m.PostMetricEventsFn != nil {
+		return m.PostMetricEventsFn(events)
 	}
 
-	m.Mutex.Lock()
-	defer m.Mutex.Unlock()
-	m.PostedMetrics = append(m.PostedMetrics, metrics...)
-	return m.PostMetricError
+	m.PostedMetricEvents = append(m.PostedMetricEvents, events...)
+	return m.PostMetricEventsError
 }
 
-func (m *MetricAdapter) GetPostedMetrics() []messages.Metric {
-	m.Mutex.Lock()
-	defer m.Mutex.Unlock()
+func (m *MetricAdapter) GetPostedMetricEvents() []*messages.MetricEvent {
+	m.Lock()
+	defer m.Unlock()
 
-	return m.PostedMetrics
+	return m.PostedMetricEvents
 }
