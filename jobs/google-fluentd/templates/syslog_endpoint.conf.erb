@@ -1,0 +1,16 @@
+<source>
+  @type syslog
+  port <%= properties.syslog.port %>
+  protocol_type udp
+  bind <%= properties.syslog.bind %>
+  format /(?<message>.*)/
+  tag syslog
+</source>
+<source>
+  @type syslog
+  port <%= properties.syslog.port %>
+  protocol_type tcp
+  bind <%= properties.syslog.bind %>
+  format /(?<message>.*)/
+  tag syslog
+</source>
