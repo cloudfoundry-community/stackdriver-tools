@@ -18,7 +18,7 @@ type Metric struct {
 // MetricEvent represents the translation of an events.Envelope into a set
 // of Metrics
 type MetricEvent struct {
-	Labels  map[string]string
+	Labels  map[string]string `json:"-"`
 	Metrics []*Metric
 	Type    events.Envelope_EventType `json:"-"`
 }
