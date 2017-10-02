@@ -45,10 +45,10 @@ type heartbeater struct {
 	handlers []Handler
 }
 
-func NewHeartbeater(logger lager.Logger, trigger <-chan time.Time) Heartbeater {
+func NewHeartbeater(logger lager.Logger, trigger <-chan time.Time, prefix string) Heartbeater {
 	counter := make(chan string)
 	done := make(chan struct{})
-	loggerHandler := NewLoggerHandler(logger)
+	loggerHandler := NewLoggerHandler(logger, prefix)
 	return &heartbeater{
 		trigger: trigger,
 		counter: counter,
@@ -61,10 +61,10 @@ func NewHeartbeater(logger lager.Logger, trigger <-chan time.Time) Heartbeater {
 	}
 }
 
-func NewLoggerMetricHeartbeater(metricHandler Handler, logger lager.Logger, trigger <-chan time.Time) Heartbeater {
+func NewLoggerMetricHeartbeater(metricHandler Handler, logger lager.Logger, trigger <-chan time.Time, prefix string) Heartbeater {
 	counter := make(chan string)
 	done := make(chan struct{})
-	loggerHandler := NewLoggerHandler(logger)
+	loggerHandler := NewLoggerHandler(logger, prefix)
 	return &heartbeater{
 		trigger: trigger,
 		counter: counter,
