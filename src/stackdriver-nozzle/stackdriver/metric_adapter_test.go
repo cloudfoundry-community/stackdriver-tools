@@ -50,23 +50,21 @@ var _ = Describe("MetricAdapter", func() {
 
 		metrics := []*messages.Metric{
 			{
-				Name:  "metricName",
-				Value: 123.45,
-				Labels: map[string]string{
-					"key": "name",
-				},
+				Name:      "metricName",
+				Value:     123.45,
 				EventTime: eventTime,
 			},
 			{
-				Name:  "secondMetricName",
-				Value: 54.321,
-				Labels: map[string]string{
-					"secondKey": "secondName",
-				},
+				Name:      "secondMetricName",
+				Value:     54.321,
 				EventTime: eventTime,
 			},
 		}
-		metricEvents := []*messages.MetricEvent{{Metrics: metrics}}
+		labels := map[string]string{
+			"key": "name",
+		}
+
+		metricEvents := []*messages.MetricEvent{{Labels: labels, Metrics: metrics}}
 
 		subject.PostMetricEvents(metricEvents)
 
@@ -80,7 +78,7 @@ var _ = Describe("MetricAdapter", func() {
 
 		timeSeries := timeSerieses[0]
 		Expect(timeSeries.GetMetric().Type).To(Equal("custom.googleapis.com/metricName"))
-		Expect(timeSeries.GetMetric().Labels).To(Equal(metrics[0].Labels))
+		Expect(timeSeries.GetMetric().Labels).To(Equal(labels))
 		Expect(timeSeries.GetPoints()).To(HaveLen(1))
 
 		point := timeSeries.GetPoints()[0]
@@ -92,7 +90,7 @@ var _ = Describe("MetricAdapter", func() {
 
 		timeSeries = timeSerieses[1]
 		Expect(timeSeries.GetMetric().Type).To(Equal("custom.googleapis.com/secondMetricName"))
-		Expect(timeSeries.GetMetric().Labels).To(Equal(metrics[1].Labels))
+		Expect(timeSeries.GetMetric().Labels).To(Equal(labels))
 		Expect(timeSeries.GetPoints()).To(HaveLen(1))
 
 		point = timeSeries.GetPoints()[0]
@@ -102,18 +100,18 @@ var _ = Describe("MetricAdapter", func() {
 	})
 
 	It("creates metric descriptors", func() {
+		labels := map[string]string{"key": "value"}
+
 		metrics := []*messages.Metric{
 			{
-				Name:   "metricWithUnit",
-				Labels: map[string]string{"key": "value"},
-				Unit:   "{foobar}",
+				Name: "metricWithUnit",
+				Unit: "{foobar}",
 			},
 			{
-				Name:   "metricWithoutUnit",
-				Labels: map[string]string{"key": "value"},
+				Name: "metricWithoutUnit",
 			},
 		}
-		metricEvents := []*messages.MetricEvent{{Metrics: metrics}}
+		metricEvents := []*messages.MetricEvent{{Labels: labels, Metrics: metrics}}
 
 		subject.PostMetricEvents(metricEvents)
 

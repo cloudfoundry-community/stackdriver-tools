@@ -74,7 +74,7 @@ func (ma *metricAdapter) PostMetricEvents(events []*messages.MetricEvent) (err e
 
 		for _, metric := range event.Metrics {
 			ma.heartbeater.Increment("metrics.count")
-			err := ma.ensureMetricDescriptor(metric)
+			err := ma.ensureMetricDescriptor(metric, event.Labels)
 			if err != nil {
 				return err
 			}
@@ -83,7 +83,7 @@ func (ma *metricAdapter) PostMetricEvents(events []*messages.MetricEvent) (err e
 			timeSeries := monitoringpb.TimeSeries{
 				Metric: &metricpb.Metric{
 					Type:   metricType,
-					Labels: metric.Labels,
+					Labels: event.Labels,
 				},
 				Points: points(metric.Value, metric.EventTime),
 			}
@@ -105,13 +105,13 @@ func (ma *metricAdapter) PostMetricEvents(events []*messages.MetricEvent) (err e
 	return
 }
 
-func (ma *metricAdapter) CreateMetricDescriptor(metric *messages.Metric) error {
+func (ma *metricAdapter) CreateMetricDescriptor(metric *messages.Metric, labels map[string]string) error {
 	projectName := path.Join("projects", ma.projectID)
 	metricType := path.Join("custom.googleapis.com", metric.Name)
 	metricName := path.Join(projectName, "metricDescriptors", metricType)
 
 	var labelDescriptors []*labelpb.LabelDescriptor
-	for key := range metric.Labels {
+	for key := range labels {
 		labelDescriptors = append(labelDescriptors, &labelpb.LabelDescriptor{
 			Key:       key,
 			ValueType: labelpb.LabelDescriptor_STRING,
@@ -152,7 +152,7 @@ func (ma *metricAdapter) fetchMetricDescriptorNames() error {
 	return nil
 }
 
-func (ma *metricAdapter) ensureMetricDescriptor(metric *messages.Metric) error {
+func (ma *metricAdapter) ensureMetricDescriptor(metric *messages.Metric, labels map[string]string) error {
 	if metric.Unit == "" {
 		return nil
 	}
@@ -164,7 +164,7 @@ func (ma *metricAdapter) ensureMetricDescriptor(metric *messages.Metric) error {
 		return nil
 	}
 
-	err := ma.CreateMetricDescriptor(metric)
+	err := ma.CreateMetricDescriptor(metric, labels)
 	if err != nil {
 		return err
 	}

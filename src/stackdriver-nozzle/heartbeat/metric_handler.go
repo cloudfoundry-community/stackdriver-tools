@@ -76,7 +76,6 @@ func (h *metricHandler) Flush() error {
 		metrics = append(metrics, &messages.Metric{
 			Name:      "heartbeat." + k,
 			Value:     float64(v),
-			Labels:    labels,
 			EventTime: t,
 		})
 	}

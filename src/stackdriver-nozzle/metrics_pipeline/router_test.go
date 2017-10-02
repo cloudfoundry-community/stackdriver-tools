@@ -61,7 +61,6 @@ var _ = Describe("Router", func() {
 		logEvent := events.Envelope_ValueMetric
 		labels := map[string]string{"foo": "bar"}
 		metric := &messages.Metric{
-			Labels:    labels,
 			Name:      "valueMetric",
 			Value:     float64(123),
 			EventTime: time.Now(),
@@ -72,7 +71,7 @@ var _ = Describe("Router", func() {
 		router.PostMetricEvents([]*messages.MetricEvent{metricEvent})
 		Expect(logAdapter.PostedLogs).To(HaveLen(1))
 		log := logAdapter.PostedLogs[0]
-		Expect(log.Labels).To(Equal(metric.Labels))
+		Expect(log.Labels).To(Equal(labels))
 		Expect(log.Payload).To(BeAssignableToTypeOf(&messages.MetricEvent{}))
 		payload := log.Payload.(*messages.MetricEvent)
 		Expect(payload.Metrics).To(Equal([]*messages.Metric{metric}))
