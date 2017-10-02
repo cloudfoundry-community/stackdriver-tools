@@ -20,7 +20,7 @@ type Metric struct {
 type MetricEvent struct {
 	Labels  map[string]string
 	Metrics []*Metric
-	Type    events.Envelope_EventType
+	Type    events.Envelope_EventType `json:"-"`
 }
 
 func (m *MetricEvent) Hash() string {
