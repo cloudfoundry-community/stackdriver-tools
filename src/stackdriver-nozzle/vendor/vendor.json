@@ -63,6 +63,12 @@
 			"revisionTime": "2017-09-07T13:44:44Z"
 		},
 		{
+			"checksumSHA1": "1et4UTXKEAjPvvc0Uqp/YSg8Ego=",
+			"path": "code.cloudfoundry.org/diodes",
+			"revision": "000f8f1e7fb802e51b52e293b6edf4dd247cd20c",
+			"revisionTime": "2017-09-01T20:05:24Z"
+		},
+		{
 			"path": "context",
 			"revision": ""
 		},
