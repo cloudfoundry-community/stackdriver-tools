@@ -21,11 +21,14 @@ import (
 	"strings"
 	"sync"
 
+	"code.cloudfoundry.org/diodes"
 	"github.com/cloudfoundry-community/stackdriver-tools/src/stackdriver-nozzle/cloudfoundry"
 	"github.com/cloudfoundry-community/stackdriver-tools/src/stackdriver-nozzle/heartbeat"
 	"github.com/cloudfoundry/sonde-go/events"
 	"github.com/gorilla/websocket"
 )
+
+const bufferSize = 30000 // 1k messages/second * 30 seconds
 
 type PostMetricError struct {
 	Errors []error
@@ -61,20 +64,39 @@ func (n *Nozzle) Start(firehose cloudfoundry.Firehose) (errs chan error, firehos
 	errs = make(chan error)
 	firehoseErrs = make(chan error)
 	messages, fhErrInternal := firehose.Connect()
+
+	buffer := diodes.NewPoller(diodes.NewOneToOne(bufferSize, diodes.AlertFunc(func(missed int) {
+		// TODO(jrjohnson): Introduce Heartbeater.Increment(event, count)
+		for i := 0; i < missed; i++ {
+			n.Heartbeater.Increment("nozzle.events.dropped")
+		}
+	})))
+
+	// Drain from the firehose
 	go func() {
 		for {
 			select {
 			case envelope := <-messages:
-				n.Heartbeater.Increment("nozzle.events")
-				err := n.handleEvent(envelope)
-				if err != nil {
-					errs <- err
-				}
+				buffer.Set(diodes.GenericDataType(envelope))
 			case <-n.session.done:
 				return
 			case fhErr := <-fhErrInternal:
 				n.handleFirehoseError(fhErr)
 				firehoseErrs <- fhErr
+			}
+		}
+	}()
+
+	// Send firehose events through the nozzle
+	go func() {
+		for {
+			unsafeEvent := buffer.Next()
+			if unsafeEvent != nil {
+				var event = (*events.Envelope)(unsafeEvent)
+
+				if err := n.handleEvent(event); err != nil {
+					errs <- err
+				}
 			}
 		}
 	}()
@@ -97,6 +119,7 @@ func (n *Nozzle) Stop() error {
 }
 
 func (n *Nozzle) handleEvent(envelope *events.Envelope) error {
+	n.Heartbeater.Increment("nozzle.events")
 	if isMetric(envelope) {
 		if err := n.MetricSink.Receive(envelope); err != nil {
 			return err
