@@ -31,17 +31,16 @@ func NewRouter(metricAdapter stackdriver.MetricAdapter, metricEvents []events.En
 	return r
 }
 
-func (r *router) PostMetrics(metrics []messages.Metric) error {
-	for _, metric := range metrics {
-		if r.metricEvents[metric.Type] {
-			// TODO: seems strange to re-package this as a new slice
-			r.metricAdapter.PostMetrics([]messages.Metric{metric})
+func (r *router) PostMetricEvents(events []*messages.MetricEvent) error {
+	for _, event := range events {
+		if r.metricEvents[event.Type] {
+			r.metricAdapter.PostMetricEvents([]*messages.MetricEvent{event})
 		}
 
-		if r.logEvents[metric.Type] {
+		if r.logEvents[event.Type] {
 			log := &messages.Log{
-				Labels:  metric.Labels,
-				Payload: metric,
+				Labels:  event.Labels,
+				Payload: event,
 			}
 			r.logAdapter.PostLog(log)
 		}

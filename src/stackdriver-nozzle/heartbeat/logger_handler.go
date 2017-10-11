@@ -24,15 +24,17 @@ import (
 
 type loggerHandler struct {
 	logger lager.Logger
+	prefix string
 
 	counterMu sync.Mutex // Guards counter
 	counter   map[string]uint
 }
 
-func NewLoggerHandler(logger lager.Logger) *loggerHandler {
+func NewLoggerHandler(logger lager.Logger, prefix string) *loggerHandler {
 	return &loggerHandler{
 		logger:  logger,
 		counter: map[string]uint{},
+		prefix:  prefix,
 	}
 }
 
@@ -51,7 +53,7 @@ func (h *loggerHandler) Flush() error {
 	h.counterMu.Lock()
 	defer h.counterMu.Unlock()
 	h.logger.Info(
-		"heartbeater", lager.Data{"counters": h.counter},
+		h.prefix, lager.Data{"counters": h.counter},
 	)
 	h.counter = map[string]uint{}
 	return nil

@@ -21,10 +21,14 @@ import (
 	"strings"
 	"sync"
 
+	"code.cloudfoundry.org/diodes"
 	"github.com/cloudfoundry-community/stackdriver-tools/src/stackdriver-nozzle/cloudfoundry"
 	"github.com/cloudfoundry-community/stackdriver-tools/src/stackdriver-nozzle/heartbeat"
 	"github.com/cloudfoundry/sonde-go/events"
+	"github.com/gorilla/websocket"
 )
+
+const bufferSize = 30000 // 1k messages/second * 30 seconds
 
 type PostMetricError struct {
 	Errors []error
@@ -53,28 +57,51 @@ type state struct {
 	running bool
 }
 
-func (n *Nozzle) Start(firehose cloudfoundry.Firehose) (errs chan error, fhErrs <-chan error) {
+func (n *Nozzle) Start(firehose cloudfoundry.Firehose) (errs chan error, firehoseErrs chan error) {
 	n.Heartbeater.Start()
 	n.session = state{done: make(chan struct{}), running: true}
 
 	errs = make(chan error)
-	messages, fhErrs := firehose.Connect()
+	firehoseErrs = make(chan error)
+	messages, fhErrInternal := firehose.Connect()
+
+	buffer := diodes.NewPoller(diodes.NewOneToOne(bufferSize, diodes.AlertFunc(func(missed int) {
+		// TODO(jrjohnson): Introduce Heartbeater.Increment(event, count)
+		for i := 0; i < missed; i++ {
+			n.Heartbeater.Increment("nozzle.events.dropped")
+		}
+	})))
+
+	// Drain from the firehose
 	go func() {
 		for {
 			select {
 			case envelope := <-messages:
-				n.Heartbeater.Increment("nozzle.events")
-				err := n.handleEvent(envelope)
-				if err != nil {
-					errs <- err
-				}
+				buffer.Set(diodes.GenericDataType(envelope))
 			case <-n.session.done:
 				return
+			case fhErr := <-fhErrInternal:
+				n.handleFirehoseError(fhErr)
+				firehoseErrs <- fhErr
 			}
 		}
 	}()
 
-	return errs, fhErrs
+	// Send firehose events through the nozzle
+	go func() {
+		for {
+			unsafeEvent := buffer.Next()
+			if unsafeEvent != nil {
+				var event = (*events.Envelope)(unsafeEvent)
+
+				if err := n.handleEvent(event); err != nil {
+					errs <- err
+				}
+			}
+		}
+	}()
+
+	return errs, firehoseErrs
 }
 
 func (n *Nozzle) Stop() error {
@@ -92,6 +119,7 @@ func (n *Nozzle) Stop() error {
 }
 
 func (n *Nozzle) handleEvent(envelope *events.Envelope) error {
+	n.Heartbeater.Increment("nozzle.events")
 	if isMetric(envelope) {
 		if err := n.MetricSink.Receive(envelope); err != nil {
 			return err
@@ -103,6 +131,23 @@ func (n *Nozzle) handleEvent(envelope *events.Envelope) error {
 	}
 
 	return nil
+}
+
+func (n *Nozzle) handleFirehoseError(err error) {
+	closeErr, ok := err.(*websocket.CloseError)
+	if !ok {
+		n.Heartbeater.Increment("firehose.errors.unknwon")
+		return
+	}
+
+	switch closeErr.Code {
+	case websocket.CloseNormalClosure:
+		n.Heartbeater.Increment("firehose.errors.close.normal_close")
+	case websocket.ClosePolicyViolation:
+		n.Heartbeater.Increment("firehose.errors.close.policy_violation")
+	default:
+		n.Heartbeater.Increment("firehose.errors.close.unknown")
+	}
 }
 
 func isMetric(envelope *events.Envelope) bool {

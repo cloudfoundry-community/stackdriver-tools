@@ -5,7 +5,10 @@ import (
 	"fmt"
 	"net/http"
 	_ "net/http/pprof"
+	"os"
+	"os/signal"
 	"runtime"
+
 	"time"
 
 	"cloud.google.com/go/logging"
@@ -16,7 +19,6 @@ import (
 
 func Run(ctx context.Context, a *App) {
 	ctx, cancel := context.WithCancel(ctx)
-	defer cancel()
 
 	if a.c.DebugNozzle {
 		defer handleFatalError(a, cancel)
@@ -35,32 +37,46 @@ func Run(ctx context.Context, a *App) {
 	}
 
 	errs, fhErrs := consumer.Start(producer)
-	defer func() {
-		if err := consumer.Stop(); err != nil {
-			a.logger.Error("nozzle.stop", err)
-		}
-	}()
-
 	go func() {
-		for err := range errs {
-			a.logger.Error("nozzle", err)
-		}
-	}()
-
-	if fatalErr := <-fhErrs; fatalErr != nil {
-		cancel()
-		t := time.NewTimer(5 * time.Second)
 		for {
 			select {
-			case <-time.Tick(100 * time.Millisecond):
-				if a.bufferEmpty() {
-					a.logger.Fatal("firehose", fatalErr, lager.Data{"cleanup": "The metrics buffer was successfully flushed before shutdown"})
-				}
-			case <-t.C:
-				a.logger.Fatal("firehose", fatalErr, lager.Data{"cleanup": "The metrics buffer could not be flushed before shutdown"})
+			case err := <-errs:
+				a.logger.Error("nozzle", err)
+			case err := <-fhErrs:
+				a.logger.Error("firehose", err)
 			}
 		}
+	}()
+
+	blockTillInterrupt()
+
+	a.logger.Info("app", lager.Data{"cleanup": "exit recieved, attempting to flush buffers"})
+	if err := consumer.Stop(); err != nil {
+		a.logger.Error("nozzle.stop", err)
 	}
+	cancel()
+
+	t := time.NewTimer(5 * time.Second)
+	for {
+		select {
+		case <-time.Tick(500 * time.Millisecond):
+			if a.bufferEmpty() {
+				a.logger.Info("app", lager.Data{"cleanup": "The metrics buffer was successfully flushed before shutdown"})
+				return
+			}
+		case <-t.C:
+			a.logger.Info("app", lager.Data{"cleanup": "The metrics buffer could not be flushed before shutdown"})
+			return
+		}
+	}
+}
+
+func blockTillInterrupt() {
+	c := make(chan os.Signal, 1)
+	defer close(c)
+	signal.Notify(c, os.Interrupt)
+	<-c
+	signal.Stop(c)
 }
 
 func handleFatalError(a *App, cancel context.CancelFunc) {

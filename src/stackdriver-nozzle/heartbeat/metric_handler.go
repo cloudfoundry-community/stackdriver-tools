@@ -65,19 +65,20 @@ func (h *metricHandler) Flush() error {
 	h.counterMu.Lock()
 	defer h.counterMu.Unlock()
 
-	metrics := []messages.Metric{}
+	metrics := []*messages.Metric{}
 	t := time.Now()
+	labels := map[string]string{
+		"instance": h.nozzleName,
+		"zone":     h.nozzleZone,
+	}
+
 	for k, v := range h.counter {
-		metrics = append(metrics, messages.Metric{
-			Name:  "heartbeat." + k,
-			Value: float64(v),
-			Labels: map[string]string{
-				"instance": h.nozzleName,
-				"zone":     h.nozzleZone,
-			},
+		metrics = append(metrics, &messages.Metric{
+			Name:      "heartbeat." + k,
+			Value:     float64(v),
 			EventTime: t,
 		})
 	}
 	h.counter = map[string]uint{}
-	return h.ma.PostMetrics(metrics)
+	return h.ma.PostMetricEvents([]*messages.MetricEvent{{Labels: labels, Metrics: metrics}})
 }

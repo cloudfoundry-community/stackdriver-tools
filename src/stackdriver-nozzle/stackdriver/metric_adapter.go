@@ -31,7 +31,7 @@ import (
 )
 
 type MetricAdapter interface {
-	PostMetrics([]messages.Metric) error
+	PostMetricEvents([]*messages.MetricEvent) error
 }
 
 type Heartbeater interface {
@@ -62,54 +62,56 @@ func NewMetricAdapter(projectID string, client MetricClient, heartbeater Heartbe
 	return ma, err
 }
 
-func (ma *metricAdapter) PostMetrics(metrics []messages.Metric) error {
-	if len(metrics) == 0 {
-		return nil
-	}
+func (ma *metricAdapter) PostMetricEvents(events []*messages.MetricEvent) (err error) {
+	for _, event := range events {
+		if len(event.Metrics) == 0 {
+			return nil
+		}
 
-	projectName := path.Join("projects", ma.projectID)
-	var timeSerieses []*monitoringpb.TimeSeries
+		projectName := path.Join("projects", ma.projectID)
+		var timeSerieses []*monitoringpb.TimeSeries
+		ma.heartbeater.Increment("metrics.events.count")
 
-	for _, metric := range metrics {
-		ma.heartbeater.Increment("metrics.count")
+		for _, metric := range event.Metrics {
+			ma.heartbeater.Increment("metrics.count")
+			err := ma.ensureMetricDescriptor(metric, event.Labels)
+			if err != nil {
+				return err
+			}
 
-		err := ma.ensureMetricDescriptor(metric)
+			metricType := path.Join("custom.googleapis.com", metric.Name)
+			timeSeries := monitoringpb.TimeSeries{
+				Metric: &metricpb.Metric{
+					Type:   metricType,
+					Labels: event.Labels,
+				},
+				Points: points(metric.Value, metric.EventTime),
+			}
+			timeSerieses = append(timeSerieses, &timeSeries)
+		}
+
+		request := &monitoringpb.CreateTimeSeriesRequest{
+			Name:       projectName,
+			TimeSeries: timeSerieses,
+		}
+
+		ma.heartbeater.Increment("metrics.requests")
+		err = ma.client.Post(request)
 		if err != nil {
-			return err
+			ma.heartbeater.Increment("metrics.errors")
 		}
-
-		metricType := path.Join("custom.googleapis.com", metric.Name)
-		timeSeries := monitoringpb.TimeSeries{
-			Metric: &metricpb.Metric{
-				Type:   metricType,
-				Labels: metric.Labels,
-			},
-			Points: points(metric.Value, metric.EventTime),
-		}
-		timeSerieses = append(timeSerieses, &timeSeries)
+		err = errors.Wrapf(err, "Request: %+v", request)
 	}
-
-	request := &monitoringpb.CreateTimeSeriesRequest{
-		Name:       projectName,
-		TimeSeries: timeSerieses,
-	}
-
-	ma.heartbeater.Increment("metrics.requests")
-	err := ma.client.Post(request)
-	if err != nil {
-		ma.heartbeater.Increment("metrics.errors")
-	}
-	err = errors.Wrapf(err, "Request: %+v", request)
-	return err
+	return
 }
 
-func (ma *metricAdapter) CreateMetricDescriptor(metric messages.Metric) error {
+func (ma *metricAdapter) CreateMetricDescriptor(metric *messages.Metric, labels map[string]string) error {
 	projectName := path.Join("projects", ma.projectID)
 	metricType := path.Join("custom.googleapis.com", metric.Name)
 	metricName := path.Join(projectName, "metricDescriptors", metricType)
 
 	var labelDescriptors []*labelpb.LabelDescriptor
-	for key := range metric.Labels {
+	for key := range labels {
 		labelDescriptors = append(labelDescriptors, &labelpb.LabelDescriptor{
 			Key:       key,
 			ValueType: labelpb.LabelDescriptor_STRING,
@@ -150,7 +152,7 @@ func (ma *metricAdapter) fetchMetricDescriptorNames() error {
 	return nil
 }
 
-func (ma *metricAdapter) ensureMetricDescriptor(metric messages.Metric) error {
+func (ma *metricAdapter) ensureMetricDescriptor(metric *messages.Metric, labels map[string]string) error {
 	if metric.Unit == "" {
 		return nil
 	}
@@ -162,7 +164,7 @@ func (ma *metricAdapter) ensureMetricDescriptor(metric messages.Metric) error {
 		return nil
 	}
 
-	err := ma.CreateMetricDescriptor(metric)
+	err := ma.CreateMetricDescriptor(metric, labels)
 	if err != nil {
 		return err
 	}

@@ -6,7 +6,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/cloudfoundry-community/go-cfclient"
+	cfclient "github.com/cloudfoundry-community/go-cfclient"
 	"github.com/cloudfoundry-community/stackdriver-tools/src/stackdriver-nozzle/cloudfoundry"
 	"github.com/cloudfoundry-community/stackdriver-tools/src/stackdriver-nozzle/config"
 	"github.com/cloudfoundry-community/stackdriver-tools/src/stackdriver-nozzle/heartbeat"
@@ -40,7 +40,7 @@ func New(c *config.Config, logger lager.Logger) *App {
 	// to send heartbeat metrics to Stackdriver. This metricAdapter
 	// has its own heartbeater (with its own trigger) that writes to a logger.
 	trigger := time.NewTicker(time.Duration(c.HeartbeatRate) * time.Second).C
-	adapterHeartbeater := heartbeat.NewHeartbeater(logger, trigger)
+	adapterHeartbeater := heartbeat.NewHeartbeater(logger, trigger, "heartbeater.telemetry.emitted")
 	adapterHeartbeater.Start()
 	metricAdapter, err := stackdriver.NewMetricAdapter(c.ProjectID, metricClient, adapterHeartbeater)
 	if err != nil {
@@ -52,7 +52,7 @@ func New(c *config.Config, logger lager.Logger) *App {
 	// to write to Stackdriver.
 	metricHandler := heartbeat.NewMetricHandler(metricAdapter, logger, c.NozzleId, c.NozzleName, c.NozzleZone)
 	trigger2 := time.NewTicker(time.Duration(c.HeartbeatRate) * time.Second).C
-	heartbeater := heartbeat.NewLoggerMetricHeartbeater(metricHandler, logger, trigger2)
+	heartbeater := heartbeat.NewLoggerMetricHeartbeater(metricHandler, logger, trigger2, "heartbeater.telemetry")
 
 	cfConfig := &cfclient.Config{
 		ApiAddress:        c.APIEndpoint,
@@ -153,7 +153,7 @@ func (a *App) newMetricAdapter() stackdriver.MetricAdapter {
 }
 
 func (a *App) newMetricSink(ctx context.Context, metricAdapter stackdriver.MetricAdapter) nozzle.Sink {
-	metricBuffer, errs := metrics_pipeline.NewAutoCulledMetricsBuffer(ctx, a.logger, time.Duration(a.c.MetricsBufferDuration)*time.Second, a.c.MetricsBufferSize, metricAdapter)
+	metricBuffer, errs := metrics_pipeline.NewAutoCulledMetricsBuffer(ctx, a.logger, time.Duration(a.c.MetricsBufferDuration)*time.Second, a.c.MetricsBufferSize, metricAdapter, a.heartbeater)
 	a.bufferEmpty = metricBuffer.IsEmpty
 	go func() {
 		for err := range errs {

@@ -10,16 +10,21 @@ import (
 
 type Metric struct {
 	Name      string
-	Type      events.Envelope_EventType
 	Value     float64
-	Labels    map[string]string
 	EventTime time.Time
 	Unit      string // TODO Should this be "1" if it's empty?
 }
 
-func (m *Metric) Hash() string {
+// MetricEvent represents the translation of an events.Envelope into a set
+// of Metrics
+type MetricEvent struct {
+	Labels  map[string]string `json:"-"`
+	Metrics []*Metric
+	Type    events.Envelope_EventType `json:"-"`
+}
+
+func (m *MetricEvent) Hash() string {
 	var b bytes.Buffer
-	b.Write([]byte(m.Name))
 
 	// Extract keys to a slice and sort it
 	keys := make([]string, len(m.Labels), len(m.Labels))

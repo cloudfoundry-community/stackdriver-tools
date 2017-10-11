@@ -22,12 +22,13 @@ type MetricsBuffer struct {
 	PostedMetrics []messages.Metric
 }
 
-func (m *MetricsBuffer) PostMetric(metric *messages.Metric) {
-	m.PostedMetrics = append(m.PostedMetrics, *metric)
-}
+func (m *MetricsBuffer) PostMetricEvents(events []*messages.MetricEvent) error {
+	for _, event := range events {
+		for _, metric := range event.Metrics {
+			m.PostedMetrics = append(m.PostedMetrics, *metric)
+		}
+	}
 
-func (m *MetricsBuffer) PostMetrics(metrics []messages.Metric) error {
-	m.PostedMetrics = append(m.PostedMetrics, metrics...)
 	return nil
 }
 

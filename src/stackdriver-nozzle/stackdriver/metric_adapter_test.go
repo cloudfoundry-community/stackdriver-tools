@@ -48,26 +48,25 @@ var _ = Describe("MetricAdapter", func() {
 	It("takes metrics and posts a time series", func() {
 		eventTime := time.Now()
 
-		metrics := []messages.Metric{
+		metrics := []*messages.Metric{
 			{
-				Name:  "metricName",
-				Value: 123.45,
-				Labels: map[string]string{
-					"key": "name",
-				},
+				Name:      "metricName",
+				Value:     123.45,
 				EventTime: eventTime,
 			},
 			{
-				Name:  "secondMetricName",
-				Value: 54.321,
-				Labels: map[string]string{
-					"secondKey": "secondName",
-				},
+				Name:      "secondMetricName",
+				Value:     54.321,
 				EventTime: eventTime,
 			},
 		}
+		labels := map[string]string{
+			"key": "name",
+		}
 
-		subject.PostMetrics(metrics)
+		metricEvents := []*messages.MetricEvent{{Labels: labels, Metrics: metrics}}
+
+		subject.PostMetricEvents(metricEvents)
 
 		Expect(client.MetricReqs).To(HaveLen(1))
 
@@ -79,7 +78,7 @@ var _ = Describe("MetricAdapter", func() {
 
 		timeSeries := timeSerieses[0]
 		Expect(timeSeries.GetMetric().Type).To(Equal("custom.googleapis.com/metricName"))
-		Expect(timeSeries.GetMetric().Labels).To(Equal(metrics[0].Labels))
+		Expect(timeSeries.GetMetric().Labels).To(Equal(labels))
 		Expect(timeSeries.GetPoints()).To(HaveLen(1))
 
 		point := timeSeries.GetPoints()[0]
@@ -91,7 +90,7 @@ var _ = Describe("MetricAdapter", func() {
 
 		timeSeries = timeSerieses[1]
 		Expect(timeSeries.GetMetric().Type).To(Equal("custom.googleapis.com/secondMetricName"))
-		Expect(timeSeries.GetMetric().Labels).To(Equal(metrics[1].Labels))
+		Expect(timeSeries.GetMetric().Labels).To(Equal(labels))
 		Expect(timeSeries.GetPoints()).To(HaveLen(1))
 
 		point = timeSeries.GetPoints()[0]
@@ -101,19 +100,20 @@ var _ = Describe("MetricAdapter", func() {
 	})
 
 	It("creates metric descriptors", func() {
-		metrics := []messages.Metric{
+		labels := map[string]string{"key": "value"}
+
+		metrics := []*messages.Metric{
 			{
-				Name:   "metricWithUnit",
-				Labels: map[string]string{"key": "value"},
-				Unit:   "{foobar}",
+				Name: "metricWithUnit",
+				Unit: "{foobar}",
 			},
 			{
-				Name:   "metricWithoutUnit",
-				Labels: map[string]string{"key": "value"},
+				Name: "metricWithoutUnit",
 			},
 		}
+		metricEvents := []*messages.MetricEvent{{Labels: labels, Metrics: metrics}}
 
-		subject.PostMetrics(metrics)
+		subject.PostMetricEvents(metricEvents)
 
 		Expect(client.DescriptorReqs).To(HaveLen(1))
 		req := client.DescriptorReqs[0]
@@ -131,7 +131,7 @@ var _ = Describe("MetricAdapter", func() {
 	})
 
 	It("only creates the same descriptor once", func() {
-		metrics := []messages.Metric{
+		metrics := []*messages.Metric{
 			{
 				Name: "metricWithUnit",
 				Unit: "{foobar}",
@@ -149,20 +149,21 @@ var _ = Describe("MetricAdapter", func() {
 				Unit: "{lalala}",
 			},
 		}
+		metricEvents := []*messages.MetricEvent{{Metrics: metrics}}
 
-		subject.PostMetrics(metrics)
+		subject.PostMetricEvents(metricEvents)
 
 		Expect(client.DescriptorReqs).To(HaveLen(2))
 	})
 
 	It("handles concurrent metric descriptor creation", func() {
-		metricsWithName := func(name string) []messages.Metric {
-			return []messages.Metric{
+		metricEventFromName := func(name string) []*messages.MetricEvent {
+			return []*messages.MetricEvent{{Metrics: []*messages.Metric{
 				{
 					Name: name,
 					Unit: "{foobar}",
 				},
-			}
+			}}}
 		}
 
 		var mutex sync.Mutex
@@ -176,11 +177,11 @@ var _ = Describe("MetricAdapter", func() {
 			return nil
 		}
 
-		go subject.PostMetrics(metricsWithName("a"))
-		go subject.PostMetrics(metricsWithName("b"))
-		go subject.PostMetrics(metricsWithName("a"))
-		go subject.PostMetrics(metricsWithName("c"))
-		go subject.PostMetrics(metricsWithName("b"))
+		go subject.PostMetricEvents(metricEventFromName("a"))
+		go subject.PostMetricEvents(metricEventFromName("b"))
+		go subject.PostMetricEvents(metricEventFromName("a"))
+		go subject.PostMetricEvents(metricEventFromName("c"))
+		go subject.PostMetricEvents(metricEventFromName("b"))
 
 		Eventually(func() int {
 			mutex.Lock()
@@ -199,27 +200,31 @@ var _ = Describe("MetricAdapter", func() {
 	})
 
 	It("increments metrics counters", func() {
-		metrics := []messages.Metric{
-			{
-				Name: "metricWithUnit",
-				Unit: "{foobar}",
-			},
-			{
-				Name: "metricWithUnitToo",
-				Unit: "{barfoo}",
-			},
-			{
-				Name: "anExistingMetric",
-				Unit: "{lalala}",
-			},
-		}
+		metricEvents := []*messages.MetricEvent{
+			{Metrics: []*messages.Metric{
+				{
+					Name: "metricWithUnit",
+					Unit: "{foobar}",
+				},
+				{
+					Name: "metricWithUnitToo",
+					Unit: "{barfoo}",
+				}}},
+			{Metrics: []*messages.Metric{
+				{
+					Name: "anExistingMetric",
+					Unit: "{lalala}",
+				},
+			}}}
 
-		subject.PostMetrics(metrics)
+		subject.PostMetricEvents(metricEvents)
+		Expect(heartbeater.GetCount("metrics.events.count")).To(Equal(2))
 		Expect(heartbeater.GetCount("metrics.count")).To(Equal(3))
-		Expect(heartbeater.GetCount("metrics.requests")).To(Equal(1))
-
-		subject.PostMetrics(metrics)
-		Expect(heartbeater.GetCount("metrics.count")).To(Equal(6))
 		Expect(heartbeater.GetCount("metrics.requests")).To(Equal(2))
+
+		subject.PostMetricEvents(metricEvents)
+		Expect(heartbeater.GetCount("metrics.events.count")).To(Equal(4))
+		Expect(heartbeater.GetCount("metrics.count")).To(Equal(6))
+		Expect(heartbeater.GetCount("metrics.requests")).To(Equal(4))
 	})
 })
