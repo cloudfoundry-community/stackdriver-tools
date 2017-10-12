@@ -31,6 +31,7 @@ packages:
         username: (( .properties.firehose_username.value || ..cf.uaa.stackdriver_nozzle_credentials.identity ))
         password: (( .properties.firehose_password.value || ..cf.uaa.stackdriver_nozzle_credentials.password ))
         skip_ssl: (( .properties.firehose_skip_ssl.value ))
+        subscription_id: <%=ENV["TILE_NAME"] %>
       credentials:
         application_default_credentials: (( .properties.service_account.value ))
       gcp:
