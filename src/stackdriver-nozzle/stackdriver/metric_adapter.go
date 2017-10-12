@@ -19,6 +19,7 @@ package stackdriver
 import (
 	"fmt"
 	"path"
+	"strings"
 	"sync"
 	"time"
 
@@ -99,8 +100,17 @@ func (ma *metricAdapter) PostMetricEvents(events []*messages.MetricEvent) (err e
 		err = ma.client.Post(request)
 		if err != nil {
 			ma.heartbeater.Increment("metrics.errors")
+
+			// This is an expected error once there is more than a single nozzle writing to Stackdriver.
+			// If one nozzle writes a metric occuring at time T2 and this one tries to write at T1 (where T2 later than T1)
+			// we will receive this error.
+			if strings.Contains(err.Error(), `Points must be written in order`) {
+				ma.heartbeater.Increment("metrics.errors.out_of_order")
+			} else {
+				ma.heartbeater.Increment("metrics.errors.unknown")
+				err = errors.Wrapf(err, "Request: %+v", request)
+			}
 		}
-		err = errors.Wrapf(err, "Request: %+v", request)
 	}
 	return
 }
