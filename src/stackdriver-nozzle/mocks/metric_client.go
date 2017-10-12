@@ -14,9 +14,14 @@ type MockClient struct {
 	ListErr        error
 
 	CreateMetricDescriptorFn func(request *monitoringpb.CreateMetricDescriptorRequest) error
+	PostFn                   func(req *monitoringpb.CreateTimeSeriesRequest) error
 }
 
 func (mc *MockClient) Post(req *monitoringpb.CreateTimeSeriesRequest) error {
+	if mc.PostFn != nil {
+		return mc.PostFn(req)
+	}
+
 	mc.Mutex.Lock()
 	mc.MetricReqs = append(mc.MetricReqs, req)
 	mc.Mutex.Unlock()
