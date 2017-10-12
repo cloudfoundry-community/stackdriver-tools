@@ -20,8 +20,16 @@ Functionality is provided by 3 jobs in this release:
 
 ## Project Status
 
-This is currently a beta release. It should be used in production environments
-with an abundance of caution, and only after being vetted in dev environment.
+The following is generally available:
+- Stackdriver Host Monitoring Agent (`stackdriver-agent`) 
+- Stackdriver Host Logging Agent (`google-fluentd`)
+- Stackdriver Nozzle (`stackdriver-nozzle`)
+  - Stackdriver Logging for Cloud Foundry Log Events (`LogMessage, Error, HttpStartStop`)
+  - Stackdriver Monitoring for Cloud Foundry Metric Events (`ContainerMetric, ValueMetric, CounterEvent`)
+
+The following is in beta:
+- Stackdriver Nozzle
+   - Stackdriver Logging for Cloud Foundry Metric Events (`ContainerMetric, ValueMetric, CounterEvent`)
 
 The project was developed in partnership with Google and Pivotal and is actively
 maintained by Google.
