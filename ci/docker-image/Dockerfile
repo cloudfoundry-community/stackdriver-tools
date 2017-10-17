@@ -4,6 +4,7 @@ MAINTAINER Jeff Johnson <jrjohnson@google.com>
 # Update base image
 ENV LANG en_US.UTF-8
 ENV LC_ALL en_US.UTF-8
+ENV LC_CTYPE en_US.UTF-8
 RUN locale-gen en_US.UTF-8; dpkg-reconfigure locales
 RUN apt-get update; apt-get -y upgrade; apt-get clean
 
