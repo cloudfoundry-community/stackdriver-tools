@@ -33,6 +33,7 @@ var _ = Describe("Docker Image", func() {
 		"go":     []string{"version"},
 		"ruby":   []string{"-v"},
 		"bosh":   []string{"version"},
+		"bosh2":  []string{"--version"},
 	}
 
 	for executable, args := range commands {
