@@ -21,7 +21,7 @@ ENV GO_VERSION=1.9.1
 ENV GO_SHA256SUM=07d81c6b6b4c2dcf1b5ef7c27aaebd3691cdb40548500941f92b221147c5d9c7
 
 RUN curl -LO https://storage.googleapis.com/golang/go${GO_VERSION}.linux-amd64.tar.gz && \
-    echo "${GO_SHA1SUM}  go${GO_VERSION}.linux-amd64.tar.gz" > go_${GO_VERSION}_SHA1SUM && \
+    echo "${GO_SHA256SUM}  go${GO_VERSION}.linux-amd64.tar.gz" > go_${GO_VERSION}_SHA256SUM && \
     sha256sum -cw --status go_${GO_VERSION}_SHA256SUM
 RUN tar -C /usr/local -xzf go${GO_VERSION}.linux-amd64.tar.gz
 ENV GOPATH /root/go
