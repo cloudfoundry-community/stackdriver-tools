@@ -3,7 +3,6 @@
 set -e
 
 source stackdriver-tools/ci/tasks/utils.sh
-source /etc/profile.d/chruby-with-ruby-2.1.2.sh
 
 release_name="stackdriver-tools"
 semver=`cat version-semver/number`

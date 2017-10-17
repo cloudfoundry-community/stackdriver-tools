@@ -3,7 +3,6 @@
 set -e
 
 source stackdriver-tools/ci/tasks/utils.sh
-source /etc/profile.d/chruby-with-ruby-2.1.2.sh
 
 # BOSH and CF config
 check_param bosh_director_address
