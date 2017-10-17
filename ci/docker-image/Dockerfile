@@ -51,3 +51,13 @@ RUN apt-get -y install ruby2.3 ruby2.3-dev; apt-get clean
 
 # Install Bundler and BOSH CLI
 RUN /bin/bash -l -c "gem install bundler bosh_cli --no-ri --no-rdoc"
+
+# Install BOSH2 CLI
+ENV BOSH2_VERSION=2.0.42
+ENV BOSH2_SHA1SUM=a97b085e45a989abfcd88de77770bb6db0c8a29e
+
+RUN curl -LO https://s3.amazonaws.com/bosh-cli-artifacts/bosh-cli-${BOSH2_CLI_VERSION}-linux-amd64 && \
+    echo "${BOSH2_SHA1SUM}  bosh-cli-${BOSH2_CLI_VERSION}-linux-amd64" > bosh-cli-${BOSH2_CLI_VERSION}-SHA1SUM && \
+    sha1sum -cw --status bosh-cli-${BOSH2_CLI_VERSION}-SHA1SUM && \
+    mv bosh-cli-${BOSH2_CLI_VERSION}-linux-amd64 /usr/local/bin/bosh2 && \
+    chmod a+x /usr/local/bin/bosh2
