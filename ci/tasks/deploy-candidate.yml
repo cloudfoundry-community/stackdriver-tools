@@ -3,7 +3,7 @@ platform: linux
 image_resource:
   type: docker-image
   source:
-    repository: lambr/gcp-tools
+    repository: jrjohnsongoog/stackdriver-tools-ci
     tag: v3
 inputs:
   - name: stackdriver-tools
