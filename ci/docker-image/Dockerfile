@@ -2,11 +2,13 @@ FROM ubuntu:16.04
 MAINTAINER Jeff Johnson <jrjohnson@google.com>
 
 # Update base image
+RUN apt-get update && apt-get -y upgrade && apt-get install -y locales && apt-get clean
+
 ENV LANG en_US.UTF-8
 ENV LC_ALL en_US.UTF-8
 ENV LC_CTYPE en_US.UTF-8
+
 RUN locale-gen en_US.UTF-8; dpkg-reconfigure locales
-RUN apt-get update; apt-get -y upgrade; apt-get clean
 
 # Install dependencies
 RUN apt-get -y install build-essential git-core curl wget jq sudo; apt-get clean
