@@ -14,7 +14,7 @@ RUN locale-gen en_US.UTF-8; dpkg-reconfigure locales
 
 # Build dependencies
 WORKDIR /tmp/docker-build
-RUN apt-get -y install build-essential git-core curl wget jq sudo; apt-get clean
+RUN apt-get -y install build-essential git-core curl wget jq sudo make gcc; apt-get clean
 
 # Golang + Test dependencies
 ENV GO_VERSION=1.9.1
@@ -36,6 +36,7 @@ RUN go get github.com/golang/lint/golint
 ENV GCLOUD_VERSION=157.0.0
 ENV GCLOUD_SHA1SUM=383522491db5feb9f03053f29aaf6a1cf778e070
 
+RUN apt-get -y install python-software-properties; apt-get clean
 RUN wget https://dl.google.com/dl/cloudsdk/channels/rapid/downloads/google-cloud-sdk-${GCLOUD_VERSION}-linux-x86_64.tar.gz \
     -O gcloud_${GCLOUD_VERSION}_linux_amd64.tar.gz && \
     echo "${GCLOUD_SHA1SUM}  gcloud_${GCLOUD_VERSION}_linux_amd64.tar.gz" > gcloud_${GCLOUD_VERSION}_SHA1SUM && \
