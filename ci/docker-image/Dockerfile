@@ -1,5 +1,5 @@
 FROM ubuntu:16.04
-MAINTAINER Evan Brown <evanbrown@google.com>
+MAINTAINER Jeff Johnson <jrjohnson@google.com>
 
 # Update base image
 ENV LANG en_US.UTF-8
