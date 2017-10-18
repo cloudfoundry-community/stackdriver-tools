@@ -72,7 +72,7 @@ func (n *Nozzle) Start(firehose cloudfoundry.Firehose) (errs chan error, firehos
 		n.Heartbeater.IncrementBy("nozzle.events.dropped", uint(missed))
 	})))
 
-	// Drain from the firehose
+	// Drain messages from the firehose
 	go func() {
 		for {
 			select {
@@ -80,9 +80,23 @@ func (n *Nozzle) Start(firehose cloudfoundry.Firehose) (errs chan error, firehos
 				buffer.Set(diodes.GenericDataType(envelope))
 			case <-n.session.done:
 				return
+			}
+		}
+	}()
+
+	// Drain errors from the firehose
+	go func() {
+		for {
+			select {
 			case fhErr := <-fhErrInternal:
-				n.handleFirehoseError(fhErr)
-				firehoseErrs <- fhErr
+				if fhErr.Error() == "" {
+					n.Heartbeater.Increment("firehose.errors.empty")
+				} else {
+					n.handleFirehoseError(fhErr)
+					firehoseErrs <- fhErr
+				}
+			case <-n.session.done:
+				return
 			}
 		}
 	}()
