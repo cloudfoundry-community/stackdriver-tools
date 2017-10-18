@@ -19,12 +19,13 @@ package heartbeat
 import (
 	"errors"
 	"fmt"
+	"sync"
 	"time"
 
 	"github.com/cloudfoundry/lager"
 )
 
-var HeartbeaterStoppedErr = errors.New("attempted to increment counter without starting heartbeater")
+var HeartbeaterStoppedErr = errors.New("attempted to increment counter without starting heartbeater, further attempts will not be reported")
 
 type Heartbeater interface {
 	Start()
@@ -45,12 +46,13 @@ type increment struct {
 }
 
 type heartbeater struct {
-	logger   lager.Logger
-	trigger  <-chan time.Time
-	events   chan increment
-	done     chan struct{}
-	started  bool
-	handlers []Handler
+	logger              lager.Logger
+	trigger             <-chan time.Time
+	events              chan increment
+	done                chan struct{}
+	started             bool
+	handlers            []Handler
+	nonStarterErrorOnce sync.Once
 }
 
 func NewHeartbeater(logger lager.Logger, trigger <-chan time.Time, prefix string) Heartbeater {
@@ -131,10 +133,9 @@ func (h *heartbeater) IncrementBy(name string, count uint) {
 	if h.started {
 		h.events <- increment{name, count}
 	} else {
-		h.logger.Error(
-			"heartbeater",
-			HeartbeaterStoppedErr,
-		)
+		h.nonStarterErrorOnce.Do(func() {
+			h.logger.Error("heartbeater", HeartbeaterStoppedErr)
+		})
 	}
 }
 

@@ -139,12 +139,18 @@ var _ = Describe("Heartbeater", func() {
 			},
 		}))
 
+		// The error is reported
 		subject.Increment("foo")
 		Expect(logger.LastLog()).To(Equal(mocks.Log{
 			Level:  lager.ERROR,
 			Action: "heartbeater",
 			Err:    heartbeat.HeartbeaterStoppedErr,
 		}))
+
+		// The error is not repeated
+		logsCount := len(logger.Logs())
+		subject.Increment("foo")
+		Expect(logsCount).To(Equal(len(logger.Logs())))
 	})
 
 	It("can count multiple events", func() {
