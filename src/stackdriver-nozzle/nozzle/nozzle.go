@@ -66,10 +66,10 @@ func (n *Nozzle) Start(firehose cloudfoundry.Firehose) (errs chan error, firehos
 	messages, fhErrInternal := firehose.Connect()
 
 	buffer := diodes.NewPoller(diodes.NewOneToOne(bufferSize, diodes.AlertFunc(func(missed int) {
-		// TODO(jrjohnson): Introduce Heartbeater.Increment(event, count)
-		for i := 0; i < missed; i++ {
-			n.Heartbeater.Increment("nozzle.events.dropped")
+		if missed < 0 {
+			panic("negative missed value received")
 		}
+		n.Heartbeater.IncrementBy("nozzle.events.dropped", uint(missed))
 	})))
 
 	// Drain from the firehose

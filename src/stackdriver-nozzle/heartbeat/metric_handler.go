@@ -54,10 +54,10 @@ func (h *metricHandler) Name() string {
 	return "metricHandler"
 }
 
-func (h *metricHandler) Handle(event string) {
+func (h *metricHandler) Handle(event string, count uint) {
 	h.counterMu.Lock()
 	defer h.counterMu.Unlock()
-	h.counter[event]++
+	h.counter[event] += count
 	return
 }
 

@@ -42,10 +42,10 @@ func (h *loggerHandler) Name() string {
 	return "loggerHandler"
 }
 
-func (h *loggerHandler) Handle(event string) {
+func (h *loggerHandler) Handle(event string, count uint) {
 	h.counterMu.Lock()
 	defer h.counterMu.Unlock()
-	h.counter[event]++
+	h.counter[event] += count
 	return
 }
 

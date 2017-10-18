@@ -24,34 +24,42 @@ import (
 	"github.com/cloudfoundry/lager"
 )
 
+var HeartbeaterStoppedErr = errors.New("attempted to increment counter without starting heartbeater")
+
 type Heartbeater interface {
 	Start()
-	Increment(string)
+	Increment(name string)
+	IncrementBy(name string, count uint)
 	Stop()
 }
 
 type Handler interface {
-	Handle(string)
+	Handle(name string, count uint)
 	Flush() error
 	Name() string
+}
+
+type increment struct {
+	name  string
+	count uint
 }
 
 type heartbeater struct {
 	logger   lager.Logger
 	trigger  <-chan time.Time
-	counter  chan string
+	events   chan increment
 	done     chan struct{}
 	started  bool
 	handlers []Handler
 }
 
 func NewHeartbeater(logger lager.Logger, trigger <-chan time.Time, prefix string) Heartbeater {
-	counter := make(chan string)
+	counter := make(chan increment)
 	done := make(chan struct{})
 	loggerHandler := NewLoggerHandler(logger, prefix)
 	return &heartbeater{
 		trigger: trigger,
-		counter: counter,
+		events:  counter,
 		done:    done,
 		started: false,
 		logger:  logger,
@@ -62,12 +70,12 @@ func NewHeartbeater(logger lager.Logger, trigger <-chan time.Time, prefix string
 }
 
 func NewLoggerMetricHeartbeater(metricHandler Handler, logger lager.Logger, trigger <-chan time.Time, prefix string) Heartbeater {
-	counter := make(chan string)
+	counter := make(chan increment)
 	done := make(chan struct{})
 	loggerHandler := NewLoggerHandler(logger, prefix)
 	return &heartbeater{
 		trigger: trigger,
-		counter: counter,
+		events:  counter,
 		done:    done,
 		started: false,
 		logger:  logger,
@@ -95,9 +103,10 @@ func (h *heartbeater) Start() {
 						h.logger.Error("heartbeater", err, lager.Data{"handler": ha.Name()})
 					}
 				}
-			case name := <-h.counter:
+			case event := <-h.events:
 				for _, ha := range h.handlers {
-					ha.Handle(name)
+					ha.Handle(event.name, event.count)
+
 				}
 			case <-h.done:
 				h.logger.Info("heartbeater", lager.Data{"debug": fmt.Sprintf("Heartbeat polling done for %v handlers", len(h.handlers))})
@@ -115,12 +124,16 @@ func (h *heartbeater) Start() {
 }
 
 func (h *heartbeater) Increment(name string) {
+	h.IncrementBy(name, 1)
+}
+
+func (h *heartbeater) IncrementBy(name string, count uint) {
 	if h.started {
-		h.counter <- name
+		h.events <- increment{name, count}
 	} else {
 		h.logger.Error(
 			"heartbeater",
-			errors.New("attempted to increment counter without starting heartbeater"),
+			HeartbeaterStoppedErr,
 		)
 	}
 }

@@ -17,7 +17,6 @@
 package heartbeat_test
 
 import (
-	"errors"
 	"time"
 
 	"github.com/cloudfoundry-community/stackdriver-tools/src/stackdriver-nozzle/heartbeat"
@@ -144,11 +143,13 @@ var _ = Describe("Heartbeater", func() {
 		Expect(logger.LastLog()).To(Equal(mocks.Log{
 			Level:  lager.ERROR,
 			Action: "heartbeater",
-			Err:    errors.New("attempted to increment counter without starting heartbeater"),
+			Err:    heartbeat.HeartbeaterStoppedErr,
 		}))
 	})
 
 	It("can count multiple events", func() {
+		subject.IncrementBy("baz", 15)
+
 		for i := 0; i < 10; i++ {
 			subject.Increment("foo")
 		}
@@ -168,6 +169,7 @@ var _ = Describe("Heartbeater", func() {
 				{"counters": map[string]uint{
 					"foo": 10,
 					"bar": 5,
+					"baz": 15,
 				}},
 			},
 		}))
@@ -179,7 +181,7 @@ var _ = Describe("Heartbeater", func() {
 				return len(client.MetricReqs[len(client.MetricReqs)-1].TimeSeries)
 			}
 			return 0
-		}).Should(Equal(2))
+		}).Should(Equal(3))
 
 	})
 })

@@ -35,8 +35,12 @@ func (h *Heartbeater) Start() {
 }
 
 func (h *Heartbeater) Increment(name string) {
+	h.IncrementBy(name, 1)
+}
+
+func (h *Heartbeater) IncrementBy(name string, count uint) {
 	h.mutex.Lock()
-	h.counters[name] += 1
+	h.counters[name] += int(count)
 	h.mutex.Unlock()
 }
 
