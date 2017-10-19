@@ -93,7 +93,7 @@ jobs:
     gcp:
       project_id: ${project_id}
     credentials:
-      application_default_credentials: ${service_account_key_json}
+      application_default_credentials: '${service_account_key_json}'
     nozzle:
       debug: true
 
