@@ -21,23 +21,12 @@ check_param network
 check_param private_subnetwork
 
 # Google service account settings
-check_param cf_service_account
-check_param service_account_key_json
+check_param cf_service_account_json
 check_param ssh_bastion_name
 check_param ssh_user
 check_param ssh_key
 
 semver=`cat version-semver/number`
-
-echo "Creating google json key..."
-mkdir -p $HOME/.config/gcloud/
-echo "${service_account_key_json}" > $HOME/.config/gcloud/application_default_credentials.json
-
-echo "Configuring google account..."
-gcloud auth activate-service-account --key-file $HOME/.config/gcloud/application_default_credentials.json
-gcloud config set project ${project_id}
-gcloud config set compute/region ${google_region}
-gcloud config set compute/zone ${google_zone}
 
 echo "Configuring SSH"
 echo -e "${ssh_key}" > /tmp/${ssh_user}.key
@@ -91,9 +80,9 @@ jobs:
       skip_ssl: true
       newline_token: ∴
     gcp:
-      project_id: ${project_id}
+      project_id: ${cf_project_id}
     credentials:
-      application_default_credentials: '${service_account_key_json}'
+      application_default_credentials: '${cf_service_account_json}'
     nozzle:
       debug: true
 
@@ -107,7 +96,6 @@ compilation:
     root_disk_size_gb: 100
     root_disk_type: pd-ssd
     preemptible: true
-    service_account: ${cf_service_account}
 
 resource_pools:
   - name: common
@@ -120,7 +108,6 @@ resource_pools:
       machine_type: n1-standard-4
       root_disk_size_gb: 20
       root_disk_type: pd-standard
-      service_account: ${cf_service_account}
   - name: nozzle
     network: private
     stemcell:
@@ -131,7 +118,6 @@ resource_pools:
       machine_type: n1-standard-4
       root_disk_size_gb: 20
       root_disk_type: pd-standard
-      service_account: ${cf_service_account}
 
 networks:
   - name: private

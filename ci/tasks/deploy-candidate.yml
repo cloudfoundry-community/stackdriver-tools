@@ -22,22 +22,22 @@ params:
   cf_deployment_name:    replace-me
 
   # CF settings
-  vip_ip:          replace me
-  common_password: replace me
+  vip_ip:          replace-me
+  common_password: replace-me
 
   # Google network settings
-  google_region:      replace me
-  google_zone:        replace me
-  network:            replace me
-  public_subnetwork:  replace me
-  private_subnetwork: replace me
+  google_region:      replace-me
+  google_zone:        replace-me
+  network:            replace-me
+  public_subnetwork:  replace-me
+  private_subnetwork: replace-me
 
   # Google service account settings
-  project_id:               replace me
-  cf_service_account:       replace me
-  service_account_key_json: replace me
+  cf_project_id:           replace-me
+  cf_service_account_json: replace-me
+
 
   ## SSH
-  ssh_bastion_address: replace me
-  ssh_user:         replace me
-  ssh_key:          replace me
+  ssh_bastion_address: replace-me
+  ssh_user:         replace-me
+  ssh_key:          replace-me

@@ -30,10 +30,11 @@ public_subnetwork:  {{replace_me}}
 private_subnetwork: {{replace_me}}
 
 # Google service account settings
-project_id:              {{replace_me}}
-cf_service_account:      {{replace_me}}
-nozzle_user:             {{replace_me}}
-nozzle_password:         {{replace_me}}
+project_id:                  {{replace_me}}
+nozzle_user:                 {{replace_me}}
+nozzle_password:             {{replace_me}}
+cf_project_id:               {{replace_me}}
+cf_service_account_json:     {{replace_me}}
 
 # Slack
 slack-hook: {{slack webhook to post to our channel}} # see https://api.slack.com/incoming-webhooks

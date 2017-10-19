@@ -108,12 +108,13 @@ jobs:
             network: {{network}}
             public_subnetwork: {{public_subnetwork}}
             private_subnetwork: {{private_subnetwork}}
-            project_id: {{project_id}}
+            cf_project_id: {{cf_project_id}}
             cf_service_account: {{cf_service_account}}
             nozzle_user: {{nozzle_user}}
             nozzle_password: {{nozzle_password}}
             vip_ip: {{vip_ip}}
             service_account_key_json: {{service_account_key_json}}
+            cf_service_account_json: {{cf_service_account_json}}
 
   - name: promote-candidate 
     plan:
