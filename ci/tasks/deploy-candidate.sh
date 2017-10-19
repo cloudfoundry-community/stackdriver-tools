@@ -90,6 +90,10 @@ jobs:
       password: ${nozzle_password}
       skip_ssl: true
       newline_token: ∴
+    gcp:
+      project_id: ${project_id}
+    credentials:
+      application_default_credentials: ${service_account_key_json}
     nozzle:
       debug: true
 
