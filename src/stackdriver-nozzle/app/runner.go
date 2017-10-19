@@ -38,13 +38,14 @@ func Run(ctx context.Context, a *App) {
 
 	errs, fhErrs := consumer.Start(producer)
 	go func() {
-		for {
-			select {
-			case err := <-errs:
-				a.logger.Error("nozzle", err)
-			case err := <-fhErrs:
-				a.logger.Error("firehose", err)
-			}
+		for err := range errs {
+			a.logger.Error("nozzle", err)
+		}
+
+	}()
+	go func() {
+		for err := range fhErrs {
+			a.logger.Error("firehose", err)
 		}
 	}()
 
