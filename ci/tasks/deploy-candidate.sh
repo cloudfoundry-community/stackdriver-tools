@@ -22,7 +22,6 @@ check_param private_subnetwork
 
 # Google service account settings
 check_param cf_service_account_json
-check_param ssh_bastion_name
 check_param ssh_user
 check_param ssh_key
 
