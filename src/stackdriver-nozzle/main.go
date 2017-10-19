@@ -13,6 +13,7 @@ import (
 func main() {
 	logger := lager.NewLogger("stackdriver-nozzle")
 	logger.RegisterSink(lager.NewWriterSink(os.Stdout, lager.DEBUG))
+	logger.RegisterSink(lager.NewWriterSink(os.Stderr, lager.ERROR))
 
 	cfg, err := config.NewConfig()
 	if err != nil {

@@ -69,10 +69,10 @@ func (n *Nozzle) Start(firehose cloudfoundry.Firehose) (errs chan error, firehos
 		if missed < 0 {
 			panic("negative missed value received")
 		}
-		n.Heartbeater.IncrementBy("nozzle.events.dropped", uint(missed))
+		go n.Heartbeater.IncrementBy("nozzle.events.dropped", uint(missed))
 	})))
 
-	// Drain from the firehose
+	// Drain messages from the firehose
 	go func() {
 		for {
 			select {
@@ -80,10 +80,21 @@ func (n *Nozzle) Start(firehose cloudfoundry.Firehose) (errs chan error, firehos
 				buffer.Set(diodes.GenericDataType(envelope))
 			case <-n.session.done:
 				return
-			case fhErr := <-fhErrInternal:
-				n.handleFirehoseError(fhErr)
-				firehoseErrs <- fhErr
 			}
+		}
+	}()
+
+	// Drain errors from the firehose
+	go func() {
+		for err := range fhErrInternal {
+			if err == nil {
+				// Ignore empty errors. Customers observe a flooding of empty errors from firehose.
+				go n.Heartbeater.Increment("firehose.errors.empty")
+				continue
+			}
+
+			go n.handleFirehoseError(err)
+			firehoseErrs <- err
 		}
 	}()
 

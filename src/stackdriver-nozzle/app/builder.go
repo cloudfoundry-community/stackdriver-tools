@@ -44,7 +44,7 @@ func New(c *config.Config, logger lager.Logger) *App {
 	adapterHeartbeater.Start()
 	metricAdapter, err := stackdriver.NewMetricAdapter(c.ProjectID, metricClient, adapterHeartbeater)
 	if err != nil {
-		logger.Error("metricAdapter", err)
+		logger.Fatal("metricAdapter", err)
 	}
 
 	// Create a heartbeater that will write heartbeat events to Stackdriver
@@ -61,7 +61,7 @@ func New(c *config.Config, logger lager.Logger) *App {
 		SkipSslValidation: c.SkipSSL}
 	cfClient, err := cfclient.NewClient(cfConfig)
 	if err != nil {
-		logger.Error("cfClient", err)
+		logger.Fatal("cfClient", err)
 	}
 
 	var appInfoRepository cloudfoundry.AppInfoRepository
@@ -146,7 +146,7 @@ func (a *App) newMetricAdapter() stackdriver.MetricAdapter {
 
 	metricAdapter, err := stackdriver.NewMetricAdapter(a.c.ProjectID, metricClient, a.heartbeater)
 	if err != nil {
-		a.logger.Error("metricAdapter", err)
+		a.logger.Fatal("metricAdapter", err)
 	}
 
 	return metricAdapter
