@@ -28,12 +28,11 @@ jobs:
 
       - task: make-semver-public
         file: stackdriver-tools/ci/tasks/public-semver.yml
-        config:
-          params:
-            project_id: {{project_id}}
-            service_account_key_json: {{service_account_key_json}}
-            bucket_name: {{bucket_name}}
-            semver_key: beta/stackdriver-tools/current-version
+        params:
+          project_id: {{project_id}}
+          service_account_key_json: {{service_account_key_json}}
+          bucket_name: {{bucket_name}}
+          semver_key: beta/stackdriver-tools/current-version
 
       - task: build-release
         file: stackdriver-tools/ci/tasks/build-candidate.yml
@@ -71,24 +70,23 @@ jobs:
                 username: Build pipeline
                 channel: "#lambr-private"
                 text: "deploy-candidate failed"
-        config:
-          params:
-            ssh_bastion_address: {{ssh_bastion_address}}
-            ssh_user: {{ssh_user}}
-            ssh_key: {{ssh_key}}
-            bosh_director_address: {{bosh_director_address}}
-            bosh_user: {{bosh_user}}
-            bosh_password: {{bosh_password}}
-            google_region: {{google_region}}
-            google_zone: {{google_zone}}
-            network: {{network}}
-            public_subnetwork: {{public_subnetwork}}
-            private_subnetwork: {{private_subnetwork}}
-            cf_project_id: {{cf_project_id}}
-            nozzle_user: {{nozzle_user}}
-            nozzle_password: {{nozzle_password}}
-            vip_ip: {{vip_ip}}
-            cf_service_account_json: {{cf_service_account_json}}
+        params:
+          ssh_bastion_address: {{ssh_bastion_address}}
+          ssh_user: {{ssh_user}}
+          ssh_key: {{ssh_key}}
+          bosh_director_address: {{bosh_director_address}}
+          bosh_user: {{bosh_user}}
+          bosh_password: {{bosh_password}}
+          google_region: {{google_region}}
+          google_zone: {{google_zone}}
+          network: {{network}}
+          public_subnetwork: {{public_subnetwork}}
+          private_subnetwork: {{private_subnetwork}}
+          cf_project_id: {{cf_project_id}}
+          nozzle_user: {{nozzle_user}}
+          nozzle_password: {{nozzle_password}}
+          vip_ip: {{vip_ip}}
+          cf_service_account_json: {{cf_service_account_json}}
 
   - name: build-tile
     plan:
