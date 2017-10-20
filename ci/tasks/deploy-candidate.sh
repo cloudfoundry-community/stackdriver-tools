@@ -58,7 +58,7 @@ releases:
 
 jobs:
 - name: stackdriver-nozzle
-  instances: 1
+  instances: 3
   networks:
     - name: private
   resource_pool: common
