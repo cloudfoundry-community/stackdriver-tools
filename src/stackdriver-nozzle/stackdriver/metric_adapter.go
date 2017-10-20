@@ -25,7 +25,6 @@ import (
 
 	"github.com/cloudfoundry-community/stackdriver-tools/src/stackdriver-nozzle/messages"
 	"github.com/golang/protobuf/ptypes/timestamp"
-	"github.com/pkg/errors"
 	labelpb "google.golang.org/genproto/googleapis/api/label"
 	metricpb "google.golang.org/genproto/googleapis/api/metric"
 	monitoringpb "google.golang.org/genproto/googleapis/monitoring/v3"
@@ -38,6 +37,7 @@ type MetricAdapter interface {
 type Heartbeater interface {
 	Start()
 	Increment(string)
+	IncrementBy(string, uint)
 	Stop()
 }
 
@@ -47,6 +47,43 @@ type metricAdapter struct {
 	descriptors           map[string]struct{}
 	createDescriptorMutex *sync.Mutex
 	heartbeater           Heartbeater
+}
+
+type postMetricErr struct {
+	metricDescriptor []error
+	postErr          error
+}
+
+func (pme *postMetricErr) GetError() error {
+	if pme == nil || pme.postErr == nil && len(pme.metricDescriptor) == 0 {
+		return nil
+	}
+
+	return fmt.Errorf("PostMetricEvents, PostErr: %v, MetricDescriptor: %v", pme.postErr, pme.metricDescriptor)
+}
+
+func (pme *postMetricErr) RecordTelemetry(heartbeater Heartbeater, request *monitoringpb.CreateTimeSeriesRequest) {
+	if pme == nil || pme.postErr == nil && len(pme.metricDescriptor) == 0 {
+		return
+	}
+
+	if pme.postErr != nil {
+		heartbeater.Increment("metrics.post.errors")
+
+		// This is an expected error once there is more than a single nozzle writing to Stackdriver.
+		// If one nozzle writes a metric occuring at time T2 and this one tries to write at T1 (where T2 later than T1)
+		// we will receive this error.
+		if strings.Contains(pme.postErr.Error(), `Points must be written in order`) {
+			heartbeater.Increment("metrics.post.errors.out_of_order")
+		} else {
+			heartbeater.Increment("metrics.post.errors.unknown")
+		}
+	}
+
+	metricDescriptorErrs := len(pme.metricDescriptor)
+	if metricDescriptorErrs > 0 {
+		heartbeater.IncrementBy("metrics.metric_descriptor.errors", uint(metricDescriptorErrs))
+	}
 }
 
 // NewMetricAdapter returns a MetricAdapater that can write to Stackdriver Monitoring
@@ -63,21 +100,23 @@ func NewMetricAdapter(projectID string, client MetricClient, heartbeater Heartbe
 	return ma, err
 }
 
-func (ma *metricAdapter) PostMetricEvents(events []*messages.MetricEvent) (err error) {
+func (ma *metricAdapter) PostMetricEvents(events []*messages.MetricEvent) error {
+	var timeSerieses []*monitoringpb.TimeSeries
+
+	compositeErr := postMetricErr{}
+
 	for _, event := range events {
 		if len(event.Metrics) == 0 {
-			return nil
+			continue
 		}
 
-		projectName := path.Join("projects", ma.projectID)
-		var timeSerieses []*monitoringpb.TimeSeries
 		ma.heartbeater.Increment("metrics.events.count")
-
 		for _, metric := range event.Metrics {
-			ma.heartbeater.Increment("metrics.count")
+			ma.heartbeater.Increment("metrics.timeseries.count")
 			err := ma.ensureMetricDescriptor(metric, event.Labels)
 			if err != nil {
-				return err
+				compositeErr.metricDescriptor = append(compositeErr.metricDescriptor, err)
+				continue
 			}
 
 			metricType := path.Join("custom.googleapis.com", metric.Name)
@@ -90,29 +129,19 @@ func (ma *metricAdapter) PostMetricEvents(events []*messages.MetricEvent) (err e
 			}
 			timeSerieses = append(timeSerieses, &timeSeries)
 		}
-
-		request := &monitoringpb.CreateTimeSeriesRequest{
-			Name:       projectName,
-			TimeSeries: timeSerieses,
-		}
-
-		ma.heartbeater.Increment("metrics.requests")
-		err = ma.client.Post(request)
-		if err != nil {
-			ma.heartbeater.Increment("metrics.errors")
-
-			// This is an expected error once there is more than a single nozzle writing to Stackdriver.
-			// If one nozzle writes a metric occuring at time T2 and this one tries to write at T1 (where T2 later than T1)
-			// we will receive this error.
-			if strings.Contains(err.Error(), `Points must be written in order`) {
-				ma.heartbeater.Increment("metrics.errors.out_of_order")
-			} else {
-				ma.heartbeater.Increment("metrics.errors.unknown")
-				err = errors.Wrapf(err, "Request: %+v", request)
-			}
-		}
 	}
-	return
+
+	projectName := path.Join("projects", ma.projectID)
+	request := &monitoringpb.CreateTimeSeriesRequest{
+		Name:       projectName,
+		TimeSeries: timeSerieses,
+	}
+
+	ma.heartbeater.Increment("metrics.requests")
+	compositeErr.postErr = ma.client.Post(request)
+	compositeErr.RecordTelemetry(ma.heartbeater, request)
+
+	return compositeErr.GetError()
 }
 
 func (ma *metricAdapter) CreateMetricDescriptor(metric *messages.Metric, labels map[string]string) error {
