@@ -10,9 +10,9 @@ check_param bosh_user
 check_param bosh_password
 
 # CF settings
-check_param vip_ip
-check_param nozzle_user
-check_param nozzle_password
+check_param cf_api_url
+check_param firehose_username
+check_param firehose_password
 
 # Google network settings
 check_param google_zone
@@ -71,11 +71,11 @@ jobs:
       release: stackdriver-tools
   properties:
     firehose:
-      endpoint: https://api.${vip_ip}.xip.io
+      endpoint: ${cf_api_url}
       events_to_stackdriver_logging: LogMessage,Error,HttpStartStop,CounterEvent,ValueMetric,ContainerMetric
       events_to_stackdriver_monitoring: CounterEvent,ValueMetric,ContainerMetric
-      username: ${nozzle_user}
-      password: ${nozzle_password}
+      username: ${firehose_username}
+      password: ${firehose_password}
       skip_ssl: true
       newline_token: ∴
     gcp:

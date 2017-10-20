@@ -83,9 +83,9 @@ jobs:
           public_subnetwork: {{public_subnetwork}}
           private_subnetwork: {{private_subnetwork}}
           cf_project_id: {{cf_project_id}}
-          nozzle_user: {{nozzle_user}}
-          nozzle_password: {{nozzle_password}}
-          vip_ip: {{vip_ip}}
+          firehose_username: {{firehose_username}}
+          firehose_password: {{firehose_password}}
+          cf_api_url: {{cf_api_url}}
           cf_service_account_json: {{cf_service_account_json}}
 
   - name: build-tile

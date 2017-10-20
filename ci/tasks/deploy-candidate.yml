@@ -22,8 +22,9 @@ params:
   cf_deployment_name:    replace-me
 
   # CF settings
-  vip_ip:          replace-me
-  common_password: replace-me
+  cf_api_url:      replace-me
+  nozzle_user:     replace-me
+  nozzle_password: replace-me
 
   # Google network settings
   google_region:      replace-me
