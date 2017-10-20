@@ -20,7 +20,7 @@ pushd stackdriver-tools
 popd
 
 image_path=stackdriver-tools/dev_releases/${release_name}/${release_name}-${semver}.tgz
-echo -n $(sha1sum $image_path | awk '{print $1}') > $image_path.sha1
+echo -n $(sha256sum $image_path | awk '{print $1}') > $image_path.sha256
 
 mv ${image_path} candidate/
-mv ${image_path}.sha1 candidate/
+mv ${image_path}.sha256 candidate/

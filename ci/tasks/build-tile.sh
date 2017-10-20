@@ -2,7 +2,6 @@
 set -e
 source stackdriver-tools/ci/tasks/utils.sh
 
-check_param "image_directory"
 check_param "tile_name"
 check_param "tile_label"
 
@@ -11,9 +10,7 @@ semver=`cat version-semver/number`
 tile_name="${tile_name:-stackdriver-nozzle}"
 tile_label="${tile_label:-'Stackdriver Nozzle'}"
 
-
-image_name=${release_name}-${semver}.tgz
-image_path="https://storage.googleapis.com/bosh-gcp/beta/${image_directory}/${image_name}"
+image_path="stackdriver-tools-artifacts/${release_name}-${semver}.tgz"
 output_path=candidate/stackdriver-nozzle-${semver}.pivotal
 
 # install dependencies
@@ -31,3 +28,4 @@ echo "${image_path}"
 
 echo "exposing tile"
 mv stackdriver-tools/product/*.pivotal ${output_path}
+echo -n $(sha256sum $output_path | awk '{print $1}') > $output_path.sha256

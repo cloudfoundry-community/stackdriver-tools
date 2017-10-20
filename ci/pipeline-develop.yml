@@ -49,16 +49,16 @@ jobs:
       - put: stackdriver-tools-artifacts
         params: {file: candidate/*.tgz}
 
-      - put: stackdriver-tools-artifacts-sha1
-        params: {file: candidate/*.tgz.sha1}
+      - put: stackdriver-tools-artifacts-sha256
+        params: {file: candidate/*.tgz.sha256}
 
   - name: deploy-candidate
     plan:
       - aggregate:
-        - {trigger: true,  passed: [build-candidate],  get: stackdriver-tools,                resource: stackdriver-tools-in}
-        - {trigger: true,  passed: [build-candidate],  get: stackdriver-tools-artifacts,      resource: stackdriver-tools-artifacts}
-        - {trigger: false, passed: [build-candidate],  get: stackdriver-tools-artifacts-sha1, resource: stackdriver-tools-artifacts-sha1}
-        - {trigger: false,                             get: version-semver,                   resource: version-semver}
+        - {trigger: true,  passed: [build-candidate],  get: stackdriver-tools,                  resource: stackdriver-tools-in}
+        - {trigger: true,  passed: [build-candidate],  get: stackdriver-tools-artifacts,        resource: stackdriver-tools-artifacts}
+        - {trigger: false, passed: [build-candidate],  get: stackdriver-tools-artifacts-sha256, resource: stackdriver-tools-artifacts-sha256}
+        - {trigger: false,                             get: version-semver,                     resource: version-semver}
 
       - task: deploy-candidate
         file: stackdriver-tools/ci/tasks/deploy-candidate.yml
@@ -73,7 +73,7 @@ jobs:
                 text: "deploy-candidate failed"
         config:
           params:
-            ssh_bastion_address     : {{ssh_bastion_address}}
+            ssh_bastion_address: {{ssh_bastion_address}}
             ssh_user: {{ssh_user}}
             ssh_key: {{ssh_key}}
             bosh_director_address: {{bosh_director_address}}
@@ -94,12 +94,12 @@ jobs:
     plan:
       - aggregate:
         - {trigger: true,  passed: [build-candidate],   get: stackdriver-tools,                resource: stackdriver-tools-in}
+        - {trigger: true,  passed: [build-candidate],   get: stackdriver-tools-artifacts,      resource: stackdriver-tools-artifacts}
         - {trigger: false,                              get: version-semver,                   resource: version-semver}
 
       - task: build-tile
         file: stackdriver-tools/ci/tasks/build-tile.yml
         params:
-          image_directory: develop-stackdriver-tools
           tile_name: stackdriver-nozzle-develop
           tile_label: Stackdriver Nozzle (develop)
         on_failure:
@@ -114,6 +114,8 @@ jobs:
       - put: stackdriver-nozzle-tile
         params: {file: candidate/*.pivotal}
 
+      - put: stackdriver-nozzle-tile-sha256
+        params: {file: candidate/*.tgz.sha256}
 
 resources:
   - name: stackdriver-tools-in
@@ -132,12 +134,12 @@ resources:
       bucket:   {{bucket_name}}
       regexp:   beta/develop-stackdriver-tools/stackdriver-tools([0-9]+\.[0-9]+\.[0-9]+)\.tgz
 
-  - name: stackdriver-tools-artifacts-sha1
+  - name: stackdriver-tools-artifacts-sha256
     type: gcs-resource
     source:
       json_key: {{service_account_key_json}}
       bucket:   {{bucket_name}}
-      regexp:   beta/develop-stackdriver-tools/stackdriver-tools([0-9]+\.[0-9]+\.[0-9]+)\.tgz.sha1
+      regexp:   beta/develop-stackdriver-tools/stackdriver-tools([0-9]+\.[0-9]+\.[0-9]+)\.tgz.sha256
 
   - name: stackdriver-nozzle-tile
     type: gcs-resource
@@ -145,6 +147,13 @@ resources:
       json_key: {{service_account_key_json}}
       bucket:   {{bucket_name}}
       regexp:   beta/develop-stackdriver-tools/stackdriver-nozzle-tile([0-9]+\.[0-9]+\.[0-9]+)\.pivotal
+
+  - name: stackdriver-nozzle-tile-sha256
+    type: gcs-resource
+    source:
+      json_key: {{service_account_key_json}}
+      bucket:   {{bucket_name}}
+      regexp:   beta/develop-stackdriver-tools/stackdriver-nozzle-tile([0-9]+\.[0-9]+\.[0-9]+)\.pivotal.sha256
 
   - name: version-semver
     type: semver
