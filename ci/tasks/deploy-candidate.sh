@@ -148,6 +148,6 @@ EOF
 bosh deployment ${nozzle_manifest_name}
 bosh -n deploy
 
-# Move release and its SHA1
+# Move release and its SHA256
 mv stackdriver-tools-artifacts/*.tgz candidate/latest.tgz
-mv stackdriver-tools-artifacts-sha1/*.tgz.sha1 candidate/latest.tgz.sha1
+mv stackdriver-tools-artifacts-sha256/*.tgz.sha256 candidate/latest.tgz.sha256

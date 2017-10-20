@@ -6,11 +6,11 @@ image_resource:
     repository: cfplatformeng/tile-generator 
 inputs:
   - name: stackdriver-tools
+  - name: stackdriver-tools-artifacts
   - name: version-semver
 outputs:
   - name: candidate
 params:
-  image_directory: replace-me
   tile_name: replace-me
   tile_label: replace-me
 

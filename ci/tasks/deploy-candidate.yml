@@ -7,7 +7,7 @@ image_resource:
 inputs:
   - name: stackdriver-tools
   - name: stackdriver-tools-artifacts
-  - name: stackdriver-tools-artifacts-sha1
+  - name: stackdriver-tools-artifacts-sha256
   - name: version-semver
 outputs:
   - name: candidate
