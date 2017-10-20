@@ -10,7 +10,7 @@ semver=`cat version-semver/number`
 tile_name="${tile_name:-stackdriver-nozzle}"
 tile_label="${tile_label:-'Stackdriver Nozzle'}"
 
-image_path="stackdriver-tools-artifacts/${release_name}-${semver}.tgz"
+image_path="$PWD/stackdriver-tools-artifacts/${release_name}-${semver}.tgz"
 output_path=candidate/stackdriver-nozzle-${semver}.pivotal
 
 # install dependencies
@@ -20,6 +20,9 @@ apk add ruby
 pushd "stackdriver-tools"
 	echo "Creating tile.yml"
 	RELEASE_PATH="${image_path}" TILE_NAME="${tile_name}" TILE_LABEL="${tile_label}" erb tile.yml.erb > tile.yml
+	echo "========================================================================"
+	cat tile.yml
+	echo "========================================================================"
 	echo "building tile"
 	tile build ${semver}
 popd
