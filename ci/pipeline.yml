@@ -77,7 +77,7 @@ jobs:
         params: {file: candidate/*.pivotal}
 
       - put: stackdriver-nozzle-tile-sha256
-        params: {file: candidate/*.tgz.sha256}
+        params: {file: candidate/*.pivotal.sha256}
 
   - name: deploy-candidate
     plan:
