@@ -235,7 +235,7 @@ var _ = Describe("MetricAdapter", func() {
 			return errors.New("GRPC Stuff. Points must be written in order. Other stuff")
 		}
 
-		Expect(subject.PostMetricEvents(metricEvents)).NotTo(Succeed())
+		Expect(subject.PostMetricEvents(metricEvents)).To(Succeed())
 		Expect(heartbeater.GetCount("metrics.post.errors")).To(Equal(1))
 		Expect(heartbeater.GetCount("metrics.post.errors.out_of_order")).To(Equal(1))
 		Expect(heartbeater.GetCount("metrics.post.errors.unknown")).To(Equal(0))
