@@ -235,7 +235,7 @@ var _ = Describe("MetricAdapter", func() {
 			return errors.New("GRPC Stuff. Points must be written in order. Other stuff")
 		}
 
-		subject.PostMetricEvents(metricEvents)
+		Expect(subject.PostMetricEvents(metricEvents)).NotTo(Succeed())
 		Expect(heartbeater.GetCount("metrics.post.errors")).To(Equal(1))
 		Expect(heartbeater.GetCount("metrics.post.errors.out_of_order")).To(Equal(1))
 		Expect(heartbeater.GetCount("metrics.post.errors.unknown")).To(Equal(0))
@@ -247,7 +247,7 @@ var _ = Describe("MetricAdapter", func() {
 		client.PostFn = func(req *monitoringpb.CreateTimeSeriesRequest) error {
 			return errors.New("tragedy strikes")
 		}
-		subject.PostMetricEvents(metricEvents)
+		Expect(subject.PostMetricEvents(metricEvents)).NotTo(Succeed())
 		Expect(heartbeater.GetCount("metrics.post.errors")).To(Equal(1))
 		Expect(heartbeater.GetCount("metrics.post.errors.out_of_order")).To(Equal(0))
 		Expect(heartbeater.GetCount("metrics.post.errors.unknown")).To(Equal(1))
