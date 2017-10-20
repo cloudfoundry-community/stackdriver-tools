@@ -32,18 +32,23 @@ func NewRouter(metricAdapter stackdriver.MetricAdapter, metricEvents []events.En
 }
 
 func (r *router) PostMetricEvents(events []*messages.MetricEvent) error {
-	for _, event := range events {
-		if r.metricEvents[event.Type] {
-			r.metricAdapter.PostMetricEvents([]*messages.MetricEvent{event})
+	metricEvents := []*messages.MetricEvent{}
+	for i := range events {
+		if r.metricEvents[events[i].Type] {
+			metricEvents = append(metricEvents, events[i])
 		}
 
-		if r.logEvents[event.Type] {
+		if r.logEvents[events[i].Type] {
 			log := &messages.Log{
-				Labels:  event.Labels,
-				Payload: event,
+				Labels:  events[i].Labels,
+				Payload: events[i],
 			}
 			r.logAdapter.PostLog(log)
 		}
+	}
+
+	if len(metricEvents) > 0 {
+		r.metricAdapter.PostMetricEvents(metricEvents)
 	}
 
 	return nil

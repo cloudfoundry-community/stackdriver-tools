@@ -27,12 +27,15 @@ type MetricAdapter struct {
 
 	PostMetricEventsFn    func(metrics []*messages.MetricEvent) error
 	PostMetricEventsError error
+	PostMetricEventsCount int
 	PostedMetricEvents    []*messages.MetricEvent
 }
 
 func (m *MetricAdapter) PostMetricEvents(events []*messages.MetricEvent) error {
 	m.Lock()
 	defer m.Unlock()
+
+	m.PostMetricEventsCount += 1
 
 	if m.PostMetricEventsFn != nil {
 		return m.PostMetricEventsFn(events)

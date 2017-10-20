@@ -32,6 +32,7 @@ var _ = Describe("Router", func() {
 
 		Expect(err).NotTo(HaveOccurred())
 		Expect(metricAdapter.PostedMetricEvents).To(HaveLen(1))
+		Expect(metricAdapter.PostMetricEventsCount).To(Equal(1))
 		Expect(metricAdapter.PostedMetricEvents[0].Type).To(Equal(metricEvent))
 		Expect(logAdapter.PostedLogs).To(HaveLen(1))
 		Expect(logAdapter.PostedLogs[0].Payload.(*messages.MetricEvent).Type).To(Equal(logEvent))
@@ -50,6 +51,7 @@ var _ = Describe("Router", func() {
 
 		Expect(err).NotTo(HaveOccurred())
 		Expect(metricAdapter.PostedMetricEvents).To(HaveLen(2))
+		Expect(metricAdapter.PostMetricEventsCount).To(Equal(1))
 		Expect(metricAdapter.PostedMetricEvents[0].Type).To(Equal(metricEvent))
 		Expect(metricAdapter.PostedMetricEvents[1].Type).To(Equal(logEvent))
 		Expect(logAdapter.PostedLogs).To(HaveLen(2))
