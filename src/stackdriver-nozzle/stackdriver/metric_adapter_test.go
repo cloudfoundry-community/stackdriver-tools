@@ -217,15 +217,15 @@ var _ = Describe("MetricAdapter", func() {
 				},
 			}}}
 
-		subject.PostMetricEvents(metricEvents)
+		Expect(subject.PostMetricEvents(metricEvents)).To(Succeed())
 		Expect(heartbeater.GetCount("metrics.events.count")).To(Equal(2))
-		Expect(heartbeater.GetCount("metrics.count")).To(Equal(3))
-		Expect(heartbeater.GetCount("metrics.requests")).To(Equal(2))
+		Expect(heartbeater.GetCount("metrics.timeseries.count")).To(Equal(3))
+		Expect(heartbeater.GetCount("metrics.requests")).To(Equal(1))
 
-		subject.PostMetricEvents(metricEvents)
+		Expect(subject.PostMetricEvents(metricEvents)).To(Succeed())
 		Expect(heartbeater.GetCount("metrics.events.count")).To(Equal(4))
-		Expect(heartbeater.GetCount("metrics.count")).To(Equal(6))
-		Expect(heartbeater.GetCount("metrics.requests")).To(Equal(4))
+		Expect(heartbeater.GetCount("metrics.timeseries.count")).To(Equal(6))
+		Expect(heartbeater.GetCount("metrics.requests")).To(Equal(2))
 	})
 
 	It("measures out of order errors", func() {
@@ -235,10 +235,10 @@ var _ = Describe("MetricAdapter", func() {
 			return errors.New("GRPC Stuff. Points must be written in order. Other stuff")
 		}
 
-		subject.PostMetricEvents(metricEvents)
-		Expect(heartbeater.GetCount("metrics.errors")).To(Equal(1))
-		Expect(heartbeater.GetCount("metrics.errors.out_of_order")).To(Equal(1))
-		Expect(heartbeater.GetCount("metrics.errors.unknown")).To(Equal(0))
+		Expect(subject.PostMetricEvents(metricEvents)).To(Succeed())
+		Expect(heartbeater.GetCount("metrics.post.errors")).To(Equal(1))
+		Expect(heartbeater.GetCount("metrics.post.errors.out_of_order")).To(Equal(1))
+		Expect(heartbeater.GetCount("metrics.post.errors.unknown")).To(Equal(0))
 	})
 
 	It("measures unknown errors", func() {
@@ -247,9 +247,9 @@ var _ = Describe("MetricAdapter", func() {
 		client.PostFn = func(req *monitoringpb.CreateTimeSeriesRequest) error {
 			return errors.New("tragedy strikes")
 		}
-		subject.PostMetricEvents(metricEvents)
-		Expect(heartbeater.GetCount("metrics.errors")).To(Equal(1))
-		Expect(heartbeater.GetCount("metrics.errors.out_of_order")).To(Equal(0))
-		Expect(heartbeater.GetCount("metrics.errors.unknown")).To(Equal(1))
+		Expect(subject.PostMetricEvents(metricEvents)).NotTo(Succeed())
+		Expect(heartbeater.GetCount("metrics.post.errors")).To(Equal(1))
+		Expect(heartbeater.GetCount("metrics.post.errors.out_of_order")).To(Equal(0))
+		Expect(heartbeater.GetCount("metrics.post.errors.unknown")).To(Equal(1))
 	})
 })
