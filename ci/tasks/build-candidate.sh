@@ -18,7 +18,7 @@ pushd stackdriver-tools
   echo ${semver} > "src/stackdriver-nozzle/release"
 
   echo "Exposing blobstore credentials"
-  cat "config/private.yml" << EOF
+  cat > "config/private.yml" << EOF
 ---
 blobstore:
   options:
