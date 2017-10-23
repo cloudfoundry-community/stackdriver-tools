@@ -1,8 +1,9 @@
 ---
 # Google Cloud Storage
-bucket_access_key: {{bucket_access_key}} # GCS interop access key
-bucket_secret_key: {{bucket_secret_key}} # GCS interop secret key
-bucket_name:       {{bucket_name}} # GCS bucket for semver storage
+bucket_access_key:                          {{bucket_access_key}} # GCS interop access key
+bucket_secret_key:                          {{bucket_secret_key}} # GCS interop secret key
+bucket_name:                                {{bucket_name}} # GCS bucket for semver storage
+release_blobstore_service_account_key_json: {{replace_me}} # Service Account JSON key with access to the release blobstore
 
 # Google service account
 service_account: {{service_account}}
@@ -18,8 +19,9 @@ bosh_password:         {{bosh_password} # Bosh password
 cf_deployment_name:    {{cf_deployment_name}} # Name of CF deployment to update
 
 # CF settings
-vip_ip:          {{replace_me}}
-common_password: {{replace_me}}
+firehose_username:           {{replace_me}}
+firehose_password:           {{replace_me}}
+cf_api_url:                  {{replace_me}}
 
 # Google network settings
 google_region:      {{replace_me}}
@@ -30,8 +32,6 @@ private_subnetwork: {{replace_me}}
 
 # Google service account settings
 project_id:                  {{replace_me}}
-nozzle_user:                 {{replace_me}}
-nozzle_password:             {{replace_me}}
 cf_project_id:               {{replace_me}}
 cf_service_account_json:     {{replace_me}}
 

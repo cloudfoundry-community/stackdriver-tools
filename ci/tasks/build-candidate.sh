@@ -4,6 +4,8 @@ set -e
 
 source stackdriver-tools/ci/tasks/utils.sh
 
+check_param 'service_account_key_json'
+
 release_name="stackdriver-tools"
 semver=`cat version-semver/number`
 image_path=/tmp/${release_name}-${semver}.tgz
@@ -14,6 +16,15 @@ pushd stackdriver-tools
 
   echo "Exposing release semver to stackdriver-nozzle"
   echo ${semver} > "src/stackdriver-nozzle/release"
+
+  echo "Exposing blobstore credentials"
+  cat "config/private.yml" << EOF
+---
+blobstore:
+  options:
+    credentials_source: static
+    json_key: '${service_account_key_json}'
+EOF
 
   # Force create because we just created the file `src/stackdriver-nozzle/release`
   echo "Creating ${release_name} BOSH Release..."

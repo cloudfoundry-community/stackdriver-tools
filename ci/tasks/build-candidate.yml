@@ -11,3 +11,5 @@ outputs:
   - name: candidate
 run:
   path: stackdriver-tools/ci/tasks/build-candidate.sh
+params:
+  service_account_key_json: replace-me

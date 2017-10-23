@@ -36,6 +36,8 @@ jobs:
 
       - task: build-release
         file: stackdriver-tools/ci/tasks/build-candidate.yml
+        params:
+          service_account_key_json: {{release_blobstore_service_account_key_json}}
         on_failure:
           aggregate:
             - put: slack-alert
