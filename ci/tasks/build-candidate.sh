@@ -28,7 +28,7 @@ EOF
 
   # Force create because we just created the file `src/stackdriver-nozzle/release`
   echo "Creating ${release_name} BOSH Release..."
-  bosh2 create-release --name=${release_name} --version=${semver} --tarball=${image_path} --force
+  bosh2 create-release --name=${release_name} --version=${semver} --tarball=${image_path} --force --sha2
 popd
 
 echo -n $(sha256sum $image_path | awk '{print $1}') > $image_path.sha256
