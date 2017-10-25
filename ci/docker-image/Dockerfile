@@ -53,11 +53,21 @@ RUN apt-get -y install ruby2.3 ruby2.3-dev; apt-get clean
 RUN /bin/bash -l -c "gem install bundler bosh_cli --no-ri --no-rdoc"
 
 # Install BOSH2 CLI
-ENV BOSH2_VERSION=2.0.42
-ENV BOSH2_SHA1SUM=a97b085e45a989abfcd88de77770bb6db0c8a29e
 
-RUN curl -LO https://s3.amazonaws.com/bosh-cli-artifacts/bosh-cli-${BOSH2_VERSION}-linux-amd64 && \
-    echo "${BOSH2_SHA1SUM}  bosh-cli-${BOSH2_VERSION}-linux-amd64" > bosh-cli-${BOSH2_VERSION}-SHA1SUM && \
-    sha1sum -cw --status bosh-cli-${BOSH2_VERSION}-SHA1SUM && \
-    mv bosh-cli-${BOSH2_VERSION}-linux-amd64 /usr/local/bin/bosh2 && \
+# TODO(jrjohnson): Use this once bosh2 release with bosh-gscli v0.0.4
+#ENV BOSH2_VERSION=2.0.42
+#ENV BOSH2_SHA1SUM=a97b085e45a989abfcd88de77770bb6db0c8a29e
+#
+#RUN curl -LO https://s3.amazonaws.com/bosh-cli-artifacts/bosh-cli-${BOSH2_VERSION}-linux-amd64 && \
+#    echo "${BOSH2_SHA1SUM}  bosh-cli-${BOSH2_VERSION}-linux-amd64" > bosh-cli-${BOSH2_VERSION}-SHA1SUM && \
+#    sha1sum -cw --status bosh-cli-${BOSH2_VERSION}-SHA1SUM && \
+#    mv bosh-cli-${BOSH2_VERSION}-linux-amd64 /usr/local/bin/bosh2 && \
+#    chmod a+x /usr/local/bin/bosh2
+
+ENV BOSH2_DEV_SHA1SUM=6726b72cd71e27474c7d5f1ca9a85b1bfc6b10b7
+RUN curl -LO https://storage.googleapis.com/stackdriver-tools-blobs/bosh && \
+    echo "${BOSH2_SHA1SUM}  bosh" > bosh-SHA1SUM && \
+    sha1sum -cw --status bosh-SHA1SUM && \
+    mv bosh /usr/local/bin/bosh2 && \
     chmod a+x /usr/local/bin/bosh2
+
