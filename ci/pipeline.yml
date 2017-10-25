@@ -30,7 +30,6 @@ jobs:
         file: stackdriver-tools/ci/tasks/public-semver.yml
         params:
           project_id: {{project_id}}
-          service_account_key_json: {{service_account_key_json}}
           bucket_name: {{bucket_name}}
           semver_key: beta/stackdriver-tools/current-version
 
