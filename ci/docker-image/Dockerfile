@@ -64,7 +64,7 @@ RUN /bin/bash -l -c "gem install bundler bosh_cli --no-ri --no-rdoc"
 #    mv bosh-cli-${BOSH2_VERSION}-linux-amd64 /usr/local/bin/bosh2 && \
 #    chmod a+x /usr/local/bin/bosh2
 
-ENV BOSH2_DEV_SHA1SUM=96be45f046421c328c2ea99f47306151d4c84127
+ENV BOSH2_DEV_SHA1SUM=7fd9ca0db9f3b4f8d6768602e91fde5dee347129
 RUN curl -LO https://storage.googleapis.com/stackdriver-tools-blobs/bosh && \
     echo "${BOSH2_DEV_SHA1SUM}  bosh" > bosh-SHA1SUM && \
     sha1sum -cw --status bosh-SHA1SUM && \
