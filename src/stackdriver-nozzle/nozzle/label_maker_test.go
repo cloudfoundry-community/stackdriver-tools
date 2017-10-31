@@ -48,6 +48,7 @@ var _ = Describe("LabelMaker", func() {
 		ip := "192.168.1.1"
 		tags := map[string]string{
 			"foo": "bar",
+			"bar": "foo",
 		}
 
 		envelope = &events.Envelope{
@@ -61,13 +62,20 @@ var _ = Describe("LabelMaker", func() {
 			Tags:       tags,
 		}
 
-		labels := subject.Build(envelope)
+		metricLabels := subject.MetricLabels(envelope)
+		logLabels := subject.LogLabels(envelope)
 
-		Expect(labels).To(Equal(map[string]string{
-			"origin":    origin,
-			"eventType": eventType.String(),
+		Expect(metricLabels).To(Equal(map[string]string{
+			"job":   job,
+			"index": index,
+			"tags":  "bar=foo,foo=bar",
+		}))
+		Expect(logLabels).To(Equal(map[string]string{
 			"job":       job,
 			"index":     index,
+			"tags":      "bar=foo,foo=bar",
+			"origin":    origin,
+			"eventType": "HttpStartStop",
 		}))
 	})
 
@@ -92,13 +100,12 @@ var _ = Describe("LabelMaker", func() {
 			Tags:       tags,
 		}
 
-		labels := subject.Build(envelope)
+		labels := subject.MetricLabels(envelope)
 
 		Expect(labels).To(Equal(map[string]string{
-			"origin":    origin,
-			"eventType": eventType.String(),
-			"job":       job,
-			"index":     index,
+			"job":   job,
+			"index": index,
+			"tags":  "foo=bar",
 		}))
 	})
 
@@ -109,97 +116,6 @@ var _ = Describe("LabelMaker", func() {
 			high    = uint64(0x79d4c3b2020e67a5)
 			appId   = events.UUID{Low: &low, High: &high}
 		)
-
-		Context("application id", func() {
-			It("httpStartStop adds app id when present", func() {
-				eventType := events.Envelope_HttpStartStop
-
-				event := events.HttpStartStop{
-					ApplicationId: &appId,
-				}
-				envelope := &events.Envelope{
-					EventType:     &eventType,
-					HttpStartStop: &event,
-				}
-
-				labels := subject.Build(envelope)
-
-				Expect(labels["applicationId"]).To(Equal(appGuid))
-			})
-
-			It("LogMessage adds app id", func() {
-				eventType := events.Envelope_LogMessage
-
-				event := events.LogMessage{
-					AppId: &appGuid,
-				}
-				envelope := &events.Envelope{
-					EventType:  &eventType,
-					LogMessage: &event,
-				}
-
-				labels := subject.Build(envelope)
-
-				Expect(labels["applicationId"]).To(Equal(appGuid))
-			})
-
-			It("ValueMetric does not add app id", func() {
-				eventType := events.Envelope_ValueMetric
-
-				event := events.ValueMetric{}
-				envelope := &events.Envelope{
-					EventType:   &eventType,
-					ValueMetric: &event,
-				}
-
-				labels := subject.Build(envelope)
-				Expect(labels).NotTo(HaveKey("applicationId"))
-			})
-
-			It("CounterEvent does not add app id", func() {
-				eventType := events.Envelope_CounterEvent
-
-				event := events.CounterEvent{}
-				envelope := &events.Envelope{
-					EventType:    &eventType,
-					CounterEvent: &event,
-				}
-
-				labels := subject.Build(envelope)
-
-				Expect(labels).NotTo(HaveKey("applicationId"))
-			})
-
-			It("Error does not add app id", func() {
-				eventType := events.Envelope_Error
-
-				event := events.Error{}
-				envelope := &events.Envelope{
-					EventType: &eventType,
-					Error:     &event,
-				}
-
-				labels := subject.Build(envelope)
-
-				Expect(labels).NotTo(HaveKey("applicationId"))
-			})
-
-			It("ContainerMetric does add app id", func() {
-				eventType := events.Envelope_ContainerMetric
-
-				event := events.ContainerMetric{
-					ApplicationId: &appGuid,
-				}
-				envelope := &events.Envelope{
-					EventType:       &eventType,
-					ContainerMetric: &event,
-				}
-
-				labels := subject.Build(envelope)
-
-				Expect(labels["applicationId"]).To(Equal(appGuid))
-			})
-		})
 
 		Context("application metadata", func() {
 			var (
@@ -215,16 +131,18 @@ var _ = Describe("LabelMaker", func() {
 
 			Context("for a LogMessage", func() {
 				var (
-					eventType = events.Envelope_LogMessage
-					event     *events.LogMessage
-					envelope  *events.Envelope
-					spaceGuid = "2ab560c3-3f21-45e0-9452-d748ff3a15e9"
-					orgGuid   = "b494fb47-3c44-4a98-9a08-d839ec5c799b"
+					eventType    = events.Envelope_LogMessage
+					event        *events.LogMessage
+					envelope     *events.Envelope
+					spaceGuid    = "2ab560c3-3f21-45e0-9452-d748ff3a15e9"
+					orgGuid      = "b494fb47-3c44-4a98-9a08-d839ec5c799b"
+					instanceGuid = "301f96f1-97f8-42f8-aa98-6f13ea1f0b87"
 				)
 
 				BeforeEach(func() {
 					event = &events.LogMessage{
-						AppId: &appGuid,
+						AppId:          &appGuid,
+						SourceInstance: &instanceGuid,
 					}
 					envelope = &events.Envelope{
 						EventType:  &eventType,
@@ -243,23 +161,84 @@ var _ = Describe("LabelMaker", func() {
 
 					appInfoRepository.AppInfoMap[appGuid] = app
 
-					labels := subject.Build(envelope)
+					labels := subject.MetricLabels(envelope)
 
-					Expect(labels).To(HaveKeyWithValue("appName", app.AppName))
-					Expect(labels).To(HaveKeyWithValue("spaceName", app.SpaceName))
-					Expect(labels).To(HaveKeyWithValue("spaceGuid", app.SpaceGUID))
-					Expect(labels).To(HaveKeyWithValue("orgName", app.OrgName))
-					Expect(labels).To(HaveKeyWithValue("orgGuid", app.OrgGUID))
+					Expect(labels).To(HaveKeyWithValue("applicationPath",
+						"/MyOrg/MySpace/MyApp"))
+					Expect(labels).To(HaveKeyWithValue("instanceIndex",
+						instanceGuid))
 				})
 
 				It("doesn't add fields for an unresolved app", func() {
-					labels := subject.Build(envelope)
+					labels := subject.MetricLabels(envelope)
 
-					Expect(labels).NotTo(HaveKey("appName"))
-					Expect(labels).NotTo(HaveKey("spaceName"))
-					Expect(labels).NotTo(HaveKey("spaceGuid"))
-					Expect(labels).NotTo(HaveKey("orgName"))
-					Expect(labels).NotTo(HaveKey("orgGuid"))
+					Expect(labels).NotTo(HaveKey("applicationPath"))
+				})
+			})
+			Context("for an HttpStartStop", func() {
+				var (
+					eventType    = events.Envelope_HttpStartStop
+					event        *events.HttpStartStop
+					envelope     *events.Envelope
+					spaceGuid    = "2ab560c3-3f21-45e0-9452-d748ff3a15e9"
+					orgGuid      = "b494fb47-3c44-4a98-9a08-d839ec5c799b"
+					instanceIdx  = int32(1)
+					instanceGuid = "485a10c1-917f-4d89-a98f-dc539ba14dfd"
+				)
+
+				BeforeEach(func() {
+					event = &events.HttpStartStop{
+						ApplicationId: &appId,
+						InstanceIndex: &instanceIdx,
+						InstanceId:    &instanceGuid,
+					}
+					envelope = &events.Envelope{
+						EventType:     &eventType,
+						HttpStartStop: event,
+					}
+				})
+
+				It("adds fields for a resolved app", func() {
+					app := cloudfoundry.AppInfo{
+						AppName:   "MyApp",
+						SpaceName: "MySpace",
+						SpaceGUID: spaceGuid,
+						OrgName:   "MyOrg",
+						OrgGUID:   orgGuid,
+					}
+
+					appInfoRepository.AppInfoMap[appGuid] = app
+
+					labels := subject.MetricLabels(envelope)
+
+					Expect(labels).To(HaveKeyWithValue("applicationPath",
+						"/MyOrg/MySpace/MyApp"))
+					Expect(labels).To(HaveKeyWithValue("instanceIndex", "1"))
+				})
+
+				It("falls back to instance UUID", func() {
+					app := cloudfoundry.AppInfo{
+						AppName:   "MyApp",
+						SpaceName: "MySpace",
+						SpaceGUID: spaceGuid,
+						OrgName:   "MyOrg",
+						OrgGUID:   orgGuid,
+					}
+
+					appInfoRepository.AppInfoMap[appGuid] = app
+
+					envelope.HttpStartStop.InstanceIndex = nil
+					labels := subject.MetricLabels(envelope)
+
+					Expect(labels).To(HaveKeyWithValue("applicationPath",
+						"/MyOrg/MySpace/MyApp"))
+					Expect(labels).To(HaveKeyWithValue("instanceIndex", instanceGuid))
+				})
+
+				It("doesn't add fields for an unresolved app", func() {
+					labels := subject.MetricLabels(envelope)
+
+					Expect(labels).NotTo(HaveKey("applicationPath"))
 				})
 			})
 		})

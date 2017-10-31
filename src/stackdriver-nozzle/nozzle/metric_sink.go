@@ -41,7 +41,7 @@ type metricSink struct {
 }
 
 func (ms *metricSink) Receive(envelope *events.Envelope) error {
-	labels := ms.labelMaker.Build(envelope)
+	labels := ms.labelMaker.MetricLabels(envelope)
 
 	// Origin is a required field so this is fine.
 	originPrefix := envelope.GetOrigin() + "."

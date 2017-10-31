@@ -37,7 +37,7 @@ var _ = Describe("LogSink", func() {
 	)
 
 	BeforeEach(func() {
-		labels = map[string]string{"foo": "bar", "applicationId": "ab313b25-aa48-4a8f-8e7d-d63a6d410e7c"}
+		labels = map[string]string{"foo": "bar", "applicationPath": "/system/autoscaling/autoscale"}
 		labelMaker = &mocks.LabelMaker{Labels: labels}
 		logAdapter = &mocks.LogAdapter{}
 
@@ -128,7 +128,7 @@ var _ = Describe("LogSink", func() {
 				"requestId": "f47ac10b-58cc-4372-a567-0e02b2c3d479",
 			}))
 			Expect(payload).To(HaveKeyWithValue("serviceContext", map[string]interface{}{
-				"service": "ab313b25-aa48-4a8f-8e7d-d63a6d410e7c",
+				"service": "/system/autoscaling/autoscale",
 			}))
 		})
 
@@ -260,7 +260,7 @@ var _ = Describe("LogSink", func() {
 				},
 				"message": "19400: Success: Go",
 				"serviceContext": map[string]interface{}{
-					"service": "ab313b25-aa48-4a8f-8e7d-d63a6d410e7c",
+					"service": "/system/autoscaling/autoscale",
 				},
 			}))
 			Expect(postedLog.Severity).To(Equal(logging.Default))
