@@ -48,7 +48,7 @@ func (r *router) PostMetricEvents(events []*messages.MetricEvent) error {
 	}
 
 	if len(metricEvents) > 0 {
-		r.metricAdapter.PostMetricEvents(metricEvents)
+		return r.metricAdapter.PostMetricEvents(metricEvents)
 	}
 
 	return nil
