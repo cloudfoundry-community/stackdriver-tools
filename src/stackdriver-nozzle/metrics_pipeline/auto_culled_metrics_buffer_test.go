@@ -51,7 +51,7 @@ var _ = Describe("autoCulledMetricsBuffer", func() {
 		subject.PostMetricEvents([]*messages.MetricEvent{
 			{
 				Labels:  map[string]string{"Name": "a"},
-				Metrics: []*messages.Metric{{Name: "a", Value: 1}},
+				Metrics: []*messages.Metric{{Name: "a", Value: 1}, {Name: "b", Value: 0}},
 			},
 			{
 				Labels:  map[string]string{"Name": "a"},
