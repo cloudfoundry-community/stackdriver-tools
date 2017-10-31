@@ -27,7 +27,11 @@ func (m *MetricEvent) Hash() string {
 	var b bytes.Buffer
 
 	// Extract keys to a slice and sort it
-	keys := make([]string, len(m.Labels), len(m.Labels))
+	numKeys := len(m.Metrics) + len(m.Labels)
+	keys := make([]string, numKeys, numKeys)
+	for _, m := range m.Metrics {
+		keys = append(keys, m.Name)
+	}
 	for k, _ := range m.Labels {
 		keys = append(keys, k)
 	}
