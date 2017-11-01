@@ -57,19 +57,19 @@ type Config struct {
 	NewlineToken     string `envconfig:"firehose_newline_token"`
 
 	// Stackdriver config
-	ProjectID             string `envconfig:"gcp_project_id"`
-	MetricsBufferDuration int    `envconfig:"metrics_buffer_duration" default:"30"`
-	MetricsBufferSize     int    `envconfig:"metrics_buffer_size" default:"200"`
+	ProjectID            string `envconfig:"gcp_project_id"`
+	LoggingBatchCount    int    `envconfig:"logging_batch_count" default:"10"`
+	LoggingBatchDuration int    `envconfig:"logging_batch_duration" default:"1"`
 
 	// Nozzle config
-	HeartbeatRate      int    `envconfig:"heartbeat_rate" default:"30"`
-	BatchCount         int    `envconfig:"batch_count" default:"10"`
-	BatchDuration      int    `envconfig:"batch_duration" default:"1"`
-	ResolveAppMetadata bool   `envconfig:"resolve_app_metadata"`
-	NozzleId           string `envconfig:"nozzle_id" default:"local-nozzle"`
-	NozzleName         string `envconfig:"nozzle_name" default:"local-nozzle"`
-	NozzleZone         string `envconfig:"nozzle_zone" default:"local-nozzle"`
-	DebugNozzle        bool   `envconfig:"debug_nozzle"`
+	HeartbeatRate         int    `envconfig:"heartbeat_rate" default:"30"`
+	MetricsBufferDuration int    `envconfig:"metrics_buffer_duration" default:"30"`
+	MetricsBufferSize     int    `envconfig:"metrics_buffer_size" default:"200"`
+	ResolveAppMetadata    bool   `envconfig:"resolve_app_metadata"`
+	NozzleId              string `envconfig:"nozzle_id" default:"local-nozzle"`
+	NozzleName            string `envconfig:"nozzle_name" default:"local-nozzle"`
+	NozzleZone            string `envconfig:"nozzle_zone" default:"local-nozzle"`
+	DebugNozzle           bool   `envconfig:"debug_nozzle"`
 }
 
 func (c *Config) validate() error {
@@ -127,8 +127,8 @@ func (c *Config) ToData() lager.Data {
 		"EventsToStackdriverLogging":    c.LoggingEvents,
 		"SkipSSL":                       c.SkipSSL,
 		"ProjectID":                     c.ProjectID,
-		"BatchCount":                    c.BatchCount,
-		"BatchDuration":                 c.BatchDuration,
+		"LoggingBatchCount":             c.LoggingBatchCount,
+		"LoggingBatchDuration":          c.LoggingBatchDuration,
 		"HeartbeatRate":                 c.HeartbeatRate,
 		"ResolveAppMetadata":            c.ResolveAppMetadata,
 		"SubscriptionID":                c.SubscriptionID,

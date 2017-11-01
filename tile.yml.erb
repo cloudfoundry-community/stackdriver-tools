@@ -36,6 +36,9 @@ packages:
         application_default_credentials: (( .properties.service_account.value ))
       gcp:
         project_id: (( .properties.project_id.value ))
+      nozzle:
+        metrics_buffer_duration: (( .properties.metrics_buffer_duration.value ))
+        metrics_buffer_size: (( .properties.metrics_buffer_size.value ))
 
 
 forms:
@@ -79,3 +82,11 @@ forms:
     type: string
     label: Google Project ID
     description: Project id for project with logging and monitoring APIs enabled
+  - name: metrics_buffer_duration
+    type: integer
+    default: 30
+    description: Flush interval (in seconds) of the internal metric buffer
+  - name: metrics_buffer_size
+    type: integer
+    default: 200
+    description: Batch size for time series being sent to Stackdriver

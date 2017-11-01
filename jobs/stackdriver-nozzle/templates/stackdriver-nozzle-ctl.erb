@@ -32,6 +32,8 @@ case $1 in
 
     export DEBUG_NOZZLE=<%= p('nozzle.debug', 'false') %>
     export RESOLVE_APP_METADATA=<%= p('nozzle.resolve_app_metadata', 'true') %>
+    export METRICS_BUFFER_DURATION=<%= p('nozzle.metrics_buffer_duration', '30') %>
+    export METRICS_BUFFER_SIZE=<%= p('nozzle.metrics_buffer_size', '200') %>
 
     <% if_p('gcp.project_id') do |prop| %>
     export GCP_PROJECT_ID=<%= prop %>

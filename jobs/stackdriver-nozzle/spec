@@ -36,6 +36,14 @@ properties:
   credentials.application_default_credentials:
     description: Contents of application_default_credentials.json, see https://cloud.google.com/logging/docs/agent/authorization#configuring_client_id_authorization.
 
+  nozzle.metrics_buffer_duration:
+    description: Flush interval (in seconds) of the internal metric buffer
+    default: 30
+
+  nozzle.metrics_buffer_size:
+    description: Batch size for time series being sent to Stackdriver
+    default: 200
+
   nozzle.debug:
     description: Enable debug features for the stackdriver-nozzle for development or troubleshooting
     default: false
