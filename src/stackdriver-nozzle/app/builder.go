@@ -42,7 +42,7 @@ func New(c *config.Config, logger lager.Logger) *App {
 	trigger := time.NewTicker(time.Duration(c.HeartbeatRate) * time.Second).C
 	adapterHeartbeater := heartbeat.NewHeartbeater(logger, trigger, "heartbeater.telemetry.emitted")
 	adapterHeartbeater.Start()
-	metricAdapter, err := stackdriver.NewMetricAdapter(c.ProjectID, metricClient, adapterHeartbeater)
+	metricAdapter, err := stackdriver.NewMetricAdapter(c.ProjectID, metricClient, c.MetricsBufferSize, adapterHeartbeater)
 	if err != nil {
 		logger.Fatal("metricAdapter", err)
 	}
@@ -144,7 +144,7 @@ func (a *App) newMetricAdapter() stackdriver.MetricAdapter {
 		a.logger.Fatal("metricClient", err)
 	}
 
-	metricAdapter, err := stackdriver.NewMetricAdapter(a.c.ProjectID, metricClient, a.heartbeater)
+	metricAdapter, err := stackdriver.NewMetricAdapter(a.c.ProjectID, metricClient, a.c.MetricsBufferSize, a.heartbeater)
 	if err != nil {
 		a.logger.Fatal("metricAdapter", err)
 	}
@@ -153,7 +153,7 @@ func (a *App) newMetricAdapter() stackdriver.MetricAdapter {
 }
 
 func (a *App) newMetricSink(ctx context.Context, metricAdapter stackdriver.MetricAdapter) nozzle.Sink {
-	metricBuffer, errs := metrics_pipeline.NewAutoCulledMetricsBuffer(ctx, a.logger, time.Duration(a.c.MetricsBufferDuration)*time.Second, a.c.MetricsBufferSize, metricAdapter, a.heartbeater)
+	metricBuffer, errs := metrics_pipeline.NewAutoCulledMetricsBuffer(ctx, a.logger, time.Duration(a.c.MetricsBufferDuration)*time.Second, metricAdapter, a.heartbeater)
 	a.bufferEmpty = metricBuffer.IsEmpty
 	go func() {
 		for err := range errs {

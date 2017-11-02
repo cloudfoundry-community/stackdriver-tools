@@ -22,6 +22,10 @@ import (
 
 	"sync"
 
+	"fmt"
+
+	"strconv"
+
 	"github.com/cloudfoundry-community/stackdriver-tools/src/stackdriver-nozzle/messages"
 	"github.com/cloudfoundry-community/stackdriver-tools/src/stackdriver-nozzle/mocks"
 	"github.com/cloudfoundry-community/stackdriver-tools/src/stackdriver-nozzle/stackdriver"
@@ -31,6 +35,8 @@ import (
 	metricpb "google.golang.org/genproto/googleapis/api/metric"
 	monitoringpb "google.golang.org/genproto/googleapis/monitoring/v3"
 )
+
+const batchSize = 200
 
 var _ = Describe("MetricAdapter", func() {
 	var (
@@ -42,7 +48,7 @@ var _ = Describe("MetricAdapter", func() {
 	BeforeEach(func() {
 		client = &mocks.MockClient{}
 		heartbeater = mocks.NewHeartbeater()
-		subject, _ = stackdriver.NewMetricAdapter("my-awesome-project", client, heartbeater)
+		subject, _ = stackdriver.NewMetricAdapter("my-awesome-project", client, batchSize, heartbeater)
 	})
 
 	It("takes metrics and posts a time series", func() {
@@ -97,6 +103,43 @@ var _ = Describe("MetricAdapter", func() {
 		value, ok = point.GetValue().GetValue().(*monitoringpb.TypedValue_DoubleValue)
 		Expect(ok).To(BeTrue())
 		Expect(value.DoubleValue).To(Equal(54.321))
+	})
+
+	// TODO(jrjohnson): This should be a table test
+	It("posts in the correct batch size", func() {
+		postCount := 0
+		timeSeriesCount := 0
+		client.PostFn = func(req *monitoringpb.CreateTimeSeriesRequest) error {
+			postCount += 1
+			timeSeriesCount += len(req.TimeSeries)
+
+			if len(req.TimeSeries) > batchSize {
+				Fail(fmt.Sprintf("time series (%d) exceeds batch size (%d)", len(req.TimeSeries), batchSize))
+			}
+
+			return nil
+		}
+
+		metricGroupSizes := []int{199, 200, 201, 399, 400, 1999, 2000, 2001}
+		// Test various numbers of metrics being posted to the buffer
+		for _, groupSize := range metricGroupSizes {
+			events := []*messages.MetricEvent{}
+
+			for i := 0; i < groupSize; i++ {
+				events = append(events, &messages.MetricEvent{
+					Labels:  map[string]string{"Name": strconv.Itoa(i)},
+					Metrics: []*messages.Metric{{Value: 1}, {Value: 2}},
+				})
+			}
+
+			subject.PostMetricEvents(events)
+
+			Expect(postCount).To(BeNumerically("<", groupSize))
+			Expect(timeSeriesCount).To(Equal(groupSize * 2))
+
+			postCount = 0
+			timeSeriesCount = 0
+		}
 	})
 
 	It("creates metric descriptors", func() {
@@ -194,7 +237,7 @@ var _ = Describe("MetricAdapter", func() {
 	It("returns the adapter even if we fail to list the metric descriptors", func() {
 		expectedErr := errors.New("fail")
 		client.ListErr = expectedErr
-		subject, err := stackdriver.NewMetricAdapter("my-awesome-project", client, heartbeater)
+		subject, err := stackdriver.NewMetricAdapter("my-awesome-project", client, 1, heartbeater)
 		Expect(subject).To(Not(BeNil()))
 		Expect(err).To(Equal(expectedErr))
 	})
