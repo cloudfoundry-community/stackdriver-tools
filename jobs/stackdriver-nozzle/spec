@@ -40,7 +40,7 @@ properties:
     description: Flush interval (in seconds) of the internal metric buffer
     default: 30
 
-  nozzle.metrics_buffer_size:
+  nozzle.metrics_batch_size:
     description: Batch size for time series being sent to Stackdriver
     default: 200
 
