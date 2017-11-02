@@ -64,7 +64,7 @@ func (h *metricHandler) Handle(event string, count uint) {
 func (h *metricHandler) Flush() error {
 	counter := h.flushInternal()
 
-	metrics := []*messages.Metric{}
+	metrics := []*messages.DataPoint{}
 	t := time.Now()
 	labels := map[string]string{
 		"instance": h.nozzleName,
@@ -72,7 +72,7 @@ func (h *metricHandler) Flush() error {
 	}
 
 	for k, v := range counter {
-		metrics = append(metrics, &messages.Metric{
+		metrics = append(metrics, &messages.DataPoint{
 			Name:  "heartbeat." + k,
 			Value: float64(v),
 		})

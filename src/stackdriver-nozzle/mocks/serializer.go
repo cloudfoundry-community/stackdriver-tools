@@ -23,7 +23,7 @@ import (
 
 type MockSerializer struct {
 	GetLogFn     func(*events.Envelope) *messages.Log
-	GetMetricsFn func(*events.Envelope) ([]messages.Metric, error)
+	GetMetricsFn func(*events.Envelope) ([]messages.DataPoint, error)
 	IsLogFn      func(*events.Envelope) bool
 }
 
@@ -34,7 +34,7 @@ func (m *MockSerializer) GetLog(envelope *events.Envelope) *messages.Log {
 	return nil
 }
 
-func (m *MockSerializer) GetMetrics(envelope *events.Envelope) ([]messages.Metric, error) {
+func (m *MockSerializer) GetMetrics(envelope *events.Envelope) ([]messages.DataPoint, error) {
 	if m.GetMetricsFn != nil {
 		return m.GetMetricsFn(envelope)
 	}

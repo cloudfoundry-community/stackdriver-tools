@@ -179,7 +179,7 @@ func (ma *metricAdapter) buildTimeSeries(events []*messages.MetricEvent) ([]*mon
 	return timeSerieses, compositeErr
 }
 
-func (ma *metricAdapter) CreateMetricDescriptor(metric *messages.Metric, labels map[string]string) error {
+func (ma *metricAdapter) CreateMetricDescriptor(metric *messages.DataPoint, labels map[string]string) error {
 	projectName := path.Join("projects", ma.projectID)
 	metricType := path.Join("custom.googleapis.com", metric.Name)
 	metricName := path.Join(projectName, "metricDescriptors", metricType)
@@ -226,7 +226,7 @@ func (ma *metricAdapter) fetchMetricDescriptorNames() error {
 	return nil
 }
 
-func (ma *metricAdapter) ensureMetricDescriptor(metric *messages.Metric, labels map[string]string) error {
+func (ma *metricAdapter) ensureMetricDescriptor(metric *messages.DataPoint, labels map[string]string) error {
 	if metric.Unit == "" {
 		return nil
 	}

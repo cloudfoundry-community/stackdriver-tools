@@ -49,18 +49,18 @@ func (ms *metricSink) Receive(envelope *events.Envelope) error {
 		int64(timestamp%time.Second),
 	)
 
-	var metrics []*messages.Metric
+	var metrics []*messages.DataPoint
 	switch envelope.GetEventType() {
 	case events.Envelope_ValueMetric:
 		valueMetric := envelope.GetValueMetric()
-		metrics = []*messages.Metric{{
+		metrics = []*messages.DataPoint{{
 			Name:  valueMetric.GetName(),
 			Value: valueMetric.GetValue(),
 			Unit:  ms.unitParser.Parse(valueMetric.GetUnit()),
 		}}
 	case events.Envelope_ContainerMetric:
 		containerMetric := envelope.GetContainerMetric()
-		metrics = []*messages.Metric{
+		metrics = []*messages.DataPoint{
 			{Name: "diskBytesQuota", Value: float64(containerMetric.GetDiskBytesQuota())},
 			{Name: "instanceIndex", Value: float64(containerMetric.GetInstanceIndex())},
 			{Name: "cpuPercentage", Value: float64(containerMetric.GetCpuPercentage())},
@@ -70,7 +70,7 @@ func (ms *metricSink) Receive(envelope *events.Envelope) error {
 		}
 	case events.Envelope_CounterEvent:
 		counterEvent := envelope.GetCounterEvent()
-		metrics = []*messages.Metric{
+		metrics = []*messages.DataPoint{
 			{
 				Name:  fmt.Sprintf("%v.delta", counterEvent.GetName()),
 				Value: float64(counterEvent.GetDelta()),

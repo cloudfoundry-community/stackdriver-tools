@@ -41,7 +41,7 @@ type autoCulledMetricsBuffer struct {
 }
 
 // NewAutoCulledMetricsBuffer provides a MetricsBuffer that will cull like metrics over the defined frequency.
-// A like metric is defined as a metric with the same stackdriver.Metric.Hash()
+// A like metric is defined as a metric with the same messages.MetricEvent.Hash()
 func NewAutoCulledMetricsBuffer(ctx context.Context, logger lager.Logger, frequency time.Duration,
 	adapter stackdriver.MetricAdapter, heartbeater heartbeat.Heartbeater) (MetricsBuffer, <-chan error) {
 	errs := make(chan error)

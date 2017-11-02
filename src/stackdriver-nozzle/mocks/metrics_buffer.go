@@ -19,7 +19,7 @@ package mocks
 import "github.com/cloudfoundry-community/stackdriver-tools/src/stackdriver-nozzle/messages"
 
 type MetricsBuffer struct {
-	PostedMetrics      []messages.Metric
+	PostedMetrics      []messages.DataPoint
 	PostedMetricEvents []*messages.MetricEvent
 }
 

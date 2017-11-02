@@ -127,7 +127,7 @@ var _ = Describe("MetricSink", func() {
 		Expect(metrics).To(HaveLen(6))
 
 		eventName := func(element interface{}) string {
-			return element.(messages.Metric).Name
+			return element.(messages.DataPoint).Name
 		}
 
 		Expect(metrics).To(MatchAllElements(eventName, Elements{
@@ -166,7 +166,7 @@ var _ = Describe("MetricSink", func() {
 		metrics := metricBuffer.PostedMetrics
 
 		eventName := func(element interface{}) string {
-			return element.(messages.Metric).Name
+			return element.(messages.DataPoint).Name
 		}
 		Expect(metrics).To(MatchAllElements(eventName, Elements{
 			"counterName.delta": MatchAllFields(Fields{

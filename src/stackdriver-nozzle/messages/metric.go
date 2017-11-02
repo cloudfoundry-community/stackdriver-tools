@@ -8,17 +8,16 @@ import (
 	"github.com/cloudfoundry/sonde-go/events"
 )
 
-type Metric struct {
+type DataPoint struct {
 	Name  string
 	Value float64
 	Unit  string // TODO Should this be "1" if it's empty?
 }
 
-// MetricEvent represents the translation of an events.Envelope into a set
-// of Metrics
+// MetricEvent represents the translation of an events.Envelope into DataPoints
 type MetricEvent struct {
 	Labels  map[string]string `json:"-"`
-	Metrics []*Metric
+	Metrics []*DataPoint
 	Time    time.Time
 	Type    events.Envelope_EventType `json:"-"`
 }

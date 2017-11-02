@@ -62,12 +62,12 @@ var _ = Describe("Router", func() {
 	It("can translate Metric statements to Logs", func() {
 		logEvent := events.Envelope_ValueMetric
 		labels := map[string]string{"foo": "bar"}
-		metric := &messages.Metric{
+		metric := &messages.DataPoint{
 			Name:  "valueMetric",
 			Value: float64(123),
 			Unit:  "f",
 		}
-		metricEvent := &messages.MetricEvent{Type: logEvent, Labels: labels, Metrics: []*messages.Metric{metric}, Time: time.Now()}
+		metricEvent := &messages.MetricEvent{Type: logEvent, Labels: labels, Metrics: []*messages.DataPoint{metric}, Time: time.Now()}
 		router := NewRouter(nil, nil, logAdapter, []events.Envelope_EventType{logEvent})
 		router.PostMetricEvents([]*messages.MetricEvent{metricEvent})
 		Expect(logAdapter.PostedLogs).To(HaveLen(1))
@@ -75,7 +75,7 @@ var _ = Describe("Router", func() {
 		Expect(log.Labels).To(Equal(labels))
 		Expect(log.Payload).To(BeAssignableToTypeOf(&messages.MetricEvent{}))
 		payload := log.Payload.(*messages.MetricEvent)
-		Expect(payload.Metrics).To(Equal([]*messages.Metric{metric}))
+		Expect(payload.Metrics).To(Equal([]*messages.DataPoint{metric}))
 		Expect(payload.Type).To(Equal(logEvent))
 		Expect(payload.Labels).To(Equal(labels))
 	})

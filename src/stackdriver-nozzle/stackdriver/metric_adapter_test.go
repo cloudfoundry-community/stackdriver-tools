@@ -54,7 +54,7 @@ var _ = Describe("MetricAdapter", func() {
 	It("takes metrics and posts a time series", func() {
 		eventTime := time.Now()
 
-		metrics := []*messages.Metric{
+		metrics := []*messages.DataPoint{
 			{Name: "metricName", Value: 123.45},
 			{Name: "secondMetricName", Value: 54.321},
 		}
@@ -120,7 +120,7 @@ var _ = Describe("MetricAdapter", func() {
 			for i := 0; i < groupSize; i++ {
 				events = append(events, &messages.MetricEvent{
 					Labels:  map[string]string{"Name": strconv.Itoa(i)},
-					Metrics: []*messages.Metric{{Value: 1}, {Value: 2}},
+					Metrics: []*messages.DataPoint{{Value: 1}, {Value: 2}},
 				})
 			}
 
@@ -137,7 +137,7 @@ var _ = Describe("MetricAdapter", func() {
 	It("creates metric descriptors", func() {
 		labels := map[string]string{"key": "value"}
 
-		metrics := []*messages.Metric{
+		metrics := []*messages.DataPoint{
 			{
 				Name: "metricWithUnit",
 				Unit: "{foobar}",
@@ -166,7 +166,7 @@ var _ = Describe("MetricAdapter", func() {
 	})
 
 	It("only creates the same descriptor once", func() {
-		metrics := []*messages.Metric{
+		metrics := []*messages.DataPoint{
 			{
 				Name: "metricWithUnit",
 				Unit: "{foobar}",
@@ -193,7 +193,7 @@ var _ = Describe("MetricAdapter", func() {
 
 	It("handles concurrent metric descriptor creation", func() {
 		metricEventFromName := func(name string) []*messages.MetricEvent {
-			return []*messages.MetricEvent{{Metrics: []*messages.Metric{
+			return []*messages.MetricEvent{{Metrics: []*messages.DataPoint{
 				{
 					Name: name,
 					Unit: "{foobar}",
@@ -236,7 +236,7 @@ var _ = Describe("MetricAdapter", func() {
 
 	It("increments metrics counters", func() {
 		metricEvents := []*messages.MetricEvent{
-			{Metrics: []*messages.Metric{
+			{Metrics: []*messages.DataPoint{
 				{
 					Name: "metricWithUnit",
 					Unit: "{foobar}",
@@ -245,7 +245,7 @@ var _ = Describe("MetricAdapter", func() {
 					Name: "metricWithUnitToo",
 					Unit: "{barfoo}",
 				}}},
-			{Metrics: []*messages.Metric{
+			{Metrics: []*messages.DataPoint{
 				{
 					Name: "anExistingMetric",
 					Unit: "{lalala}",
@@ -264,7 +264,7 @@ var _ = Describe("MetricAdapter", func() {
 	})
 
 	It("measures out of order errors", func() {
-		metricEvents := []*messages.MetricEvent{{Metrics: []*messages.Metric{{}}}}
+		metricEvents := []*messages.MetricEvent{{Metrics: []*messages.DataPoint{{}}}}
 
 		client.PostFn = func(req *monitoringpb.CreateTimeSeriesRequest) error {
 			return errors.New("GRPC Stuff. Points must be written in order. Other stuff")
@@ -277,7 +277,7 @@ var _ = Describe("MetricAdapter", func() {
 	})
 
 	It("measures unknown errors", func() {
-		metricEvents := []*messages.MetricEvent{{Metrics: []*messages.Metric{{}}}}
+		metricEvents := []*messages.MetricEvent{{Metrics: []*messages.DataPoint{{}}}}
 
 		client.PostFn = func(req *monitoringpb.CreateTimeSeriesRequest) error {
 			return errors.New("tragedy strikes")

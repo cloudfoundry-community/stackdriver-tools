@@ -49,18 +49,18 @@ var _ = Describe("autoCulledMetricsBuffer", func() {
 		subject.PostMetricEvents([]*messages.MetricEvent{
 			{
 				Labels:  map[string]string{"Name": "a"},
-				Metrics: []*messages.Metric{{Name: "a", Value: 1}, {Name: "b", Value: 0}},
+				Metrics: []*messages.DataPoint{{Name: "a", Value: 1}, {Name: "b", Value: 0}},
 			},
 			{
 				Labels:  map[string]string{"Name": "a"},
-				Metrics: []*messages.Metric{{Name: "a", Value: 2}, {Name: "b", Value: 2}},
+				Metrics: []*messages.DataPoint{{Name: "a", Value: 2}, {Name: "b", Value: 2}},
 			},
 		})
 		Eventually(metricAdapter.GetPostedMetricEvents).Should(HaveLen(1))
 
 		expected := []*messages.MetricEvent{{
 			Labels:  map[string]string{"Name": "a"},
-			Metrics: []*messages.Metric{{Name: "a", Value: 2}, {Name: "b", Value: 2}},
+			Metrics: []*messages.DataPoint{{Name: "a", Value: 2}, {Name: "b", Value: 2}},
 		}}
 		postedEvent := metricAdapter.GetPostedMetricEvents()[0]
 		Expect(postedEvent.Metrics).To(HaveLen(2))
@@ -74,23 +74,23 @@ var _ = Describe("autoCulledMetricsBuffer", func() {
 		subject.PostMetricEvents([]*messages.MetricEvent{
 			{
 				Labels:  map[string]string{"d1": "a"},
-				Metrics: []*messages.Metric{{Value: 1}},
+				Metrics: []*messages.DataPoint{{Value: 1}},
 			},
 			{
 				Labels:  map[string]string{"d2": "a"},
-				Metrics: []*messages.Metric{{Value: 2}},
+				Metrics: []*messages.DataPoint{{Value: 2}},
 			},
 			{
 				Labels:  map[string]string{"d3": "a"},
-				Metrics: []*messages.Metric{{Value: 3}},
+				Metrics: []*messages.DataPoint{{Value: 3}},
 			},
 			{
 				Labels:  map[string]string{"d3": "a"},
-				Metrics: []*messages.Metric{{Value: 4}},
+				Metrics: []*messages.DataPoint{{Value: 4}},
 			},
 			{
 				Labels:  map[string]string{"d3": "a"},
-				Metrics: []*messages.Metric{{Value: 5}},
+				Metrics: []*messages.DataPoint{{Value: 5}},
 			},
 		})
 
@@ -98,15 +98,15 @@ var _ = Describe("autoCulledMetricsBuffer", func() {
 		expected := sortableMetrics{
 			{
 				Labels:  map[string]string{"d1": "a"},
-				Metrics: []*messages.Metric{{Value: 1}},
+				Metrics: []*messages.DataPoint{{Value: 1}},
 			},
 			{
 				Labels:  map[string]string{"d2": "a"},
-				Metrics: []*messages.Metric{{Value: 2}},
+				Metrics: []*messages.DataPoint{{Value: 2}},
 			},
 			{
 				Labels:  map[string]string{"d3": "a"},
-				Metrics: []*messages.Metric{{Value: 5}},
+				Metrics: []*messages.DataPoint{{Value: 5}},
 			},
 		}
 		actual := sortableMetrics(metricAdapter.GetPostedMetricEvents())
@@ -125,11 +125,11 @@ var _ = Describe("autoCulledMetricsBuffer", func() {
 		subject.PostMetricEvents([]*messages.MetricEvent{
 			{
 				Labels:  map[string]string{"Name": "a"},
-				Metrics: []*messages.Metric{{Value: 1}},
+				Metrics: []*messages.DataPoint{{Value: 1}},
 			},
 			{
 				Labels:  map[string]string{"Name": "b"},
-				Metrics: []*messages.Metric{{Value: 2}},
+				Metrics: []*messages.DataPoint{{Value: 2}},
 			},
 		})
 		Expect(metricAdapter.GetPostedMetricEvents()).Should(HaveLen(0))
@@ -144,11 +144,11 @@ var _ = Describe("autoCulledMetricsBuffer", func() {
 		subject.PostMetricEvents([]*messages.MetricEvent{
 			{
 				Labels:  map[string]string{"Name": "a"},
-				Metrics: []*messages.Metric{{Value: 1}},
+				Metrics: []*messages.DataPoint{{Value: 1}},
 			},
 			{
 				Labels:  map[string]string{"Name": "b"},
-				Metrics: []*messages.Metric{{Value: 2}},
+				Metrics: []*messages.DataPoint{{Value: 2}},
 			},
 		})
 		cancel()
