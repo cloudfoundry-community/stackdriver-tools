@@ -31,7 +31,6 @@ import (
 type autoCulledMetricsBuffer struct {
 	adapter     stackdriver.MetricAdapter
 	errs        chan error
-	size        int
 	ticker      *time.Ticker
 	ctx         context.Context
 	logger      lager.Logger
@@ -44,13 +43,12 @@ type autoCulledMetricsBuffer struct {
 // NewAutoCulledMetricsBuffer provides a MetricsBuffer that will cull like metrics over the defined frequency.
 // A like metric is defined as a metric with the same stackdriver.Metric.Hash()
 func NewAutoCulledMetricsBuffer(ctx context.Context, logger lager.Logger, frequency time.Duration,
-	size int, adapter stackdriver.MetricAdapter, heartbeater heartbeat.Heartbeater) (MetricsBuffer, <-chan error) {
+	adapter stackdriver.MetricAdapter, heartbeater heartbeat.Heartbeater) (MetricsBuffer, <-chan error) {
 	errs := make(chan error)
 	mb := &autoCulledMetricsBuffer{
 		adapter:     adapter,
 		errs:        errs,
 		metrics:     make(map[string]*messages.MetricEvent),
-		size:        size,
 		ctx:         ctx,
 		logger:      logger,
 		ticker:      time.NewTicker(frequency),
@@ -90,21 +88,12 @@ func (mb *autoCulledMetricsBuffer) IsEmpty() bool {
 func (mb *autoCulledMetricsBuffer) flush() {
 	metrics := mb.flushInternalBuffer()
 	count := len(metrics)
-	chunks := count/mb.size + 1
+	mb.logger.Info("autoCulledMetricsBuffer", lager.Data{"info": fmt.Sprintf("%v metric events will be flushed", count)})
 
-	mb.logger.Info("autoCulledMetricsBuffer", lager.Data{"info": fmt.Sprintf("%v metrics will be flushed in %v batches", count, chunks)})
-	var low, high int
-	for i := 0; i < chunks; i++ {
-		low = i * mb.size
-		high = low + mb.size
-		if i == chunks-1 {
-			high = count
-		}
-		err := mb.adapter.PostMetricEvents(metrics[low:high])
+	err := mb.adapter.PostMetricEvents(metrics)
 
-		if err != nil {
-			mb.errs <- err
-		}
+	if err != nil {
+		mb.errs <- err
 	}
 }
 

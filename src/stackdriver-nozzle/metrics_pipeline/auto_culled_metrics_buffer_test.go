@@ -19,8 +19,6 @@ package metrics_pipeline_test
 import (
 	"context"
 	"errors"
-	"fmt"
-	"strconv"
 	"time"
 
 	"sort"
@@ -46,7 +44,7 @@ var _ = Describe("autoCulledMetricsBuffer", func() {
 	})
 
 	It("culls duplicate metrics", func() {
-		subject, _ := NewAutoCulledMetricsBuffer(context.TODO(), logger, 100*time.Millisecond, 5, metricAdapter, heartbeater)
+		subject, _ := NewAutoCulledMetricsBuffer(context.TODO(), logger, 100*time.Millisecond, metricAdapter, heartbeater)
 
 		subject.PostMetricEvents([]*messages.MetricEvent{
 			{
@@ -80,8 +78,7 @@ var _ = Describe("autoCulledMetricsBuffer", func() {
 	})
 
 	It("culls multiple duplicates, keeping the latest", func() {
-		subject, _ := NewAutoCulledMetricsBuffer(context.TODO(), logger, 100*time.Millisecond, 5, metricAdapter, heartbeater)
-
+		subject, _ := NewAutoCulledMetricsBuffer(context.TODO(), logger, 100*time.Millisecond, metricAdapter, heartbeater)
 		subject.PostMetricEvents([]*messages.MetricEvent{
 			{
 				Labels:  map[string]string{"d1": "a"},
@@ -131,7 +128,7 @@ var _ = Describe("autoCulledMetricsBuffer", func() {
 
 	It("it buffers metrics for the expected duration before flushing", func() {
 		d := 500 * time.Millisecond
-		subject, _ := NewAutoCulledMetricsBuffer(context.TODO(), logger, d, 5, metricAdapter, heartbeater)
+		subject, _ := NewAutoCulledMetricsBuffer(context.TODO(), logger, d, metricAdapter, heartbeater)
 
 		subject.PostMetricEvents([]*messages.MetricEvent{
 			{
@@ -150,7 +147,7 @@ var _ = Describe("autoCulledMetricsBuffer", func() {
 	It("it flushes metrics when the context is canceled", func() {
 		d := 500 * time.Second
 		ctx, cancel := context.WithCancel(context.Background())
-		subject, _ := NewAutoCulledMetricsBuffer(ctx, logger, d, 5, metricAdapter, heartbeater)
+		subject, _ := NewAutoCulledMetricsBuffer(ctx, logger, d, metricAdapter, heartbeater)
 
 		subject.PostMetricEvents([]*messages.MetricEvent{
 			{
@@ -166,46 +163,9 @@ var _ = Describe("autoCulledMetricsBuffer", func() {
 		Eventually(metricAdapter.GetPostedMetricEvents).Should(HaveLen(2))
 	})
 
-	It("it posts the metrics in correct batch size", func() {
-		d := 10 * time.Millisecond
-		batchSize := 200
-
-		metricAdapter.PostMetricEventsFn = func(metricEvents []*messages.MetricEvent) error {
-			if len(metricEvents) > batchSize {
-				return fmt.Errorf("Batch size (%v) exceeded max (%v)", len(metricEvents), batchSize)
-			}
-
-			metricAdapter.PostedMetricEvents = append(metricAdapter.PostedMetricEvents, metricEvents...)
-			return metricAdapter.PostMetricEventsError
-		}
-
-		metricGroupSizes := []int{199, 200, 201, 399, 400, 1999, 2000, 2001}
-
-		// Test various numbers of metrics being posted to the buffer
-		for _, groupSize := range metricGroupSizes {
-			ctx, cancel := context.WithCancel(context.Background())
-			metricAdapter.PostedMetricEvents = []*messages.MetricEvent{}
-			metricAdapter.PostMetricEventsError = nil
-			subject, errs := NewAutoCulledMetricsBuffer(ctx, logger, d, batchSize, metricAdapter, heartbeater)
-			for i := 0; i < groupSize; i++ {
-				subject.PostMetricEvents([]*messages.MetricEvent{
-					{
-						Labels:  map[string]string{"Name": strconv.Itoa(i)},
-						Metrics: []*messages.Metric{{Value: 1, EventTime: time.Unix(1234567890+int64(i), 0)}},
-					},
-				})
-			}
-			cancel()
-			err := <-errs
-			Expect(err).ToNot(HaveOccurred())
-			Expect(metricAdapter.PostedMetricEvents).To(HaveLen(groupSize))
-		}
-
-	})
-
 	It("sends errors through the error channel", func() {
 		d := 1 * time.Millisecond
-		subject, errs := NewAutoCulledMetricsBuffer(context.TODO(), logger, d, 5, metricAdapter, heartbeater)
+		subject, errs := NewAutoCulledMetricsBuffer(context.TODO(), logger, d, metricAdapter, heartbeater)
 
 		expectedErr := errors.New("fail")
 		metricAdapter.PostMetricEventsError = expectedErr
@@ -234,7 +194,7 @@ var _ = Describe("autoCulledMetricsBuffer", func() {
 				return nil
 			}
 
-			subject, _ = NewAutoCulledMetricsBuffer(context.TODO(), logger, 1*time.Millisecond, 5, metricAdapter, heartbeater)
+			subject, _ = NewAutoCulledMetricsBuffer(context.TODO(), logger, 1*time.Millisecond, metricAdapter, heartbeater)
 		})
 
 		It("doesn't block new metrics during flush", func() {

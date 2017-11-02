@@ -46,40 +46,51 @@ type metricAdapter struct {
 	client                MetricClient
 	descriptors           map[string]struct{}
 	createDescriptorMutex *sync.Mutex
+	batchSize             int
 	heartbeater           Heartbeater
 }
 
 type postMetricErr struct {
 	metricDescriptor []error
-	postErr          error
+	postErrs         []error
+	filteredErrs     []error
 	heartbeater      Heartbeater
 }
 
 func (pme *postMetricErr) BuildError() error {
 	pme.processErrors()
-	if pme == nil || pme.postErr == nil && len(pme.metricDescriptor) == 0 {
+	if pme == nil || len(pme.filteredErrs) == 0 && len(pme.metricDescriptor) == 0 {
 		return nil
 	}
 
-	return fmt.Errorf("PostMetricEvents, PostErr: %v, MetricDescriptor: %v", pme.postErr, pme.metricDescriptor)
+	return fmt.Errorf("PostMetricEvents, Unexpected Post Errors: %v, Metric Descriptor Errors: %v", pme.filteredErrs, pme.metricDescriptor)
 }
 
-func (pme *postMetricErr) processErrors() {
-	if pme == nil || pme.postErr == nil && len(pme.metricDescriptor) == 0 {
+func (pme *postMetricErr) AddPostError(err error) {
+	if err == nil {
 		return
 	}
 
-	if pme.postErr != nil {
+	pme.postErrs = append(pme.postErrs, err)
+}
+
+// Filter expected errors and record telemetry
+func (pme *postMetricErr) processErrors() {
+	if pme == nil || len(pme.postErrs) == 0 && len(pme.metricDescriptor) == 0 {
+		return
+	}
+
+	for _, err := range pme.postErrs {
 		pme.heartbeater.Increment("metrics.post.errors")
 
 		// This is an expected error once there is more than a single nozzle writing to Stackdriver.
-		// If one nozzle writes a metric occuring at time T2 and this one tries to write at T1 (where T2 later than T1)
+		// If one nozzle writes a metric occurring at time T2 and this one tries to write at T1 (where T2 later than T1)
 		// we will receive this error.
-		if strings.Contains(pme.postErr.Error(), `Points must be written in order`) {
+		if strings.Contains(err.Error(), `Points must be written in order`) {
 			pme.heartbeater.Increment("metrics.post.errors.out_of_order")
-			pme.postErr = nil
 		} else {
 			pme.heartbeater.Increment("metrics.post.errors.unknown")
+			pme.filteredErrs = append(pme.filteredErrs, err)
 		}
 	}
 
@@ -90,12 +101,13 @@ func (pme *postMetricErr) processErrors() {
 }
 
 // NewMetricAdapter returns a MetricAdapater that can write to Stackdriver Monitoring
-func NewMetricAdapter(projectID string, client MetricClient, heartbeater Heartbeater) (MetricAdapter, error) {
+func NewMetricAdapter(projectID string, client MetricClient, batchSize int, heartbeater Heartbeater) (MetricAdapter, error) {
 	ma := &metricAdapter{
 		projectID:             projectID,
 		client:                client,
 		createDescriptorMutex: &sync.Mutex{},
 		descriptors:           map[string]struct{}{},
+		batchSize:             batchSize,
 		heartbeater:           heartbeater,
 	}
 
@@ -104,18 +116,33 @@ func NewMetricAdapter(projectID string, client MetricClient, heartbeater Heartbe
 }
 
 func (ma *metricAdapter) PostMetricEvents(events []*messages.MetricEvent) error {
-	series, compositeErr := ma.buildTimeSeries(events)
-
+	series, postErr := ma.buildTimeSeries(events)
 	projectName := path.Join("projects", ma.projectID)
-	request := &monitoringpb.CreateTimeSeriesRequest{
-		Name:       projectName,
-		TimeSeries: series,
+
+	count := len(series)
+	chunks := count/ma.batchSize + 1
+
+	// TODO(jrjohnson): We should log here
+	var low, high int
+	for i := 0; i < chunks; i++ {
+		low = i * ma.batchSize
+		high = low + ma.batchSize
+		// if we're at the last chunk, take the remaining size
+		// so we don't over index
+		if i == chunks-1 {
+			high = count
+		}
+
+		ma.heartbeater.Increment("metrics.requests")
+		err := ma.client.Post(&monitoringpb.CreateTimeSeriesRequest{
+			Name:       projectName,
+			TimeSeries: series[low:high],
+		})
+
+		postErr.AddPostError(err)
 	}
 
-	ma.heartbeater.Increment("metrics.requests")
-	compositeErr.postErr = ma.client.Post(request)
-
-	return compositeErr.BuildError()
+	return postErr.BuildError()
 }
 
 func (ma *metricAdapter) buildTimeSeries(events []*messages.MetricEvent) ([]*monitoringpb.TimeSeries, postMetricErr) {

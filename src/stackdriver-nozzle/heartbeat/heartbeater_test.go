@@ -48,7 +48,7 @@ var _ = Describe("Heartbeater", func() {
 
 		// Mock metric handler
 		client = &mocks.MockClient{}
-		metricAdapter, _ = stackdriver.NewMetricAdapter("my-awesome-project", client, heartbeater)
+		metricAdapter, _ = stackdriver.NewMetricAdapter("my-awesome-project", client, 200, heartbeater)
 		metricHandler = heartbeat.NewMetricHandler(metricAdapter, logger, "nozzle-id", "nozzle-name", "nozle-zone")
 
 		subject = heartbeat.NewLoggerMetricHeartbeater(metricHandler, logger, trigger, "heartbeater")
@@ -106,9 +106,7 @@ var _ = Describe("Heartbeater", func() {
 
 		trigger <- time.Now()
 
-		Eventually(func() mocks.Log {
-			return logger.LastLog()
-		}).Should(Equal(mocks.Log{
+		Eventually(logger.LastLog).Should(Equal(mocks.Log{
 			Level:  lager.INFO,
 			Action: "heartbeater",
 			Datas: []lager.Data{
