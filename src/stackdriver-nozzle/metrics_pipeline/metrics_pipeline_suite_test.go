@@ -9,5 +9,5 @@ import (
 
 func TestMetricsBuffer(t *testing.T) {
 	RegisterFailHandler(Fail)
-	RunSpecs(t, "MetricsBuffer Suite")
+	RunSpecs(t, "MetricsPipeline Suite")
 }
