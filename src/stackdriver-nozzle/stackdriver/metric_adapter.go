@@ -104,6 +104,21 @@ func NewMetricAdapter(projectID string, client MetricClient, heartbeater Heartbe
 }
 
 func (ma *metricAdapter) PostMetricEvents(events []*messages.MetricEvent) error {
+	series, compositeErr := ma.buildTimeSeries(events)
+
+	projectName := path.Join("projects", ma.projectID)
+	request := &monitoringpb.CreateTimeSeriesRequest{
+		Name:       projectName,
+		TimeSeries: series,
+	}
+
+	ma.heartbeater.Increment("metrics.requests")
+	compositeErr.postErr = ma.client.Post(request)
+
+	return compositeErr.BuildError()
+}
+
+func (ma *metricAdapter) buildTimeSeries(events []*messages.MetricEvent) ([]*monitoringpb.TimeSeries, postMetricErr) {
 	var timeSerieses []*monitoringpb.TimeSeries
 
 	compositeErr := postMetricErr{heartbeater: ma.heartbeater}
@@ -134,16 +149,7 @@ func (ma *metricAdapter) PostMetricEvents(events []*messages.MetricEvent) error 
 		}
 	}
 
-	projectName := path.Join("projects", ma.projectID)
-	request := &monitoringpb.CreateTimeSeriesRequest{
-		Name:       projectName,
-		TimeSeries: timeSerieses,
-	}
-
-	ma.heartbeater.Increment("metrics.requests")
-	compositeErr.postErr = ma.client.Post(request)
-
-	return compositeErr.BuildError()
+	return timeSerieses, compositeErr
 }
 
 func (ma *metricAdapter) CreateMetricDescriptor(metric *messages.Metric, labels map[string]string) error {
