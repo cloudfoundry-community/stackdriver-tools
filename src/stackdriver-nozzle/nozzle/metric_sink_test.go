@@ -80,12 +80,13 @@ var _ = Describe("MetricSink", func() {
 		metrics := metricBuffer.PostedMetrics
 		Expect(metrics).To(HaveLen(1))
 		Expect(metrics[0]).To(MatchAllFields(Fields{
-			"Name":      Equal("valueMetricName"),
-			"Value":     Equal(123.456),
-			"EventTime": Ignore(),
-			"Unit":      Equal("{foo}"),
+			"Name":  Equal("valueMetricName"),
+			"Value": Equal(123.456),
+			"Unit":  Equal("{foo}"),
 		}))
-		Expect(metrics[0].EventTime.UnixNano()).To(Equal(timeStamp))
+		metricEvents := metricBuffer.PostedMetricEvents
+		Expect(metricEvents).To(HaveLen(1))
+		Expect(metricEvents[0].Time.UnixNano()).To(Equal(timeStamp))
 
 		Expect(unitParser.lastInput).To(Equal("barUnit"))
 	})
@@ -130,12 +131,12 @@ var _ = Describe("MetricSink", func() {
 		}
 
 		Expect(metrics).To(MatchAllElements(eventName, Elements{
-			"diskBytesQuota":   MatchAllFields(Fields{"Name": Ignore(), "Value": Equal(float64(1073741824)), "EventTime": Ignore(), "Unit": Equal("")}),
-			"instanceIndex":    MatchAllFields(Fields{"Name": Ignore(), "Value": Equal(float64(0)), "EventTime": Ignore(), "Unit": Equal("")}),
-			"cpuPercentage":    MatchAllFields(Fields{"Name": Ignore(), "Value": Equal(float64(0.061651273460637)), "EventTime": Ignore(), "Unit": Equal("")}),
-			"diskBytes":        MatchAllFields(Fields{"Name": Ignore(), "Value": Equal(float64(164634624)), "EventTime": Ignore(), "Unit": Equal("")}),
-			"memoryBytes":      MatchAllFields(Fields{"Name": Ignore(), "Value": Equal(float64(16601088)), "EventTime": Ignore(), "Unit": Equal("")}),
-			"memoryBytesQuota": MatchAllFields(Fields{"Name": Ignore(), "Value": Equal(float64(33554432)), "EventTime": Ignore(), "Unit": Equal("")}),
+			"diskBytesQuota":   MatchAllFields(Fields{"Name": Ignore(), "Value": Equal(float64(1073741824)), "Unit": Equal("")}),
+			"instanceIndex":    MatchAllFields(Fields{"Name": Ignore(), "Value": Equal(float64(0)), "Unit": Equal("")}),
+			"cpuPercentage":    MatchAllFields(Fields{"Name": Ignore(), "Value": Equal(float64(0.061651273460637)), "Unit": Equal("")}),
+			"diskBytes":        MatchAllFields(Fields{"Name": Ignore(), "Value": Equal(float64(164634624)), "Unit": Equal("")}),
+			"memoryBytes":      MatchAllFields(Fields{"Name": Ignore(), "Value": Equal(float64(16601088)), "Unit": Equal("")}),
+			"memoryBytesQuota": MatchAllFields(Fields{"Name": Ignore(), "Value": Equal(float64(33554432)), "Unit": Equal("")}),
 		}))
 	})
 
@@ -169,16 +170,14 @@ var _ = Describe("MetricSink", func() {
 		}
 		Expect(metrics).To(MatchAllElements(eventName, Elements{
 			"counterName.delta": MatchAllFields(Fields{
-				"Name":      Ignore(),
-				"Value":     Equal(float64(654321)),
-				"EventTime": Ignore(),
-				"Unit":      Equal(""),
+				"Name":  Ignore(),
+				"Value": Equal(float64(654321)),
+				"Unit":  Equal(""),
 			}),
 			"counterName.total": MatchAllFields(Fields{
-				"Name":      Ignore(),
-				"Value":     Equal(float64(123456)),
-				"EventTime": Ignore(),
-				"Unit":      Equal(""),
+				"Name":  Ignore(),
+				"Value": Equal(float64(123456)),
+				"Unit":  Equal(""),
 			}),
 		}))
 	})

@@ -63,12 +63,11 @@ var _ = Describe("Router", func() {
 		logEvent := events.Envelope_ValueMetric
 		labels := map[string]string{"foo": "bar"}
 		metric := &messages.Metric{
-			Name:      "valueMetric",
-			Value:     float64(123),
-			EventTime: time.Now(),
-			Unit:      "f",
+			Name:  "valueMetric",
+			Value: float64(123),
+			Unit:  "f",
 		}
-		metricEvent := &messages.MetricEvent{Type: logEvent, Labels: labels, Metrics: []*messages.Metric{metric}}
+		metricEvent := &messages.MetricEvent{Type: logEvent, Labels: labels, Metrics: []*messages.Metric{metric}, Time: time.Now()}
 		router := NewRouter(nil, nil, logAdapter, []events.Envelope_EventType{logEvent})
 		router.PostMetricEvents([]*messages.MetricEvent{metricEvent})
 		Expect(logAdapter.PostedLogs).To(HaveLen(1))

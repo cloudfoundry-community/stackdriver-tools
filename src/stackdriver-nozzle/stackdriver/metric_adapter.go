@@ -170,7 +170,7 @@ func (ma *metricAdapter) buildTimeSeries(events []*messages.MetricEvent) ([]*mon
 					Type:   metricType,
 					Labels: event.Labels,
 				},
-				Points: points(metric.Value, metric.EventTime),
+				Points: points(metric.Value, event.Time),
 			}
 			timeSerieses = append(timeSerieses, &timeSeries)
 		}

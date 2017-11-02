@@ -9,10 +9,9 @@ import (
 )
 
 type Metric struct {
-	Name      string
-	Value     float64
-	EventTime time.Time
-	Unit      string // TODO Should this be "1" if it's empty?
+	Name  string
+	Value float64
+	Unit  string // TODO Should this be "1" if it's empty?
 }
 
 // MetricEvent represents the translation of an events.Envelope into a set
@@ -20,6 +19,7 @@ type Metric struct {
 type MetricEvent struct {
 	Labels  map[string]string `json:"-"`
 	Metrics []*Metric
+	Time    time.Time
 	Type    events.Envelope_EventType `json:"-"`
 }
 

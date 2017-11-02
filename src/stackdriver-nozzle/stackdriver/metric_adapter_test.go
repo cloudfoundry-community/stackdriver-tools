@@ -55,22 +55,14 @@ var _ = Describe("MetricAdapter", func() {
 		eventTime := time.Now()
 
 		metrics := []*messages.Metric{
-			{
-				Name:      "metricName",
-				Value:     123.45,
-				EventTime: eventTime,
-			},
-			{
-				Name:      "secondMetricName",
-				Value:     54.321,
-				EventTime: eventTime,
-			},
+			{Name: "metricName", Value: 123.45},
+			{Name: "secondMetricName", Value: 54.321},
 		}
 		labels := map[string]string{
 			"key": "name",
 		}
 
-		metricEvents := []*messages.MetricEvent{{Labels: labels, Metrics: metrics}}
+		metricEvents := []*messages.MetricEvent{{Labels: labels, Metrics: metrics, Time: eventTime}}
 
 		subject.PostMetricEvents(metricEvents)
 

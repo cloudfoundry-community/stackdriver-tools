@@ -19,7 +19,8 @@ package mocks
 import "github.com/cloudfoundry-community/stackdriver-tools/src/stackdriver-nozzle/messages"
 
 type MetricsBuffer struct {
-	PostedMetrics []messages.Metric
+	PostedMetrics      []messages.Metric
+	PostedMetricEvents []*messages.MetricEvent
 }
 
 func (m *MetricsBuffer) PostMetricEvents(events []*messages.MetricEvent) error {
@@ -28,6 +29,8 @@ func (m *MetricsBuffer) PostMetricEvents(events []*messages.MetricEvent) error {
 			m.PostedMetrics = append(m.PostedMetrics, *metric)
 		}
 	}
+
+	m.PostedMetricEvents = append(m.PostedMetricEvents, events...)
 
 	return nil
 }

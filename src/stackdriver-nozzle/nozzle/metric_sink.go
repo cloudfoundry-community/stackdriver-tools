@@ -54,33 +54,30 @@ func (ms *metricSink) Receive(envelope *events.Envelope) error {
 	case events.Envelope_ValueMetric:
 		valueMetric := envelope.GetValueMetric()
 		metrics = []*messages.Metric{{
-			Name:      valueMetric.GetName(),
-			Value:     valueMetric.GetValue(),
-			EventTime: eventTime,
-			Unit:      ms.unitParser.Parse(valueMetric.GetUnit()),
+			Name:  valueMetric.GetName(),
+			Value: valueMetric.GetValue(),
+			Unit:  ms.unitParser.Parse(valueMetric.GetUnit()),
 		}}
 	case events.Envelope_ContainerMetric:
 		containerMetric := envelope.GetContainerMetric()
 		metrics = []*messages.Metric{
-			{Name: "diskBytesQuota", Value: float64(containerMetric.GetDiskBytesQuota()), EventTime: eventTime},
-			{Name: "instanceIndex", Value: float64(containerMetric.GetInstanceIndex()), EventTime: eventTime},
-			{Name: "cpuPercentage", Value: float64(containerMetric.GetCpuPercentage()), EventTime: eventTime},
-			{Name: "diskBytes", Value: float64(containerMetric.GetDiskBytes()), EventTime: eventTime},
-			{Name: "memoryBytes", Value: float64(containerMetric.GetMemoryBytes()), EventTime: eventTime},
-			{Name: "memoryBytesQuota", Value: float64(containerMetric.GetMemoryBytesQuota()), EventTime: eventTime},
+			{Name: "diskBytesQuota", Value: float64(containerMetric.GetDiskBytesQuota())},
+			{Name: "instanceIndex", Value: float64(containerMetric.GetInstanceIndex())},
+			{Name: "cpuPercentage", Value: float64(containerMetric.GetCpuPercentage())},
+			{Name: "diskBytes", Value: float64(containerMetric.GetDiskBytes())},
+			{Name: "memoryBytes", Value: float64(containerMetric.GetMemoryBytes())},
+			{Name: "memoryBytesQuota", Value: float64(containerMetric.GetMemoryBytesQuota())},
 		}
 	case events.Envelope_CounterEvent:
 		counterEvent := envelope.GetCounterEvent()
 		metrics = []*messages.Metric{
 			{
-				Name:      fmt.Sprintf("%v.delta", counterEvent.GetName()),
-				Value:     float64(counterEvent.GetDelta()),
-				EventTime: eventTime,
+				Name:  fmt.Sprintf("%v.delta", counterEvent.GetName()),
+				Value: float64(counterEvent.GetDelta()),
 			},
 			{
-				Name:      fmt.Sprintf("%v.total", counterEvent.GetName()),
-				Value:     float64(counterEvent.GetTotal()),
-				EventTime: eventTime,
+				Name:  fmt.Sprintf("%v.total", counterEvent.GetName()),
+				Value: float64(counterEvent.GetTotal()),
 			},
 		}
 	default:
@@ -88,6 +85,6 @@ func (ms *metricSink) Receive(envelope *events.Envelope) error {
 	}
 
 	return ms.metricAdapter.PostMetricEvents([]*messages.MetricEvent{
-		{Metrics: metrics, Labels: labels, Type: envelope.GetEventType()},
+		{Metrics: metrics, Labels: labels, Type: envelope.GetEventType(), Time: eventTime},
 	})
 }
