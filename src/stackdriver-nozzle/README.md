@@ -41,10 +41,14 @@ go get github.com/cloudfoundry-community/stackdriver-tools/src/stackdriver-nozzl
 
 - `HEARTBEAT_RATE` - how often `stackdriver-nozzle` reports stats to stdout;
   defaults to 30 seconds
-- `BATCH_COUNT` - how many logs and metrics to batch into a single report to
+- `LOGGING_BATCH_COUNT` - how many logs to batch into a single report to
   Stackdriver; defaults to 10
-- `BATCH_DURATION` - maximum time to batch logs to Stackdriver; defaults to 1
+- `LOGGING_BATCH_DURATION` - maximum time to batch logs to Stackdriver; defaults to 1
   second
+- `METRICS_BUFFER_DURATION` - flush interval (in seconds) of the internal metric
+  buffer; defaults to 30
+- `METRICS_BUFFER_SIZE` - batch size for metric time series being sent to
+  Stackdriver; defaults to 200
 - `RESOLVE_APP_METADATA` - whether to hydrate app UUIDs into org name, org
   UUID, space name, space UUID, and app name; defaults to `true`
 - `SUBSCRIPTION_ID` - what subscription ID to use for connecting to the

@@ -126,8 +126,8 @@ func (a *App) newConsumer(ctx context.Context) (*nozzle.Nozzle, error) {
 func (a *App) newLogAdapter() stackdriver.LogAdapter {
 	logAdapter, logErrs := stackdriver.NewLogAdapter(
 		a.c.ProjectID,
-		a.c.BatchCount,
-		time.Duration(a.c.BatchDuration)*time.Second,
+		a.c.LoggingBatchCount,
+		time.Duration(a.c.LoggingBatchDuration)*time.Second,
 		a.heartbeater,
 	)
 	go func() {
