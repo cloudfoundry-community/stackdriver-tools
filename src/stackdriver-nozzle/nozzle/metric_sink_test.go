@@ -57,6 +57,7 @@ var _ = Describe("MetricSink", func() {
 	It("creates metric for ValueMetric", func() {
 		eventTime := time.Now()
 
+		origin := "origin"
 		name := "valueMetricName"
 		value := 123.456
 		unit := "barUnit"
@@ -69,6 +70,7 @@ var _ = Describe("MetricSink", func() {
 		eventType := events.Envelope_ValueMetric
 		timeStamp := eventTime.UnixNano()
 		envelope := &events.Envelope{
+			Origin:      &origin,
 			EventType:   &eventType,
 			ValueMetric: &event,
 			Timestamp:   &timeStamp,
@@ -80,7 +82,7 @@ var _ = Describe("MetricSink", func() {
 		metrics := metricBuffer.PostedMetrics
 		Expect(metrics).To(HaveLen(1))
 		Expect(metrics[0]).To(MatchAllFields(Fields{
-			"Name":      Equal("valueMetricName"),
+			"Name":      Equal("origin.valueMetricName"),
 			"Value":     Equal(123.456),
 			"EventTime": Ignore(),
 			"Unit":      Equal("{foo}"),
@@ -93,6 +95,7 @@ var _ = Describe("MetricSink", func() {
 	It("creates the proper metrics for ContainerMetric", func() {
 		eventTime := time.Now()
 
+		origin := "origin"
 		diskBytesQuota := uint64(1073741824)
 		instanceIndex := int32(0)
 		cpuPercentage := 0.061651273460637
@@ -114,6 +117,7 @@ var _ = Describe("MetricSink", func() {
 		}
 
 		envelope := &events.Envelope{
+			Origin:          &origin,
 			EventType:       &metricType,
 			ContainerMetric: &containerMetric,
 			Timestamp:       &timeStamp,
@@ -130,12 +134,12 @@ var _ = Describe("MetricSink", func() {
 		}
 
 		Expect(metrics).To(MatchAllElements(eventName, Elements{
-			"diskBytesQuota":   MatchAllFields(Fields{"Name": Ignore(), "Value": Equal(float64(1073741824)), "EventTime": Ignore(), "Unit": Equal("")}),
-			"instanceIndex":    MatchAllFields(Fields{"Name": Ignore(), "Value": Equal(float64(0)), "EventTime": Ignore(), "Unit": Equal("")}),
-			"cpuPercentage":    MatchAllFields(Fields{"Name": Ignore(), "Value": Equal(float64(0.061651273460637)), "EventTime": Ignore(), "Unit": Equal("")}),
-			"diskBytes":        MatchAllFields(Fields{"Name": Ignore(), "Value": Equal(float64(164634624)), "EventTime": Ignore(), "Unit": Equal("")}),
-			"memoryBytes":      MatchAllFields(Fields{"Name": Ignore(), "Value": Equal(float64(16601088)), "EventTime": Ignore(), "Unit": Equal("")}),
-			"memoryBytesQuota": MatchAllFields(Fields{"Name": Ignore(), "Value": Equal(float64(33554432)), "EventTime": Ignore(), "Unit": Equal("")}),
+			"origin.diskBytesQuota":   MatchAllFields(Fields{"Name": Ignore(), "Value": Equal(float64(1073741824)), "EventTime": Ignore(), "Unit": Equal("")}),
+			"origin.instanceIndex":    MatchAllFields(Fields{"Name": Ignore(), "Value": Equal(float64(0)), "EventTime": Ignore(), "Unit": Equal("")}),
+			"origin.cpuPercentage":    MatchAllFields(Fields{"Name": Ignore(), "Value": Equal(float64(0.061651273460637)), "EventTime": Ignore(), "Unit": Equal("")}),
+			"origin.diskBytes":        MatchAllFields(Fields{"Name": Ignore(), "Value": Equal(float64(164634624)), "EventTime": Ignore(), "Unit": Equal("")}),
+			"origin.memoryBytes":      MatchAllFields(Fields{"Name": Ignore(), "Value": Equal(float64(16601088)), "EventTime": Ignore(), "Unit": Equal("")}),
+			"origin.memoryBytesQuota": MatchAllFields(Fields{"Name": Ignore(), "Value": Equal(float64(33554432)), "EventTime": Ignore(), "Unit": Equal("")}),
 		}))
 	})
 
@@ -143,6 +147,7 @@ var _ = Describe("MetricSink", func() {
 		eventTime := time.Now()
 
 		eventType := events.Envelope_CounterEvent
+		origin := "origin"
 		name := "counterName"
 		delta := uint64(654321)
 		total := uint64(123456)
@@ -154,6 +159,7 @@ var _ = Describe("MetricSink", func() {
 			Total: &total,
 		}
 		envelope := &events.Envelope{
+			Origin:       &origin,
 			EventType:    &eventType,
 			CounterEvent: &event,
 			Timestamp:    &timeStamp,
@@ -168,13 +174,13 @@ var _ = Describe("MetricSink", func() {
 			return element.(messages.Metric).Name
 		}
 		Expect(metrics).To(MatchAllElements(eventName, Elements{
-			"counterName.delta": MatchAllFields(Fields{
+			"origin.counterName.delta": MatchAllFields(Fields{
 				"Name":      Ignore(),
 				"Value":     Equal(float64(654321)),
 				"EventTime": Ignore(),
 				"Unit":      Equal(""),
 			}),
-			"counterName.total": MatchAllFields(Fields{
+			"origin.counterName.total": MatchAllFields(Fields{
 				"Name":      Ignore(),
 				"Value":     Equal(float64(123456)),
 				"EventTime": Ignore(),
