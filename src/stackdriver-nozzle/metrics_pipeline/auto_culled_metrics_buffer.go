@@ -66,10 +66,18 @@ func (mb *autoCulledMetricsBuffer) PostMetricEvents(events []*messages.MetricEve
 
 	for _, event := range events {
 		hash := event.Hash()
-		if _, exists := mb.metrics[hash]; exists {
+		old, exists := mb.metrics[hash]
+		if !exists {
+			mb.metrics[hash] = event
+		} else {
 			mb.heartbeater.Increment("metrics.events.sampled")
+			if event.Metrics[0].EventTime.After(old.Metrics[0].EventTime) {
+				// Firehose messages are not guaranteed to be received in
+				// timestamp order, so only overwrite the sampled metric
+				// if the event is newer.
+				mb.metrics[hash] = event
+			}
 		}
-		mb.metrics[hash] = event
 	}
 
 	return nil

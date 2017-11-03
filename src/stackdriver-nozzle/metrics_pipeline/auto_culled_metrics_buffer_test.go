@@ -50,19 +50,28 @@ var _ = Describe("autoCulledMetricsBuffer", func() {
 
 		subject.PostMetricEvents([]*messages.MetricEvent{
 			{
-				Labels:  map[string]string{"Name": "a"},
-				Metrics: []*messages.Metric{{Name: "a", Value: 1}, {Name: "b", Value: 0}},
+				Labels: map[string]string{"Name": "a"},
+				Metrics: []*messages.Metric{
+					{Name: "a", Value: 1, EventTime: time.Unix(1234567890, 0)},
+					{Name: "b", Value: 0, EventTime: time.Unix(1234567890, 0)},
+				},
 			},
 			{
-				Labels:  map[string]string{"Name": "a"},
-				Metrics: []*messages.Metric{{Name: "a", Value: 2}, {Name: "b", Value: 2}},
+				Labels: map[string]string{"Name": "a"},
+				Metrics: []*messages.Metric{
+					{Name: "a", Value: 2, EventTime: time.Unix(1234567891, 0)},
+					{Name: "b", Value: 2, EventTime: time.Unix(1234567891, 0)},
+				},
 			},
 		})
 		Eventually(metricAdapter.GetPostedMetricEvents).Should(HaveLen(1))
 
 		expected := []*messages.MetricEvent{{
-			Labels:  map[string]string{"Name": "a"},
-			Metrics: []*messages.Metric{{Name: "a", Value: 2}, {Name: "b", Value: 2}},
+			Labels: map[string]string{"Name": "a"},
+			Metrics: []*messages.Metric{
+				{Name: "a", Value: 2, EventTime: time.Unix(1234567891, 0)},
+				{Name: "b", Value: 2, EventTime: time.Unix(1234567891, 0)},
+			},
 		}}
 		postedEvent := metricAdapter.GetPostedMetricEvents()[0]
 		Expect(postedEvent.Metrics).To(HaveLen(2))
@@ -70,29 +79,29 @@ var _ = Describe("autoCulledMetricsBuffer", func() {
 		Expect(heartbeater.GetCount("metrics.events.sampled")).To(Equal(1))
 	})
 
-	It("culls multiple duplicates", func() {
+	It("culls multiple duplicates, keeping the latest", func() {
 		subject, _ := NewAutoCulledMetricsBuffer(context.TODO(), logger, 100*time.Millisecond, 5, metricAdapter, heartbeater)
 
 		subject.PostMetricEvents([]*messages.MetricEvent{
 			{
 				Labels:  map[string]string{"d1": "a"},
-				Metrics: []*messages.Metric{{Value: 1}},
+				Metrics: []*messages.Metric{{Value: 1, EventTime: time.Unix(1234567891, 0)}},
 			},
 			{
 				Labels:  map[string]string{"d2": "a"},
-				Metrics: []*messages.Metric{{Value: 2}},
+				Metrics: []*messages.Metric{{Value: 2, EventTime: time.Unix(1234567892, 0)}},
 			},
 			{
 				Labels:  map[string]string{"d3": "a"},
-				Metrics: []*messages.Metric{{Value: 3}},
+				Metrics: []*messages.Metric{{Value: 3, EventTime: time.Unix(1234567893, 0)}},
 			},
 			{
 				Labels:  map[string]string{"d3": "a"},
-				Metrics: []*messages.Metric{{Value: 4}},
+				Metrics: []*messages.Metric{{Value: 4, EventTime: time.Unix(1234567895, 0)}},
 			},
 			{
 				Labels:  map[string]string{"d3": "a"},
-				Metrics: []*messages.Metric{{Value: 5}},
+				Metrics: []*messages.Metric{{Value: 5, EventTime: time.Unix(1234567894, 0)}},
 			},
 		})
 
@@ -100,15 +109,15 @@ var _ = Describe("autoCulledMetricsBuffer", func() {
 		expected := sortableMetrics{
 			{
 				Labels:  map[string]string{"d1": "a"},
-				Metrics: []*messages.Metric{{Value: 1}},
+				Metrics: []*messages.Metric{{Value: 1, EventTime: time.Unix(1234567891, 0)}},
 			},
 			{
 				Labels:  map[string]string{"d2": "a"},
-				Metrics: []*messages.Metric{{Value: 2}},
+				Metrics: []*messages.Metric{{Value: 2, EventTime: time.Unix(1234567892, 0)}},
 			},
 			{
 				Labels:  map[string]string{"d3": "a"},
-				Metrics: []*messages.Metric{{Value: 5}},
+				Metrics: []*messages.Metric{{Value: 4, EventTime: time.Unix(1234567895, 0)}},
 			},
 		}
 		actual := sortableMetrics(metricAdapter.GetPostedMetricEvents())
@@ -127,11 +136,11 @@ var _ = Describe("autoCulledMetricsBuffer", func() {
 		subject.PostMetricEvents([]*messages.MetricEvent{
 			{
 				Labels:  map[string]string{"Name": "a"},
-				Metrics: []*messages.Metric{{Value: 1}},
+				Metrics: []*messages.Metric{{Value: 1, EventTime: time.Unix(1234567891, 0)}},
 			},
 			{
 				Labels:  map[string]string{"Name": "b"},
-				Metrics: []*messages.Metric{{Value: 2}},
+				Metrics: []*messages.Metric{{Value: 2, EventTime: time.Unix(1234567891, 0)}},
 			},
 		})
 		Expect(metricAdapter.GetPostedMetricEvents()).Should(HaveLen(0))
@@ -146,11 +155,11 @@ var _ = Describe("autoCulledMetricsBuffer", func() {
 		subject.PostMetricEvents([]*messages.MetricEvent{
 			{
 				Labels:  map[string]string{"Name": "a"},
-				Metrics: []*messages.Metric{{Value: 1}},
+				Metrics: []*messages.Metric{{Value: 1, EventTime: time.Unix(1234567891, 0)}},
 			},
 			{
 				Labels:  map[string]string{"Name": "b"},
-				Metrics: []*messages.Metric{{Value: 2}},
+				Metrics: []*messages.Metric{{Value: 2, EventTime: time.Unix(1234567891, 0)}},
 			},
 		})
 		cancel()
@@ -182,7 +191,7 @@ var _ = Describe("autoCulledMetricsBuffer", func() {
 				subject.PostMetricEvents([]*messages.MetricEvent{
 					{
 						Labels:  map[string]string{"Name": strconv.Itoa(i)},
-						Metrics: []*messages.Metric{{Value: 1}},
+						Metrics: []*messages.Metric{{Value: 1, EventTime: time.Unix(1234567890+int64(i), 0)}},
 					},
 				})
 			}
