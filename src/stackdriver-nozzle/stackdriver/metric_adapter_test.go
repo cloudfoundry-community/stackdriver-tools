@@ -22,14 +22,13 @@ import (
 
 	"sync"
 
-	"fmt"
-
 	"strconv"
 
 	"github.com/cloudfoundry-community/stackdriver-tools/src/stackdriver-nozzle/messages"
 	"github.com/cloudfoundry-community/stackdriver-tools/src/stackdriver-nozzle/mocks"
 	"github.com/cloudfoundry-community/stackdriver-tools/src/stackdriver-nozzle/stackdriver"
 	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/ginkgo/extensions/table"
 	. "github.com/onsi/gomega"
 	labelpb "google.golang.org/genproto/googleapis/api/label"
 	metricpb "google.golang.org/genproto/googleapis/api/metric"
@@ -107,27 +106,16 @@ var _ = Describe("MetricAdapter", func() {
 		Expect(value.DoubleValue).To(Equal(54.321))
 	})
 
-	// TODO(jrjohnson): This should be a table test
-	It("posts in the correct batch size", func() {
-		postCount := 0
-		timeSeriesCount := 0
-		client.PostFn = func(req *monitoringpb.CreateTimeSeriesRequest) error {
-			postCount += 1
-			timeSeriesCount += len(req.TimeSeries)
+	type batchSizeCase struct {
+		groupSize int
+		postCount int
+	}
 
-			if len(req.TimeSeries) > batchSize {
-				Fail(fmt.Sprintf("time series (%d) exceeds batch size (%d)", len(req.TimeSeries), batchSize))
-			}
-
-			return nil
-		}
-
-		metricGroupSizes := []int{199, 200, 201, 399, 400, 1999, 2000, 2001}
-		// Test various numbers of metrics being posted to the buffer
-		for _, groupSize := range metricGroupSizes {
+	DescribeTable("correct batch size",
+		func(t batchSizeCase) {
 			events := []*messages.MetricEvent{}
 
-			for i := 0; i < groupSize; i++ {
+			for i := 0; i < t.groupSize; i++ {
 				events = append(events, &messages.MetricEvent{
 					Labels:  map[string]string{"Name": strconv.Itoa(i)},
 					Metrics: []*messages.Metric{{Value: 1}, {Value: 2}},
@@ -136,13 +124,13 @@ var _ = Describe("MetricAdapter", func() {
 
 			subject.PostMetricEvents(events)
 
-			Expect(postCount).To(BeNumerically("<", groupSize))
-			Expect(timeSeriesCount).To(Equal(groupSize * 2))
-
-			postCount = 0
-			timeSeriesCount = 0
-		}
-	})
+			Expect(client.MetricReqs).To(HaveLen(t.postCount))
+			Expect(client.TimeSeries).To(HaveLen(t.groupSize * 2))
+		},
+		Entry("less than the batch size", batchSizeCase{1, 1}),
+		XEntry("exactly the batch size", batchSizeCase{100, 1}),
+		Entry("two over the batch size", batchSizeCase{101, 2}),
+		Entry("a large batch size", batchSizeCase{2001, 21}))
 
 	It("creates metric descriptors", func() {
 		labels := map[string]string{"key": "value"}
