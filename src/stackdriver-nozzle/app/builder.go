@@ -42,7 +42,7 @@ func New(c *config.Config, logger lager.Logger) *App {
 	trigger := time.NewTicker(time.Duration(c.HeartbeatRate) * time.Second).C
 	adapterHeartbeater := heartbeat.NewHeartbeater(logger, trigger, "heartbeater.telemetry.emitted")
 	adapterHeartbeater.Start()
-	metricAdapter, err := stackdriver.NewMetricAdapter(c.ProjectID, metricClient, c.MetricsBatchSize, adapterHeartbeater)
+	metricAdapter, err := stackdriver.NewMetricAdapter(c.ProjectID, metricClient, c.MetricsBatchSize, adapterHeartbeater, logger)
 	if err != nil {
 		logger.Fatal("metricAdapter", err)
 	}
@@ -144,7 +144,7 @@ func (a *App) newMetricAdapter() stackdriver.MetricAdapter {
 		a.logger.Fatal("metricClient", err)
 	}
 
-	metricAdapter, err := stackdriver.NewMetricAdapter(a.c.ProjectID, metricClient, a.c.MetricsBatchSize, a.heartbeater)
+	metricAdapter, err := stackdriver.NewMetricAdapter(a.c.ProjectID, metricClient, a.c.MetricsBatchSize, a.heartbeater, a.logger)
 	if err != nil {
 		a.logger.Fatal("metricAdapter", err)
 	}

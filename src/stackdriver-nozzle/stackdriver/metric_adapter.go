@@ -24,6 +24,7 @@ import (
 	"time"
 
 	"github.com/cloudfoundry-community/stackdriver-tools/src/stackdriver-nozzle/messages"
+	"github.com/cloudfoundry/lager"
 	"github.com/golang/protobuf/ptypes/timestamp"
 	labelpb "google.golang.org/genproto/googleapis/api/label"
 	metricpb "google.golang.org/genproto/googleapis/api/metric"
@@ -47,6 +48,7 @@ type metricAdapter struct {
 	descriptors           map[string]struct{}
 	createDescriptorMutex *sync.Mutex
 	batchSize             int
+	logger                lager.Logger
 	heartbeater           Heartbeater
 }
 
@@ -67,10 +69,6 @@ func (pme *postMetricErr) BuildError() error {
 }
 
 func (pme *postMetricErr) AddPostError(err error) {
-	if err == nil {
-		return
-	}
-
 	pme.postErrs = append(pme.postErrs, err)
 }
 
@@ -101,13 +99,14 @@ func (pme *postMetricErr) processErrors() {
 }
 
 // NewMetricAdapter returns a MetricAdapater that can write to Stackdriver Monitoring
-func NewMetricAdapter(projectID string, client MetricClient, batchSize int, heartbeater Heartbeater) (MetricAdapter, error) {
+func NewMetricAdapter(projectID string, client MetricClient, batchSize int, heartbeater Heartbeater, logger lager.Logger) (MetricAdapter, error) {
 	ma := &metricAdapter{
 		projectID:             projectID,
 		client:                client,
 		createDescriptorMutex: &sync.Mutex{},
 		descriptors:           map[string]struct{}{},
 		batchSize:             batchSize,
+		logger:                logger,
 		heartbeater:           heartbeater,
 	}
 
@@ -122,7 +121,7 @@ func (ma *metricAdapter) PostMetricEvents(events []*messages.MetricEvent) error 
 	count := len(series)
 	chunks := count/ma.batchSize + 1
 
-	// TODO(jrjohnson): We should log here
+	ma.logger.Info("autoCulledMetricsBuffer", lager.Data{"info": fmt.Sprintf("%v metrics will be flushed in %v batches", count, chunks)})
 	var low, high int
 	for i := 0; i < chunks; i++ {
 		low = i * ma.batchSize
@@ -139,7 +138,9 @@ func (ma *metricAdapter) PostMetricEvents(events []*messages.MetricEvent) error 
 			TimeSeries: series[low:high],
 		})
 
-		postErr.AddPostError(err)
+		if err != nil {
+			postErr.AddPostError(err)
+		}
 	}
 
 	return postErr.BuildError()

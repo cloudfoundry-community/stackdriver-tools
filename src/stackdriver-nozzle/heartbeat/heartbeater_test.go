@@ -40,15 +40,11 @@ var _ = Describe("Heartbeater", func() {
 	BeforeEach(func() {
 		trigger = make(chan time.Time)
 
-		// Mock logger
 		logger = &mocks.MockLogger{}
-
-		// Mock heartbeater
 		heartbeater := mocks.NewHeartbeater()
 
-		// Mock metric handler
 		client = &mocks.MockClient{}
-		metricAdapter, _ = stackdriver.NewMetricAdapter("my-awesome-project", client, 200, heartbeater)
+		metricAdapter, _ = stackdriver.NewMetricAdapter("my-awesome-project", client, 200, heartbeater, logger)
 		metricHandler = heartbeat.NewMetricHandler(metricAdapter, logger, "nozzle-id", "nozzle-name", "nozle-zone")
 
 		subject = heartbeat.NewLoggerMetricHeartbeater(metricHandler, logger, trigger, "heartbeater")
@@ -58,9 +54,7 @@ var _ = Describe("Heartbeater", func() {
 	It("should start at zero", func() {
 		trigger <- time.Now()
 
-		Eventually(func() mocks.Log {
-			return logger.LastLog()
-		}).Should(Equal(mocks.Log{
+		Eventually(logger.Logs()).Should(ContainElement(mocks.Log{
 			Level:  lager.INFO,
 			Action: "heartbeater",
 			Datas: []lager.Data{
@@ -76,9 +70,7 @@ var _ = Describe("Heartbeater", func() {
 
 		trigger <- time.Now()
 
-		Eventually(func() mocks.Log {
-			return logger.LastLog()
-		}).Should(Equal(mocks.Log{
+		Eventually(logger.Logs()).Should(ContainElement(mocks.Log{
 			Level:  lager.INFO,
 			Action: "heartbeater",
 			Datas: []lager.Data{
@@ -106,7 +98,7 @@ var _ = Describe("Heartbeater", func() {
 
 		trigger <- time.Now()
 
-		Eventually(logger.LastLog).Should(Equal(mocks.Log{
+		Eventually(logger.Logs()).Should(ContainElement(mocks.Log{
 			Level:  lager.INFO,
 			Action: "heartbeater",
 			Datas: []lager.Data{
@@ -164,9 +156,7 @@ var _ = Describe("Heartbeater", func() {
 
 		trigger <- time.Now()
 
-		Eventually(func() mocks.Log {
-			return logger.LastLog()
-		}).Should(Equal(mocks.Log{
+		Eventually(logger.Logs()).Should(ContainElement(mocks.Log{
 			Level:  lager.INFO,
 			Action: "heartbeater",
 			Datas: []lager.Data{

@@ -43,12 +43,14 @@ var _ = Describe("MetricAdapter", func() {
 		subject     stackdriver.MetricAdapter
 		client      *mocks.MockClient
 		heartbeater *mocks.Heartbeater
+		logger      *mocks.MockLogger
 	)
 
 	BeforeEach(func() {
 		client = &mocks.MockClient{}
 		heartbeater = mocks.NewHeartbeater()
-		subject, _ = stackdriver.NewMetricAdapter("my-awesome-project", client, batchSize, heartbeater)
+		logger = &mocks.MockLogger{}
+		subject, _ = stackdriver.NewMetricAdapter("my-awesome-project", client, batchSize, heartbeater, logger)
 	})
 
 	It("takes metrics and posts a time series", func() {
@@ -237,7 +239,7 @@ var _ = Describe("MetricAdapter", func() {
 	It("returns the adapter even if we fail to list the metric descriptors", func() {
 		expectedErr := errors.New("fail")
 		client.ListErr = expectedErr
-		subject, err := stackdriver.NewMetricAdapter("my-awesome-project", client, 1, heartbeater)
+		subject, err := stackdriver.NewMetricAdapter("my-awesome-project", client, 1, heartbeater, logger)
 		Expect(subject).To(Not(BeNil()))
 		Expect(err).To(Equal(expectedErr))
 	})
