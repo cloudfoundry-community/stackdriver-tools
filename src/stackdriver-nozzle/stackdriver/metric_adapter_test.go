@@ -128,7 +128,7 @@ var _ = Describe("MetricAdapter", func() {
 			Expect(client.TimeSeries).To(HaveLen(t.groupSize * 2))
 		},
 		Entry("less than the batch size", batchSizeCase{1, 1}),
-		XEntry("exactly the batch size", batchSizeCase{100, 1}),
+		Entry("exactly the batch size", batchSizeCase{100, 1}),
 		Entry("two over the batch size", batchSizeCase{101, 2}),
 		Entry("a large batch size", batchSizeCase{2001, 21}))
 

@@ -18,6 +18,7 @@ package stackdriver
 
 import (
 	"fmt"
+	"math"
 	"path"
 	"strings"
 	"sync"
@@ -119,7 +120,7 @@ func (ma *metricAdapter) PostMetricEvents(events []*messages.MetricEvent) error 
 	projectName := path.Join("projects", ma.projectID)
 
 	count := len(series)
-	chunks := count/ma.batchSize + 1
+	chunks := int(math.Ceil(float64(count) / float64(ma.batchSize)))
 
 	ma.logger.Info("autoCulledMetricsBuffer", lager.Data{"info": fmt.Sprintf("%v metrics will be flushed in %v batches", count, chunks)})
 	var low, high int
