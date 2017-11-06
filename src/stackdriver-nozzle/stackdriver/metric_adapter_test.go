@@ -106,31 +106,37 @@ var _ = Describe("MetricAdapter", func() {
 		Expect(value.DoubleValue).To(Equal(54.321))
 	})
 
-	type batchSizeCase struct {
-		groupSize int
-		postCount int
+	type postEvent struct {
+		events          int
+		metricsPerEvent int
+		postCount       int
 	}
 
 	DescribeTable("correct batch size",
-		func(t batchSizeCase) {
+		func(t postEvent) {
 			events := []*messages.MetricEvent{}
 
-			for i := 0; i < t.groupSize; i++ {
+			metrics := []*messages.Metric{}
+			for i := 0; i < t.metricsPerEvent; i++ {
+				metrics = append(metrics, &messages.Metric{Value: float64(i)})
+			}
+
+			for i := 0; i < t.events; i++ {
 				events = append(events, &messages.MetricEvent{
 					Labels:  map[string]string{"Name": strconv.Itoa(i)},
-					Metrics: []*messages.Metric{{Value: 1}, {Value: 2}},
+					Metrics: metrics,
 				})
 			}
 
 			subject.PostMetricEvents(events)
 
 			Expect(client.MetricReqs).To(HaveLen(t.postCount))
-			Expect(client.TimeSeries).To(HaveLen(t.groupSize * 2))
+			Expect(client.TimeSeries).To(HaveLen(t.events * t.metricsPerEvent))
 		},
-		Entry("less than the batch size", batchSizeCase{1, 1}),
-		Entry("exactly the batch size", batchSizeCase{100, 1}),
-		Entry("two over the batch size", batchSizeCase{101, 2}),
-		Entry("a large batch size", batchSizeCase{2001, 21}))
+		Entry("less than the batch size", postEvent{1, 1, 1}),
+		Entry("exactly the batch size", postEvent{100, 2, 1}),
+		Entry("one over the batch size", postEvent{201, 1, 2}),
+		Entry("a large batch size", postEvent{2001, 2, 21}))
 
 	It("creates metric descriptors", func() {
 		labels := map[string]string{"key": "value"}
