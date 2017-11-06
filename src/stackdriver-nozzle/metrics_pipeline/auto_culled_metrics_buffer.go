@@ -86,11 +86,7 @@ func (mb *autoCulledMetricsBuffer) IsEmpty() bool {
 }
 
 func (mb *autoCulledMetricsBuffer) flush() {
-	metrics := mb.flushInternalBuffer()
-	count := len(metrics)
-	mb.logger.Info("autoCulledMetricsBuffer", lager.Data{"info": fmt.Sprintf("%v metric events will be flushed", count)})
-
-	err := mb.adapter.PostMetricEvents(metrics)
+	err := mb.adapter.PostMetricEvents(mb.flushInternalBuffer())
 
 	if err != nil {
 		mb.errs <- err
