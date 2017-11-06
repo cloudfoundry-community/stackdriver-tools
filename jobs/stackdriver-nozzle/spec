@@ -51,3 +51,11 @@ properties:
   nozzle.resolve_app_metadata:
     description: Enable resolution of app metadata from appGuid
     default: true
+
+  nozzle.metric_path_prefix
+    description: Prefix added to all metric names being sent to Stackdriver, e.g. 'custom/PREFIX/gorouter.total_requests'. May contain slashes.
+    default: firehose
+
+  nozzle.bosh_director_name
+    description: Name added as the 'director' label to all time series being sent to Stackdriver, useful for differentiating between multiple PCF instances in a project.
+    default: cf

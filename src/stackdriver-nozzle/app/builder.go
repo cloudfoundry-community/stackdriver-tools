@@ -70,7 +70,7 @@ func New(c *config.Config, logger lager.Logger) *App {
 	} else {
 		appInfoRepository = cloudfoundry.NullAppInfoRepository()
 	}
-	labelMaker := nozzle.NewLabelMaker(appInfoRepository)
+	labelMaker := nozzle.NewLabelMaker(appInfoRepository, c.BoshDirectorName)
 
 	return &App{
 		logger:      logger,
@@ -152,5 +152,5 @@ func (a *App) newMetricSink(ctx context.Context, metricAdapter stackdriver.Metri
 	metricBuffer := metrics_pipeline.NewAutoCulledMetricsBuffer(ctx, a.logger, time.Duration(a.c.MetricsBufferDuration)*time.Second, metricAdapter, a.heartbeater)
 	a.bufferEmpty = metricBuffer.IsEmpty
 
-	return nozzle.NewMetricSink(a.logger, a.labelMaker, metricBuffer, nozzle.NewUnitParser())
+	return nozzle.NewMetricSink(a.logger, a.c.MetricPathPrefix, a.labelMaker, metricBuffer, nozzle.NewUnitParser())
 }

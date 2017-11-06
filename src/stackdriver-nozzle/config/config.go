@@ -65,6 +65,8 @@ type Config struct {
 	HeartbeatRate         int    `envconfig:"heartbeat_rate" default:"30"`
 	MetricsBufferDuration int    `envconfig:"metrics_buffer_duration" default:"30"`
 	MetricsBatchSize      int    `envconfig:"metrics_batch_size" default:"200"`
+	MetricPathPrefix      string `envconfig:"metric_path_prefix" default:"firehose"`
+	BoshDirectorName      string `envconfig:"bosh_director_name" default:"cf"`
 	ResolveAppMetadata    bool   `envconfig:"resolve_app_metadata"`
 	NozzleId              string `envconfig:"nozzle_id" default:"local-nozzle"`
 	NozzleName            string `envconfig:"nozzle_name" default:"local-nozzle"`

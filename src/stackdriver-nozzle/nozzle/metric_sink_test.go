@@ -55,7 +55,7 @@ var _ = Describe("MetricSink", func() {
 		unitParser = &mockUnitParser{}
 		logger = &mocks.MockLogger{}
 
-		subject = nozzle.NewMetricSink(logger, labelMaker, metricBuffer, unitParser)
+		subject = nozzle.NewMetricSink(logger, "firehose", labelMaker, metricBuffer, unitParser)
 	})
 
 	It("creates metric for ValueMetric", func() {
@@ -85,7 +85,7 @@ var _ = Describe("MetricSink", func() {
 		metrics := metricBuffer.PostedMetrics
 		Expect(metrics).To(HaveLen(1))
 		Expect(metrics[0]).To(MatchAllFields(Fields{
-			"Name":      Equal("origin.valueMetricName"),
+			"Name":      Equal("firehose/origin.valueMetricName"),
 			"Value":     Equal(123.456),
 			"EventTime": Ignore(),
 			"Unit":      Equal("{foo}"),
@@ -136,12 +136,12 @@ var _ = Describe("MetricSink", func() {
 		}
 
 		Expect(metrics).To(MatchAllElements(eventName, Elements{
-			"origin.diskBytesQuota":   MatchAllFields(Fields{"Name": Ignore(), "Value": Equal(float64(1073741824)), "EventTime": Ignore(), "Unit": Equal("")}),
-			"origin.instanceIndex":    MatchAllFields(Fields{"Name": Ignore(), "Value": Equal(float64(0)), "EventTime": Ignore(), "Unit": Equal("")}),
-			"origin.cpuPercentage":    MatchAllFields(Fields{"Name": Ignore(), "Value": Equal(float64(0.061651273460637)), "EventTime": Ignore(), "Unit": Equal("")}),
-			"origin.diskBytes":        MatchAllFields(Fields{"Name": Ignore(), "Value": Equal(float64(164634624)), "EventTime": Ignore(), "Unit": Equal("")}),
-			"origin.memoryBytes":      MatchAllFields(Fields{"Name": Ignore(), "Value": Equal(float64(16601088)), "EventTime": Ignore(), "Unit": Equal("")}),
-			"origin.memoryBytesQuota": MatchAllFields(Fields{"Name": Ignore(), "Value": Equal(float64(33554432)), "EventTime": Ignore(), "Unit": Equal("")}),
+			"firehose/origin.diskBytesQuota":   MatchAllFields(Fields{"Name": Ignore(), "Value": Equal(float64(1073741824)), "EventTime": Ignore(), "Unit": Equal("")}),
+			"firehose/origin.instanceIndex":    MatchAllFields(Fields{"Name": Ignore(), "Value": Equal(float64(0)), "EventTime": Ignore(), "Unit": Equal("")}),
+			"firehose/origin.cpuPercentage":    MatchAllFields(Fields{"Name": Ignore(), "Value": Equal(float64(0.061651273460637)), "EventTime": Ignore(), "Unit": Equal("")}),
+			"firehose/origin.diskBytes":        MatchAllFields(Fields{"Name": Ignore(), "Value": Equal(float64(164634624)), "EventTime": Ignore(), "Unit": Equal("")}),
+			"firehose/origin.memoryBytes":      MatchAllFields(Fields{"Name": Ignore(), "Value": Equal(float64(16601088)), "EventTime": Ignore(), "Unit": Equal("")}),
+			"firehose/origin.memoryBytesQuota": MatchAllFields(Fields{"Name": Ignore(), "Value": Equal(float64(33554432)), "EventTime": Ignore(), "Unit": Equal("")}),
 		}))
 	})
 
@@ -175,13 +175,13 @@ var _ = Describe("MetricSink", func() {
 			return element.(messages.Metric).Name
 		}
 		Expect(metrics).To(MatchAllElements(eventName, Elements{
-			"origin.counterName.delta": MatchAllFields(Fields{
+			"firehose/origin.counterName.delta": MatchAllFields(Fields{
 				"Name":      Ignore(),
 				"Value":     Equal(float64(654321)),
 				"EventTime": Ignore(),
 				"Unit":      Equal(""),
 			}),
-			"origin.counterName.total": MatchAllFields(Fields{
+			"firehose/origin.counterName.total": MatchAllFields(Fields{
 				"Name":      Ignore(),
 				"Value":     Equal(float64(123456)),
 				"EventTime": Ignore(),

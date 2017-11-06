@@ -17,6 +17,7 @@
 package nozzle
 
 import (
+	"bytes"
 	"fmt"
 	"time"
 
@@ -27,8 +28,9 @@ import (
 )
 
 // NewLogSink returns a Sink that can receive sonde Events, translate them and send them to a stackdriver.MetricAdapter
-func NewMetricSink(logger lager.Logger, labelMaker LabelMaker, metricAdapter stackdriver.MetricAdapter, unitParser UnitParser) Sink {
+func NewMetricSink(logger lager.Logger, pathPrefix string, labelMaker LabelMaker, metricAdapter stackdriver.MetricAdapter, unitParser UnitParser) Sink {
 	return &metricSink{
+		pathPrefix:    pathPrefix,
 		labelMaker:    labelMaker,
 		metricAdapter: metricAdapter,
 		unitParser:    unitParser,
@@ -37,17 +39,29 @@ func NewMetricSink(logger lager.Logger, labelMaker LabelMaker, metricAdapter sta
 }
 
 type metricSink struct {
+	pathPrefix    string
 	labelMaker    LabelMaker
 	metricAdapter stackdriver.MetricAdapter
 	unitParser    UnitParser
 	logger        lager.Logger
 }
 
+func (ms *metricSink) getPrefix(envelope *events.Envelope) string {
+	buf := bytes.Buffer{}
+	if ms.pathPrefix != "" {
+		buf.WriteString(ms.pathPrefix)
+		buf.WriteString("/")
+	}
+	if envelope.GetOrigin() != "" {
+		buf.WriteString(envelope.GetOrigin())
+		buf.WriteString(".")
+	}
+	return buf.String()
+}
+
 func (ms *metricSink) Receive(envelope *events.Envelope) {
 	labels := ms.labelMaker.MetricLabels(envelope)
-
-	// Origin is a required field so this is fine.
-	originPrefix := envelope.GetOrigin() + "."
+	metricPrefix := ms.getPrefix(envelope)
 
 	timestamp := time.Duration(envelope.GetTimestamp())
 	eventTime := time.Unix(
@@ -60,7 +74,7 @@ func (ms *metricSink) Receive(envelope *events.Envelope) {
 	case events.Envelope_ValueMetric:
 		valueMetric := envelope.GetValueMetric()
 		metrics = []*messages.Metric{{
-			Name:      originPrefix + valueMetric.GetName(),
+			Name:      metricPrefix + valueMetric.GetName(),
 			Value:     valueMetric.GetValue(),
 			EventTime: eventTime,
 			Unit:      ms.unitParser.Parse(valueMetric.GetUnit()),
@@ -68,23 +82,23 @@ func (ms *metricSink) Receive(envelope *events.Envelope) {
 	case events.Envelope_ContainerMetric:
 		containerMetric := envelope.GetContainerMetric()
 		metrics = []*messages.Metric{
-			{Name: originPrefix + "diskBytesQuota", Value: float64(containerMetric.GetDiskBytesQuota()), EventTime: eventTime},
-			{Name: originPrefix + "instanceIndex", Value: float64(containerMetric.GetInstanceIndex()), EventTime: eventTime},
-			{Name: originPrefix + "cpuPercentage", Value: float64(containerMetric.GetCpuPercentage()), EventTime: eventTime},
-			{Name: originPrefix + "diskBytes", Value: float64(containerMetric.GetDiskBytes()), EventTime: eventTime},
-			{Name: originPrefix + "memoryBytes", Value: float64(containerMetric.GetMemoryBytes()), EventTime: eventTime},
-			{Name: originPrefix + "memoryBytesQuota", Value: float64(containerMetric.GetMemoryBytesQuota()), EventTime: eventTime},
+			{Name: metricPrefix + "diskBytesQuota", Value: float64(containerMetric.GetDiskBytesQuota()), EventTime: eventTime},
+			{Name: metricPrefix + "instanceIndex", Value: float64(containerMetric.GetInstanceIndex()), EventTime: eventTime},
+			{Name: metricPrefix + "cpuPercentage", Value: float64(containerMetric.GetCpuPercentage()), EventTime: eventTime},
+			{Name: metricPrefix + "diskBytes", Value: float64(containerMetric.GetDiskBytes()), EventTime: eventTime},
+			{Name: metricPrefix + "memoryBytes", Value: float64(containerMetric.GetMemoryBytes()), EventTime: eventTime},
+			{Name: metricPrefix + "memoryBytesQuota", Value: float64(containerMetric.GetMemoryBytesQuota()), EventTime: eventTime},
 		}
 	case events.Envelope_CounterEvent:
 		counterEvent := envelope.GetCounterEvent()
 		metrics = []*messages.Metric{
 			{
-				Name:      fmt.Sprintf("%s%v.delta", originPrefix, counterEvent.GetName()),
+				Name:      fmt.Sprintf("%s%v.delta", metricPrefix, counterEvent.GetName()),
 				Value:     float64(counterEvent.GetDelta()),
 				EventTime: eventTime,
 			},
 			{
-				Name:      fmt.Sprintf("%s%v.total", originPrefix, counterEvent.GetName()),
+				Name:      fmt.Sprintf("%s%v.total", metricPrefix, counterEvent.GetName()),
 				Value:     float64(counterEvent.GetTotal()),
 				EventTime: eventTime,
 			},

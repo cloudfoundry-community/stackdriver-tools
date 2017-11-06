@@ -39,6 +39,8 @@ packages:
       nozzle:
         metrics_buffer_duration: (( .properties.metrics_buffer_duration.value ))
         metrics_batch_size: (( .properties.metrics_batch_size.value ))
+        metric_path_prefix: (( .properties.metric_path_prefix.value ))
+        bosh_director_name: (( .properties.bosh_director_name.value ))
 
 
 forms:
@@ -90,3 +92,11 @@ forms:
     type: integer
     default: 200
     description: Batch size for time series being sent to Stackdriver
+  - name: metric_path_prefix
+    type: string
+    default: firehose
+    description: Prefix added to all metric names being sent to Stackdriver, e.g. 'custom/PREFIX/gorouter.total_requests'. May contain slashes.
+  - name: bosh_director_name
+    type: string
+    default: cf
+    description: Name added as the 'director' label to all time series being sent to Stackdriver, useful for differentiating between multiple PCF instances in a project.

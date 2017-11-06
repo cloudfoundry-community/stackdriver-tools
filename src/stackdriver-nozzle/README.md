@@ -39,6 +39,10 @@ go get github.com/cloudfoundry-community/stackdriver-tools/src/stackdriver-nozzl
 
 #### Nozzle
 
+- `BOSH_DIRECTOR_NAME` - sets the value of the "director" label added to every
+  metric / log exported to Stackdriver; defaults to "cf". This is useful for
+  differentiating between multiple cloud foundry / BOSH instances in the same
+  GCP / Stackdriver project.
 - `HEARTBEAT_RATE` - how often `stackdriver-nozzle` reports stats to stdout;
   defaults to 30 seconds
 - `LOGGING_BATCH_COUNT` - how many logs to batch into a single report to
@@ -49,6 +53,10 @@ go get github.com/cloudfoundry-community/stackdriver-tools/src/stackdriver-nozzl
   buffer; defaults to 30
 - `METRICS_BATCH_SIZE` - batch size for metric time series being sent to
   Stackdriver; defaults to 200
+- `METRIC_PATH_PREFIX` - sets a prefix for all custom metrics exported to
+  Stackdriver, e.g. custom.googleapis.com/PREFIX/gorouter.total_requests;
+  defaults to "firehose". May contain slashes. Useful to "namespace"
+  cloud foundry metrics from others in the same Stackdriver project.
 - `RESOLVE_APP_METADATA` - whether to hydrate app UUIDs into org name, org
   UUID, space name, space UUID, and app name; defaults to `true`
 - `SUBSCRIPTION_ID` - what subscription ID to use for connecting to the
