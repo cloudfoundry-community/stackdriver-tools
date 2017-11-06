@@ -21,6 +21,7 @@ import (
 
 	"github.com/cloudfoundry-community/stackdriver-tools/src/stackdriver-nozzle/mocks"
 	"github.com/cloudfoundry-community/stackdriver-tools/src/stackdriver-nozzle/nozzle"
+	"github.com/cloudfoundry/lager"
 	"github.com/cloudfoundry/sonde-go/events"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -28,12 +29,12 @@ import (
 
 var _ = Describe("Nozzle", func() {
 	var (
-		subject     *nozzle.Nozzle
+		subject     nozzle.Nozzle
 		firehose    *mocks.FirehoseClient
 		logSink     *mocks.Sink
 		metricSink  *mocks.Sink
 		heartbeater *mocks.Heartbeater
-		fhErrs      <-chan error
+		logger      *mocks.MockLogger
 	)
 
 	BeforeEach(func() {
@@ -41,13 +42,10 @@ var _ = Describe("Nozzle", func() {
 		logSink = &mocks.Sink{}
 		metricSink = &mocks.Sink{}
 		heartbeater = mocks.NewHeartbeater()
+		logger = &mocks.MockLogger{}
 
-		subject = &nozzle.Nozzle{
-			LogSink:     logSink,
-			MetricSink:  metricSink,
-			Heartbeater: heartbeater,
-		}
-		fhErrs = subject.Start(firehose)
+		subject = nozzle.NewNozzle(logger, logSink, metricSink, heartbeater)
+		subject.Start(firehose)
 	})
 
 	It("starts the heartbeater", func() {
@@ -77,8 +75,6 @@ var _ = Describe("Nozzle", func() {
 			event := events.Envelope{EventType: &eventType}
 			firehose.Messages <- &event
 		}
-
-		Consistently(fhErrs).ShouldNot(Receive())
 	})
 
 	It("handles HttpStartStop event", func() {
@@ -135,11 +131,15 @@ var _ = Describe("Nozzle", func() {
 		Eventually(metricSink.LastEnvelope).Should(Equal(envelope))
 	})
 
-	It("returns the firehose client errors", func() {
+	It("logs the firehose client errors", func() {
 		err := errors.New("omg")
 		go func() { firehose.Errs <- err }()
 
-		Eventually(fhErrs).Should(Receive(Equal(err)))
+		Eventually(logger.Logs).Should(ContainElement(mocks.Log{
+			Level:  lager.ERROR,
+			Err:    err,
+			Action: "firehose",
+		}))
 	})
 
 	It("is resilient to multiple exists", func(done Done) {

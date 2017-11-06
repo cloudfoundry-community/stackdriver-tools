@@ -86,7 +86,7 @@ func (a *App) newProducer() cloudfoundry.Firehose {
 	return cloudfoundry.NewFirehose(a.cfConfig, a.cfClient, a.c.SubscriptionID)
 }
 
-func (a *App) newConsumer(ctx context.Context) (*nozzle.Nozzle, error) {
+func (a *App) newConsumer(ctx context.Context) (nozzle.Nozzle, error) {
 	logEvents, err := nozzle.ParseEvents(strings.Split(a.c.LoggingEvents, ","))
 	if err != nil {
 		return nil, err
@@ -116,11 +116,7 @@ func (a *App) newConsumer(ctx context.Context) (*nozzle.Nozzle, error) {
 		return nil, err
 	}
 
-	return &nozzle.Nozzle{
-		LogSink:     filteredLogSink,
-		MetricSink:  filteredMetricSink,
-		Heartbeater: a.heartbeater,
-	}, nil
+	return nozzle.NewNozzle(a.logger, filteredLogSink, filteredMetricSink, a.heartbeater), nil
 }
 
 func (a *App) newLogAdapter() stackdriver.LogAdapter {

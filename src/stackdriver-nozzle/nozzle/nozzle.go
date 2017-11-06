@@ -23,17 +23,24 @@ import (
 	"code.cloudfoundry.org/diodes"
 	"github.com/cloudfoundry-community/stackdriver-tools/src/stackdriver-nozzle/cloudfoundry"
 	"github.com/cloudfoundry-community/stackdriver-tools/src/stackdriver-nozzle/heartbeat"
+	"github.com/cloudfoundry/lager"
 	"github.com/cloudfoundry/sonde-go/events"
 	"github.com/gorilla/websocket"
 )
 
 const bufferSize = 30000 // 1k messages/second * 30 seconds
 
-type Nozzle struct {
-	LogSink    Sink
-	MetricSink Sink
+type Nozzle interface {
+	Start(firehose cloudfoundry.Firehose)
+	Stop() error
+}
 
-	Heartbeater heartbeat.Heartbeater
+type nozzle struct {
+	logSink    Sink
+	metricSink Sink
+
+	heartbeater heartbeat.Heartbeater
+	logger      lager.Logger
 
 	session state
 }
@@ -44,21 +51,42 @@ type state struct {
 	running bool
 }
 
-func (n *Nozzle) Start(firehose cloudfoundry.Firehose) (firehoseErrs chan error) {
-	n.Heartbeater.Start()
+func NewNozzle(logger lager.Logger, logSink Sink, metricSink Sink, heartbeater heartbeat.Heartbeater) Nozzle {
+	return &nozzle{
+		logSink:     logSink,
+		metricSink:  metricSink,
+		heartbeater: heartbeater,
+		logger:      logger,
+	}
+}
+
+func (n *nozzle) Start(firehose cloudfoundry.Firehose) {
+	n.heartbeater.Start()
 	n.session = state{done: make(chan struct{}), running: true}
 
-	firehoseErrs = make(chan error)
 	messages, fhErrInternal := firehose.Connect()
+
+	// Drain and report errors from firehose
+	go func() {
+		for err := range fhErrInternal {
+			if err == nil {
+				// Ignore empty errors. Customers observe a flooding of empty errors from firehose.
+				go n.heartbeater.Increment("firehose.errors.empty")
+				continue
+			}
+
+			go n.handleFirehoseError(err)
+		}
+	}()
 
 	buffer := diodes.NewPoller(diodes.NewOneToOne(bufferSize, diodes.AlertFunc(func(missed int) {
 		if missed < 0 {
 			panic("negative missed value received")
 		}
-		go n.Heartbeater.IncrementBy("nozzle.events.dropped", uint(missed))
+		go n.heartbeater.IncrementBy("nozzle.events.dropped", uint(missed))
 	})))
 
-	// Drain messages from the firehose
+	// Drain messages from the firehose and place them into the ring buffer
 	go func() {
 		for {
 			select {
@@ -70,21 +98,7 @@ func (n *Nozzle) Start(firehose cloudfoundry.Firehose) (firehoseErrs chan error)
 		}
 	}()
 
-	// Drain errors from the firehose
-	go func() {
-		for err := range fhErrInternal {
-			if err == nil {
-				// Ignore empty errors. Customers observe a flooding of empty errors from firehose.
-				go n.Heartbeater.Increment("firehose.errors.empty")
-				continue
-			}
-
-			go n.handleFirehoseError(err)
-			firehoseErrs <- err
-		}
-	}()
-
-	// Send firehose events through the nozzle
+	// Drain the ring buffer of firehose events to send through the nozzle
 	go func() {
 		for {
 			unsafeEvent := buffer.Next()
@@ -94,47 +108,47 @@ func (n *Nozzle) Start(firehose cloudfoundry.Firehose) (firehoseErrs chan error)
 			}
 		}
 	}()
-
-	return firehoseErrs
 }
 
-func (n *Nozzle) Stop() error {
+func (n *nozzle) Stop() error {
 	n.session.Lock()
 	defer n.session.Unlock()
 
 	if !n.session.running {
 		return errors.New("nozzle is not running")
 	}
-	n.Heartbeater.Stop()
+	n.heartbeater.Stop()
 	close(n.session.done)
 	n.session.running = false
 
 	return nil
 }
 
-func (n *Nozzle) handleEvent(envelope *events.Envelope) {
-	n.Heartbeater.Increment("nozzle.events")
+func (n *nozzle) handleEvent(envelope *events.Envelope) {
+	n.heartbeater.Increment("nozzle.events")
 	if isMetric(envelope) {
-		n.MetricSink.Receive(envelope)
+		n.metricSink.Receive(envelope)
 	} else {
-		n.LogSink.Receive(envelope)
+		n.logSink.Receive(envelope)
 	}
 }
 
-func (n *Nozzle) handleFirehoseError(err error) {
+func (n *nozzle) handleFirehoseError(err error) {
+	n.logger.Error("firehose", err)
+
 	closeErr, ok := err.(*websocket.CloseError)
 	if !ok {
-		n.Heartbeater.Increment("firehose.errors.unknwon")
+		n.heartbeater.Increment("firehose.errors.unknwon")
 		return
 	}
 
 	switch closeErr.Code {
 	case websocket.CloseNormalClosure:
-		n.Heartbeater.Increment("firehose.errors.close.normal_close")
+		n.heartbeater.Increment("firehose.errors.close.normal_close")
 	case websocket.ClosePolicyViolation:
-		n.Heartbeater.Increment("firehose.errors.close.policy_violation")
+		n.heartbeater.Increment("firehose.errors.close.policy_violation")
 	default:
-		n.Heartbeater.Increment("firehose.errors.close.unknown")
+		n.heartbeater.Increment("firehose.errors.close.unknown")
 	}
 }
 

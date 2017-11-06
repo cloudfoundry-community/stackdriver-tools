@@ -36,12 +36,7 @@ func Run(ctx context.Context, a *App) {
 		a.logger.Fatal("construction", err)
 	}
 
-	fhErrs := consumer.Start(producer)
-	go func() {
-		for err := range fhErrs {
-			a.logger.Error("firehose", err)
-		}
-	}()
+	consumer.Start(producer)
 
 	blockTillInterrupt()
 
