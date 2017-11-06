@@ -90,7 +90,9 @@ func (ms *metricSink) Receive(envelope *events.Envelope) error {
 		return fmt.Errorf("unknown event type: %v", envelope.EventType)
 	}
 
-	return ms.metricAdapter.PostMetricEvents([]*messages.MetricEvent{
+	ms.metricAdapter.PostMetricEvents([]*messages.MetricEvent{
 		{Metrics: metrics, Labels: labels, Type: envelope.GetEventType()},
 	})
+
+	return nil
 }

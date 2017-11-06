@@ -31,7 +31,7 @@ func NewRouter(metricAdapter stackdriver.MetricAdapter, metricEvents []events.En
 	return r
 }
 
-func (r *router) PostMetricEvents(events []*messages.MetricEvent) error {
+func (r *router) PostMetricEvents(events []*messages.MetricEvent) {
 	metricEvents := []*messages.MetricEvent{}
 	for i := range events {
 		if r.metricEvents[events[i].Type] {
@@ -48,8 +48,6 @@ func (r *router) PostMetricEvents(events []*messages.MetricEvent) error {
 	}
 
 	if len(metricEvents) > 0 {
-		return r.metricAdapter.PostMetricEvents(metricEvents)
+		r.metricAdapter.PostMetricEvents(metricEvents)
 	}
-
-	return nil
 }

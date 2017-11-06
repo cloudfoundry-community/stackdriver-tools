@@ -18,7 +18,6 @@ package metrics_pipeline_test
 
 import (
 	"context"
-	"errors"
 	"time"
 
 	"sort"
@@ -44,7 +43,7 @@ var _ = Describe("autoCulledMetricsBuffer", func() {
 	})
 
 	It("culls duplicate metrics", func() {
-		subject, _ := NewAutoCulledMetricsBuffer(context.TODO(), logger, 100*time.Millisecond, metricAdapter, heartbeater)
+		subject := NewAutoCulledMetricsBuffer(context.TODO(), logger, 100*time.Millisecond, metricAdapter, heartbeater)
 
 		subject.PostMetricEvents([]*messages.MetricEvent{
 			{
@@ -78,7 +77,7 @@ var _ = Describe("autoCulledMetricsBuffer", func() {
 	})
 
 	It("culls multiple duplicates, keeping the latest", func() {
-		subject, _ := NewAutoCulledMetricsBuffer(context.TODO(), logger, 100*time.Millisecond, metricAdapter, heartbeater)
+		subject := NewAutoCulledMetricsBuffer(context.TODO(), logger, 100*time.Millisecond, metricAdapter, heartbeater)
 		subject.PostMetricEvents([]*messages.MetricEvent{
 			{
 				Labels:  map[string]string{"d1": "a"},
@@ -128,7 +127,7 @@ var _ = Describe("autoCulledMetricsBuffer", func() {
 
 	It("it buffers metrics for the expected duration before flushing", func() {
 		d := 500 * time.Millisecond
-		subject, _ := NewAutoCulledMetricsBuffer(context.TODO(), logger, d, metricAdapter, heartbeater)
+		subject := NewAutoCulledMetricsBuffer(context.TODO(), logger, d, metricAdapter, heartbeater)
 
 		subject.PostMetricEvents([]*messages.MetricEvent{
 			{
@@ -147,7 +146,7 @@ var _ = Describe("autoCulledMetricsBuffer", func() {
 	It("it flushes metrics when the context is canceled", func() {
 		d := 500 * time.Second
 		ctx, cancel := context.WithCancel(context.Background())
-		subject, _ := NewAutoCulledMetricsBuffer(ctx, logger, d, metricAdapter, heartbeater)
+		subject := NewAutoCulledMetricsBuffer(ctx, logger, d, metricAdapter, heartbeater)
 
 		subject.PostMetricEvents([]*messages.MetricEvent{
 			{
@@ -161,23 +160,6 @@ var _ = Describe("autoCulledMetricsBuffer", func() {
 		})
 		cancel()
 		Eventually(metricAdapter.GetPostedMetricEvents).Should(HaveLen(2))
-	})
-
-	It("sends errors through the error channel", func() {
-		d := 1 * time.Millisecond
-		subject, errs := NewAutoCulledMetricsBuffer(context.TODO(), logger, d, metricAdapter, heartbeater)
-
-		expectedErr := errors.New("fail")
-		metricAdapter.PostMetricEventsError = expectedErr
-
-		metricEvent := []*messages.MetricEvent{{}}
-		subject.PostMetricEvents(metricEvent)
-
-		Eventually(metricAdapter.GetPostedMetricEvents).Should(HaveLen(1))
-
-		var err error
-		Eventually(errs).Should(Receive(&err))
-		Expect(err).To(Equal(expectedErr))
 	})
 
 	Describe("with a slow MetricAdapter", func() {
@@ -194,7 +176,7 @@ var _ = Describe("autoCulledMetricsBuffer", func() {
 				return nil
 			}
 
-			subject, _ = NewAutoCulledMetricsBuffer(context.TODO(), logger, 1*time.Millisecond, metricAdapter, heartbeater)
+			subject = NewAutoCulledMetricsBuffer(context.TODO(), logger, 1*time.Millisecond, metricAdapter, heartbeater)
 		})
 
 		It("doesn't block new metrics during flush", func() {

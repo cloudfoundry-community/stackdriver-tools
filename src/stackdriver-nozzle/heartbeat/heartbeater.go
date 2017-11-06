@@ -36,7 +36,7 @@ type Heartbeater interface {
 
 type Handler interface {
 	Handle(name string, count uint)
-	Flush() error
+	Flush()
 	Name() string
 }
 
@@ -101,9 +101,7 @@ func (h *heartbeater) Start() {
 			case <-h.trigger:
 				h.logger.Info("heartbeater", lager.Data{"debug": fmt.Sprintf("Flushing %v handlers", len(h.handlers))})
 				for _, ha := range h.handlers {
-					if err := ha.Flush(); err != nil {
-						h.logger.Error("heartbeater", err, lager.Data{"handler": ha.Name()})
-					}
+					ha.Flush()
 				}
 			case event := <-h.events:
 				for _, ha := range h.handlers {
@@ -114,9 +112,7 @@ func (h *heartbeater) Start() {
 				h.logger.Info("heartbeater", lager.Data{"debug": fmt.Sprintf("Heartbeat polling done for %v handlers", len(h.handlers))})
 				for _, ha := range h.handlers {
 					h.logger.Info("heartbeater", lager.Data{"debug": "Flushing", "handler": ha.Name()})
-					if err := ha.Flush(); err != nil {
-						h.logger.Error("heartbeater", err, lager.Data{"handler": ha.Name()})
-					}
+					ha.Flush()
 				}
 				h.logger.Info("heartbeater", lager.Data{"debug": "all handlers flushed"})
 				return

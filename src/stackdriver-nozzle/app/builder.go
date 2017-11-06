@@ -153,13 +153,8 @@ func (a *App) newMetricAdapter() stackdriver.MetricAdapter {
 }
 
 func (a *App) newMetricSink(ctx context.Context, metricAdapter stackdriver.MetricAdapter) nozzle.Sink {
-	metricBuffer, errs := metrics_pipeline.NewAutoCulledMetricsBuffer(ctx, a.logger, time.Duration(a.c.MetricsBufferDuration)*time.Second, metricAdapter, a.heartbeater)
+	metricBuffer := metrics_pipeline.NewAutoCulledMetricsBuffer(ctx, a.logger, time.Duration(a.c.MetricsBufferDuration)*time.Second, metricAdapter, a.heartbeater)
 	a.bufferEmpty = metricBuffer.IsEmpty
-	go func() {
-		for err := range errs {
-			a.logger.Error("metricsBuffer", err)
-		}
-	}()
 
 	return nozzle.NewMetricSink(a.labelMaker, metricBuffer, nozzle.NewUnitParser())
 }

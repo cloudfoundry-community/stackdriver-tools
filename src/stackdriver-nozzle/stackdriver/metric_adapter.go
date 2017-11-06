@@ -33,7 +33,7 @@ import (
 )
 
 type MetricAdapter interface {
-	PostMetricEvents([]*messages.MetricEvent) error
+	PostMetricEvents([]*messages.MetricEvent)
 }
 
 type Heartbeater interface {
@@ -53,52 +53,6 @@ type metricAdapter struct {
 	heartbeater           Heartbeater
 }
 
-type postMetricErr struct {
-	metricDescriptor []error
-	postErrs         []error
-	filteredErrs     []error
-	heartbeater      Heartbeater
-}
-
-func (pme *postMetricErr) BuildError() error {
-	pme.processErrors()
-	if pme == nil || len(pme.filteredErrs) == 0 && len(pme.metricDescriptor) == 0 {
-		return nil
-	}
-
-	return fmt.Errorf("PostMetricEvents, Unexpected Post Errors: %v, Metric Descriptor Errors: %v", pme.filteredErrs, pme.metricDescriptor)
-}
-
-func (pme *postMetricErr) AddPostError(err error) {
-	pme.postErrs = append(pme.postErrs, err)
-}
-
-// Filter expected errors and record telemetry
-func (pme *postMetricErr) processErrors() {
-	if pme == nil || len(pme.postErrs) == 0 && len(pme.metricDescriptor) == 0 {
-		return
-	}
-
-	for _, err := range pme.postErrs {
-		pme.heartbeater.Increment("metrics.post.errors")
-
-		// This is an expected error once there is more than a single nozzle writing to Stackdriver.
-		// If one nozzle writes a metric occurring at time T2 and this one tries to write at T1 (where T2 later than T1)
-		// we will receive this error.
-		if strings.Contains(err.Error(), `Points must be written in order`) {
-			pme.heartbeater.Increment("metrics.post.errors.out_of_order")
-		} else {
-			pme.heartbeater.Increment("metrics.post.errors.unknown")
-			pme.filteredErrs = append(pme.filteredErrs, err)
-		}
-	}
-
-	metricDescriptorErrs := len(pme.metricDescriptor)
-	if metricDescriptorErrs > 0 {
-		pme.heartbeater.IncrementBy("metrics.metric_descriptor.errors", uint(metricDescriptorErrs))
-	}
-}
-
 // NewMetricAdapter returns a MetricAdapater that can write to Stackdriver Monitoring
 func NewMetricAdapter(projectID string, client MetricClient, batchSize int, heartbeater Heartbeater, logger lager.Logger) (MetricAdapter, error) {
 	ma := &metricAdapter{
@@ -115,8 +69,8 @@ func NewMetricAdapter(projectID string, client MetricClient, batchSize int, hear
 	return ma, err
 }
 
-func (ma *metricAdapter) PostMetricEvents(events []*messages.MetricEvent) error {
-	series, postErr := ma.buildTimeSeries(events)
+func (ma *metricAdapter) PostMetricEvents(events []*messages.MetricEvent) {
+	series := ma.buildTimeSeries(events)
 	projectName := path.Join("projects", ma.projectID)
 
 	count := len(series)
@@ -134,23 +88,32 @@ func (ma *metricAdapter) PostMetricEvents(events []*messages.MetricEvent) error 
 		}
 
 		ma.heartbeater.Increment("metrics.requests")
-		err := ma.client.Post(&monitoringpb.CreateTimeSeriesRequest{
+		request := &monitoringpb.CreateTimeSeriesRequest{
 			Name:       projectName,
 			TimeSeries: series[low:high],
-		})
+		}
+		err := ma.client.Post(request)
 
 		if err != nil {
-			postErr.AddPostError(err)
+			ma.heartbeater.Increment("metrics.post.errors")
+
+			// This is an expected error once there is more than a single nozzle writing to Stackdriver.
+			// If one nozzle writes a metric occurring at time T2 and this one tries to write at T1 (where T2 later than T1)
+			// we will receive this error.
+			if strings.Contains(err.Error(), `Points must be written in order`) {
+				ma.heartbeater.Increment("metrics.post.errors.out_of_order")
+			} else {
+				ma.heartbeater.Increment("metrics.post.errors.unknown")
+				ma.logger.Error("metricAdapter.PostMetricEvents", err, lager.Data{"info": "Unexpected Error", "request": request})
+			}
 		}
 	}
 
-	return postErr.BuildError()
+	return
 }
 
-func (ma *metricAdapter) buildTimeSeries(events []*messages.MetricEvent) ([]*monitoringpb.TimeSeries, postMetricErr) {
+func (ma *metricAdapter) buildTimeSeries(events []*messages.MetricEvent) []*monitoringpb.TimeSeries {
 	var timeSerieses []*monitoringpb.TimeSeries
-
-	compositeErr := postMetricErr{heartbeater: ma.heartbeater}
 
 	for _, event := range events {
 		if len(event.Metrics) == 0 {
@@ -162,7 +125,8 @@ func (ma *metricAdapter) buildTimeSeries(events []*messages.MetricEvent) ([]*mon
 			ma.heartbeater.Increment("metrics.timeseries.count")
 			err := ma.ensureMetricDescriptor(metric, event.Labels)
 			if err != nil {
-				compositeErr.metricDescriptor = append(compositeErr.metricDescriptor, err)
+				ma.logger.Error("metricAdapter.buildTimeSeries", err, lager.Data{"metric": metric, "labels": event.Labels})
+				ma.heartbeater.IncrementBy("metrics.metric_descriptor.errors", 1)
 				continue
 			}
 
@@ -178,7 +142,7 @@ func (ma *metricAdapter) buildTimeSeries(events []*messages.MetricEvent) ([]*mon
 		}
 	}
 
-	return timeSerieses, compositeErr
+	return timeSerieses
 }
 
 func (ma *metricAdapter) CreateMetricDescriptor(metric *messages.Metric, labels map[string]string) error {

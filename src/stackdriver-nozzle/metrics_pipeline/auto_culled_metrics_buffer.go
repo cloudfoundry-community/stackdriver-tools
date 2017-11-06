@@ -30,7 +30,6 @@ import (
 
 type autoCulledMetricsBuffer struct {
 	adapter     stackdriver.MetricAdapter
-	errs        chan error
 	ticker      *time.Ticker
 	ctx         context.Context
 	logger      lager.Logger
@@ -43,11 +42,9 @@ type autoCulledMetricsBuffer struct {
 // NewAutoCulledMetricsBuffer provides a MetricsBuffer that will cull like metrics over the defined frequency.
 // A like metric is defined as a metric with the same stackdriver.Metric.Hash()
 func NewAutoCulledMetricsBuffer(ctx context.Context, logger lager.Logger, frequency time.Duration,
-	adapter stackdriver.MetricAdapter, heartbeater heartbeat.Heartbeater) (MetricsBuffer, <-chan error) {
-	errs := make(chan error)
+	adapter stackdriver.MetricAdapter, heartbeater heartbeat.Heartbeater) MetricsBuffer {
 	mb := &autoCulledMetricsBuffer{
 		adapter:     adapter,
-		errs:        errs,
 		metrics:     make(map[string]*messages.MetricEvent),
 		ctx:         ctx,
 		logger:      logger,
@@ -55,10 +52,10 @@ func NewAutoCulledMetricsBuffer(ctx context.Context, logger lager.Logger, freque
 		heartbeater: heartbeater,
 	}
 	mb.start()
-	return mb, errs
+	return mb
 }
 
-func (mb *autoCulledMetricsBuffer) PostMetricEvents(events []*messages.MetricEvent) error {
+func (mb *autoCulledMetricsBuffer) PostMetricEvents(events []*messages.MetricEvent) {
 	mb.metricsMu.Lock()
 	defer mb.metricsMu.Unlock()
 
@@ -77,8 +74,6 @@ func (mb *autoCulledMetricsBuffer) PostMetricEvents(events []*messages.MetricEve
 			}
 		}
 	}
-
-	return nil
 }
 
 func (mb *autoCulledMetricsBuffer) IsEmpty() bool {
@@ -86,11 +81,7 @@ func (mb *autoCulledMetricsBuffer) IsEmpty() bool {
 }
 
 func (mb *autoCulledMetricsBuffer) flush() {
-	err := mb.adapter.PostMetricEvents(mb.flushInternalBuffer())
-
-	if err != nil {
-		mb.errs <- err
-	}
+	mb.adapter.PostMetricEvents(mb.flushInternalBuffer())
 }
 
 func (mb *autoCulledMetricsBuffer) flushInternalBuffer() []*messages.MetricEvent {
@@ -110,7 +101,6 @@ func (mb *autoCulledMetricsBuffer) flushInternalBuffer() []*messages.MetricEvent
 
 func (mb *autoCulledMetricsBuffer) start() {
 	go func() {
-		defer close(mb.errs)
 		for {
 			select {
 			case <-mb.ticker.C:
