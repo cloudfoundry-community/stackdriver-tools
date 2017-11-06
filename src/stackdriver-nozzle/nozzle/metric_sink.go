@@ -22,15 +22,17 @@ import (
 
 	"github.com/cloudfoundry-community/stackdriver-tools/src/stackdriver-nozzle/messages"
 	"github.com/cloudfoundry-community/stackdriver-tools/src/stackdriver-nozzle/stackdriver"
+	"github.com/cloudfoundry/lager"
 	"github.com/cloudfoundry/sonde-go/events"
 )
 
 // NewLogSink returns a Sink that can receive sonde Events, translate them and send them to a stackdriver.MetricAdapter
-func NewMetricSink(labelMaker LabelMaker, metricAdapter stackdriver.MetricAdapter, unitParser UnitParser) Sink {
+func NewMetricSink(logger lager.Logger, labelMaker LabelMaker, metricAdapter stackdriver.MetricAdapter, unitParser UnitParser) Sink {
 	return &metricSink{
 		labelMaker:    labelMaker,
 		metricAdapter: metricAdapter,
 		unitParser:    unitParser,
+		logger:        logger,
 	}
 }
 
@@ -38,9 +40,10 @@ type metricSink struct {
 	labelMaker    LabelMaker
 	metricAdapter stackdriver.MetricAdapter
 	unitParser    UnitParser
+	logger        lager.Logger
 }
 
-func (ms *metricSink) Receive(envelope *events.Envelope) error {
+func (ms *metricSink) Receive(envelope *events.Envelope) {
 	labels := ms.labelMaker.MetricLabels(envelope)
 
 	// Origin is a required field so this is fine.
@@ -87,12 +90,11 @@ func (ms *metricSink) Receive(envelope *events.Envelope) error {
 			},
 		}
 	default:
-		return fmt.Errorf("unknown event type: %v", envelope.EventType)
+		ms.logger.Error("metricSink.Receive", fmt.Errorf("unknown event type: %v", envelope.EventType))
+		return
 	}
 
 	ms.metricAdapter.PostMetricEvents([]*messages.MetricEvent{
 		{Metrics: metrics, Labels: labels, Type: envelope.GetEventType()},
 	})
-
-	return nil
 }

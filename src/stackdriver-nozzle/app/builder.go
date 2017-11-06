@@ -156,5 +156,5 @@ func (a *App) newMetricSink(ctx context.Context, metricAdapter stackdriver.Metri
 	metricBuffer := metrics_pipeline.NewAutoCulledMetricsBuffer(ctx, a.logger, time.Duration(a.c.MetricsBufferDuration)*time.Second, metricAdapter, a.heartbeater)
 	a.bufferEmpty = metricBuffer.IsEmpty
 
-	return nozzle.NewMetricSink(a.labelMaker, metricBuffer, nozzle.NewUnitParser())
+	return nozzle.NewMetricSink(a.logger, a.labelMaker, metricBuffer, nozzle.NewUnitParser())
 }

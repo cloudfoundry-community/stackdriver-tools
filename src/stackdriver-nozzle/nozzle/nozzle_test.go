@@ -33,7 +33,6 @@ var _ = Describe("Nozzle", func() {
 		logSink     *mocks.Sink
 		metricSink  *mocks.Sink
 		heartbeater *mocks.Heartbeater
-		errs        chan error
 		fhErrs      <-chan error
 	)
 
@@ -48,7 +47,7 @@ var _ = Describe("Nozzle", func() {
 			MetricSink:  metricSink,
 			Heartbeater: heartbeater,
 		}
-		errs, fhErrs = subject.Start(firehose)
+		fhErrs = subject.Start(firehose)
 	})
 
 	It("starts the heartbeater", func() {
@@ -79,7 +78,6 @@ var _ = Describe("Nozzle", func() {
 			firehose.Messages <- &event
 		}
 
-		Consistently(errs).ShouldNot(Receive())
 		Consistently(fhErrs).ShouldNot(Receive())
 	})
 
@@ -135,19 +133,6 @@ var _ = Describe("Nozzle", func() {
 		firehose.Messages <- envelope
 
 		Eventually(metricSink.LastEnvelope).Should(Equal(envelope))
-	})
-
-	It("returns error if handler errors out", func() {
-		expectedError := errors.New("fail")
-		metricSink.Error = expectedError
-		metricType := events.Envelope_ValueMetric
-		envelope := &events.Envelope{
-			EventType:   &metricType,
-			ValueMetric: nil,
-		}
-
-		firehose.Messages <- envelope
-		Eventually(errs).Should(Receive(Equal(expectedError)))
 	})
 
 	It("returns the firehose client errors", func() {

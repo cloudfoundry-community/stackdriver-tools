@@ -36,13 +36,7 @@ func Run(ctx context.Context, a *App) {
 		a.logger.Fatal("construction", err)
 	}
 
-	errs, fhErrs := consumer.Start(producer)
-	go func() {
-		for err := range errs {
-			a.logger.Error("nozzle", err)
-		}
-
-	}()
+	fhErrs := consumer.Start(producer)
 	go func() {
 		for err := range fhErrs {
 			a.logger.Error("firehose", err)

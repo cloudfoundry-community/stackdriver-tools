@@ -18,7 +18,6 @@ package nozzle
 
 import (
 	"errors"
-	"strings"
 	"sync"
 
 	"code.cloudfoundry.org/diodes"
@@ -29,18 +28,6 @@ import (
 )
 
 const bufferSize = 30000 // 1k messages/second * 30 seconds
-
-type PostMetricError struct {
-	Errors []error
-}
-
-func (e *PostMetricError) Error() string {
-	errors := []string{}
-	for _, err := range e.Errors {
-		errors = append(errors, err.Error())
-	}
-	return strings.Join(errors, "\n")
-}
 
 type Nozzle struct {
 	LogSink    Sink
@@ -57,11 +44,10 @@ type state struct {
 	running bool
 }
 
-func (n *Nozzle) Start(firehose cloudfoundry.Firehose) (errs chan error, firehoseErrs chan error) {
+func (n *Nozzle) Start(firehose cloudfoundry.Firehose) (firehoseErrs chan error) {
 	n.Heartbeater.Start()
 	n.session = state{done: make(chan struct{}), running: true}
 
-	errs = make(chan error)
 	firehoseErrs = make(chan error)
 	messages, fhErrInternal := firehose.Connect()
 
@@ -104,15 +90,12 @@ func (n *Nozzle) Start(firehose cloudfoundry.Firehose) (errs chan error, firehos
 			unsafeEvent := buffer.Next()
 			if unsafeEvent != nil {
 				var event = (*events.Envelope)(unsafeEvent)
-
-				if err := n.handleEvent(event); err != nil {
-					errs <- err
-				}
+				n.handleEvent(event)
 			}
 		}
 	}()
 
-	return errs, firehoseErrs
+	return firehoseErrs
 }
 
 func (n *Nozzle) Stop() error {
@@ -129,19 +112,13 @@ func (n *Nozzle) Stop() error {
 	return nil
 }
 
-func (n *Nozzle) handleEvent(envelope *events.Envelope) error {
+func (n *Nozzle) handleEvent(envelope *events.Envelope) {
 	n.Heartbeater.Increment("nozzle.events")
 	if isMetric(envelope) {
-		if err := n.MetricSink.Receive(envelope); err != nil {
-			return err
-		}
+		n.MetricSink.Receive(envelope)
 	} else {
-		if err := n.LogSink.Receive(envelope); err != nil {
-			return err
-		}
+		n.LogSink.Receive(envelope)
 	}
-
-	return nil
 }
 
 func (n *Nozzle) handleFirehoseError(err error) {

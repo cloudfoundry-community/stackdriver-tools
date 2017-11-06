@@ -45,7 +45,7 @@ var _ = Describe("SinkFilter", func() {
 		eventType := events.Envelope_LogMessage
 		event := events.Envelope{EventType: &eventType}
 
-		Expect(f.Receive(&event)).NotTo(HaveOccurred())
+		f.Receive(&event)
 		Expect(sink.HandledEnvelopes).To(ContainElement(event))
 
 	})
