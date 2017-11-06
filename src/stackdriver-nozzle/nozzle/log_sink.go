@@ -107,11 +107,11 @@ func (ls *logSink) parseEnvelope(envelope *events.Envelope) messages.Log {
 		}
 	}
 
-	labels := ls.labelMaker.Build(envelope)
-	appID := labels["applicationId"]
-	if appID != "" {
+	labels := ls.labelMaker.LogLabels(envelope)
+	app := labels["applicationPath"]
+	if app != "" {
 		payload["serviceContext"] = map[string]interface{}{
-			"service": appID,
+			"service": app,
 		}
 	}
 

@@ -22,6 +22,10 @@ type LabelMaker struct {
 	Labels map[string]string
 }
 
-func (lm *LabelMaker) Build(*events.Envelope) map[string]string {
+func (lm *LabelMaker) MetricLabels(*events.Envelope) map[string]string {
+	return lm.Labels
+}
+
+func (lm *LabelMaker) LogLabels(*events.Envelope) map[string]string {
 	return lm.Labels
 }
