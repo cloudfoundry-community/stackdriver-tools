@@ -122,7 +122,7 @@ func (ma *metricAdapter) PostMetricEvents(events []*messages.MetricEvent) error 
 	count := len(series)
 	chunks := int(math.Ceil(float64(count) / float64(ma.batchSize)))
 
-	ma.logger.Info("autoCulledMetricsBuffer", lager.Data{"info": fmt.Sprintf("%v metrics will be flushed in %v batches", count, chunks)})
+	ma.logger.Info("metricAdapter.PostMetricEvents", lager.Data{"info": "Posting TimeSeries to Stackdriver", "count": count, "chunks": chunks})
 	var low, high int
 	for i := 0; i < chunks; i++ {
 		low = i * ma.batchSize
