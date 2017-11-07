@@ -17,11 +17,13 @@
 package nozzle_test
 
 import (
+	"errors"
 	"time"
 
 	"github.com/cloudfoundry-community/stackdriver-tools/src/stackdriver-nozzle/messages"
 	"github.com/cloudfoundry-community/stackdriver-tools/src/stackdriver-nozzle/mocks"
 	"github.com/cloudfoundry-community/stackdriver-tools/src/stackdriver-nozzle/nozzle"
+	"github.com/cloudfoundry/lager"
 	"github.com/cloudfoundry/sonde-go/events"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -43,6 +45,7 @@ var _ = Describe("MetricSink", func() {
 		metricBuffer *mocks.MetricsBuffer
 		unitParser   *mockUnitParser
 		labels       map[string]string
+		logger       *mocks.MockLogger
 	)
 
 	BeforeEach(func() {
@@ -50,8 +53,9 @@ var _ = Describe("MetricSink", func() {
 		labelMaker := &mocks.LabelMaker{Labels: labels}
 		metricBuffer = &mocks.MetricsBuffer{}
 		unitParser = &mockUnitParser{}
+		logger = &mocks.MockLogger{}
 
-		subject = nozzle.NewMetricSink(labelMaker, metricBuffer, unitParser)
+		subject = nozzle.NewMetricSink(logger, labelMaker, metricBuffer, unitParser)
 	})
 
 	It("creates metric for ValueMetric", func() {
@@ -76,8 +80,7 @@ var _ = Describe("MetricSink", func() {
 			Timestamp:   &timeStamp,
 		}
 
-		err := subject.Receive(envelope)
-		Expect(err).To(BeNil())
+		subject.Receive(envelope)
 
 		metrics := metricBuffer.PostedMetrics
 		Expect(metrics).To(HaveLen(1))
@@ -123,8 +126,7 @@ var _ = Describe("MetricSink", func() {
 			Timestamp:       &timeStamp,
 		}
 
-		err := subject.Receive(envelope)
-		Expect(err).To(BeNil())
+		subject.Receive(envelope)
 
 		metrics := metricBuffer.PostedMetrics
 		Expect(metrics).To(HaveLen(6))
@@ -165,8 +167,7 @@ var _ = Describe("MetricSink", func() {
 			Timestamp:    &timeStamp,
 		}
 
-		err := subject.Receive(envelope)
-		Expect(err).To(BeNil())
+		subject.Receive(envelope)
 
 		metrics := metricBuffer.PostedMetrics
 
@@ -195,8 +196,12 @@ var _ = Describe("MetricSink", func() {
 			EventType: &eventType,
 		}
 
-		err := subject.Receive(envelope)
+		subject.Receive(envelope)
 
-		Expect(err).NotTo(BeNil())
+		Expect(logger.Logs()).To(ContainElement(mocks.Log{
+			Action: "metricSink.Receive",
+			Level:  lager.ERROR,
+			Err:    errors.New("unknown event type: HttpStartStop"),
+		}))
 	})
 })

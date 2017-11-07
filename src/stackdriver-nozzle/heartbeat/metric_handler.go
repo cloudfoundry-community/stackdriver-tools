@@ -61,7 +61,7 @@ func (h *metricHandler) Handle(event string, count uint) {
 	return
 }
 
-func (h *metricHandler) Flush() error {
+func (h *metricHandler) Flush() {
 	counter := h.flushInternal()
 
 	metrics := []*messages.Metric{}
@@ -78,7 +78,7 @@ func (h *metricHandler) Flush() error {
 			EventTime: t,
 		})
 	}
-	return h.ma.PostMetricEvents([]*messages.MetricEvent{{Labels: labels, Metrics: metrics}})
+	h.ma.PostMetricEvents([]*messages.MetricEvent{{Labels: labels, Metrics: metrics}})
 }
 
 func (h *metricHandler) flushInternal() map[string]uint {

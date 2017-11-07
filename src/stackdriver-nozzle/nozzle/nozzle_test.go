@@ -21,6 +21,7 @@ import (
 
 	"github.com/cloudfoundry-community/stackdriver-tools/src/stackdriver-nozzle/mocks"
 	"github.com/cloudfoundry-community/stackdriver-tools/src/stackdriver-nozzle/nozzle"
+	"github.com/cloudfoundry/lager"
 	"github.com/cloudfoundry/sonde-go/events"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -28,13 +29,12 @@ import (
 
 var _ = Describe("Nozzle", func() {
 	var (
-		subject     *nozzle.Nozzle
+		subject     nozzle.Nozzle
 		firehose    *mocks.FirehoseClient
 		logSink     *mocks.Sink
 		metricSink  *mocks.Sink
 		heartbeater *mocks.Heartbeater
-		errs        chan error
-		fhErrs      <-chan error
+		logger      *mocks.MockLogger
 	)
 
 	BeforeEach(func() {
@@ -42,13 +42,10 @@ var _ = Describe("Nozzle", func() {
 		logSink = &mocks.Sink{}
 		metricSink = &mocks.Sink{}
 		heartbeater = mocks.NewHeartbeater()
+		logger = &mocks.MockLogger{}
 
-		subject = &nozzle.Nozzle{
-			LogSink:     logSink,
-			MetricSink:  metricSink,
-			Heartbeater: heartbeater,
-		}
-		errs, fhErrs = subject.Start(firehose)
+		subject = nozzle.NewNozzle(logger, logSink, metricSink, heartbeater)
+		subject.Start(firehose)
 	})
 
 	It("starts the heartbeater", func() {
@@ -78,9 +75,6 @@ var _ = Describe("Nozzle", func() {
 			event := events.Envelope{EventType: &eventType}
 			firehose.Messages <- &event
 		}
-
-		Consistently(errs).ShouldNot(Receive())
-		Consistently(fhErrs).ShouldNot(Receive())
 	})
 
 	It("handles HttpStartStop event", func() {
@@ -137,24 +131,15 @@ var _ = Describe("Nozzle", func() {
 		Eventually(metricSink.LastEnvelope).Should(Equal(envelope))
 	})
 
-	It("returns error if handler errors out", func() {
-		expectedError := errors.New("fail")
-		metricSink.Error = expectedError
-		metricType := events.Envelope_ValueMetric
-		envelope := &events.Envelope{
-			EventType:   &metricType,
-			ValueMetric: nil,
-		}
-
-		firehose.Messages <- envelope
-		Eventually(errs).Should(Receive(Equal(expectedError)))
-	})
-
-	It("returns the firehose client errors", func() {
+	It("logs the firehose client errors", func() {
 		err := errors.New("omg")
 		go func() { firehose.Errs <- err }()
 
-		Eventually(fhErrs).Should(Receive(Equal(err)))
+		Eventually(logger.Logs).Should(ContainElement(mocks.Log{
+			Level:  lager.ERROR,
+			Err:    err,
+			Action: "firehose",
+		}))
 	})
 
 	It("is resilient to multiple exists", func(done Done) {

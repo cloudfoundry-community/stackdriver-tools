@@ -22,27 +22,34 @@ import (
 
 	"sync"
 
+	"strconv"
+
 	"github.com/cloudfoundry-community/stackdriver-tools/src/stackdriver-nozzle/messages"
 	"github.com/cloudfoundry-community/stackdriver-tools/src/stackdriver-nozzle/mocks"
 	"github.com/cloudfoundry-community/stackdriver-tools/src/stackdriver-nozzle/stackdriver"
 	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/ginkgo/extensions/table"
 	. "github.com/onsi/gomega"
 	labelpb "google.golang.org/genproto/googleapis/api/label"
 	metricpb "google.golang.org/genproto/googleapis/api/metric"
 	monitoringpb "google.golang.org/genproto/googleapis/monitoring/v3"
 )
 
+const batchSize = 200
+
 var _ = Describe("MetricAdapter", func() {
 	var (
 		subject     stackdriver.MetricAdapter
 		client      *mocks.MockClient
 		heartbeater *mocks.Heartbeater
+		logger      *mocks.MockLogger
 	)
 
 	BeforeEach(func() {
 		client = &mocks.MockClient{}
 		heartbeater = mocks.NewHeartbeater()
-		subject, _ = stackdriver.NewMetricAdapter("my-awesome-project", client, heartbeater)
+		logger = &mocks.MockLogger{}
+		subject, _ = stackdriver.NewMetricAdapter("my-awesome-project", client, batchSize, heartbeater, logger)
 	})
 
 	It("takes metrics and posts a time series", func() {
@@ -98,6 +105,38 @@ var _ = Describe("MetricAdapter", func() {
 		Expect(ok).To(BeTrue())
 		Expect(value.DoubleValue).To(Equal(54.321))
 	})
+
+	type postEvent struct {
+		events          int
+		metricsPerEvent int
+		postCount       int
+	}
+
+	DescribeTable("correct batch size",
+		func(t postEvent) {
+			events := []*messages.MetricEvent{}
+
+			metrics := []*messages.Metric{}
+			for i := 0; i < t.metricsPerEvent; i++ {
+				metrics = append(metrics, &messages.Metric{Value: float64(i)})
+			}
+
+			for i := 0; i < t.events; i++ {
+				events = append(events, &messages.MetricEvent{
+					Labels:  map[string]string{"Name": strconv.Itoa(i)},
+					Metrics: metrics,
+				})
+			}
+
+			subject.PostMetricEvents(events)
+
+			Expect(client.MetricReqs).To(HaveLen(t.postCount))
+			Expect(client.TimeSeries).To(HaveLen(t.events * t.metricsPerEvent))
+		},
+		Entry("less than the batch size", postEvent{1, 1, 1}),
+		Entry("exactly the batch size", postEvent{100, 2, 1}),
+		Entry("one over the batch size", postEvent{201, 1, 2}),
+		Entry("a large batch size", postEvent{2001, 2, 21}))
 
 	It("creates metric descriptors", func() {
 		labels := map[string]string{"key": "value"}
@@ -194,7 +233,7 @@ var _ = Describe("MetricAdapter", func() {
 	It("returns the adapter even if we fail to list the metric descriptors", func() {
 		expectedErr := errors.New("fail")
 		client.ListErr = expectedErr
-		subject, err := stackdriver.NewMetricAdapter("my-awesome-project", client, heartbeater)
+		subject, err := stackdriver.NewMetricAdapter("my-awesome-project", client, 1, heartbeater, logger)
 		Expect(subject).To(Not(BeNil()))
 		Expect(err).To(Equal(expectedErr))
 	})
@@ -217,12 +256,12 @@ var _ = Describe("MetricAdapter", func() {
 				},
 			}}}
 
-		Expect(subject.PostMetricEvents(metricEvents)).To(Succeed())
+		subject.PostMetricEvents(metricEvents)
 		Expect(heartbeater.GetCount("metrics.events.count")).To(Equal(2))
 		Expect(heartbeater.GetCount("metrics.timeseries.count")).To(Equal(3))
 		Expect(heartbeater.GetCount("metrics.requests")).To(Equal(1))
 
-		Expect(subject.PostMetricEvents(metricEvents)).To(Succeed())
+		subject.PostMetricEvents(metricEvents)
 		Expect(heartbeater.GetCount("metrics.events.count")).To(Equal(4))
 		Expect(heartbeater.GetCount("metrics.timeseries.count")).To(Equal(6))
 		Expect(heartbeater.GetCount("metrics.requests")).To(Equal(2))
@@ -235,7 +274,7 @@ var _ = Describe("MetricAdapter", func() {
 			return errors.New("GRPC Stuff. Points must be written in order. Other stuff")
 		}
 
-		Expect(subject.PostMetricEvents(metricEvents)).To(Succeed())
+		subject.PostMetricEvents(metricEvents)
 		Expect(heartbeater.GetCount("metrics.post.errors")).To(Equal(1))
 		Expect(heartbeater.GetCount("metrics.post.errors.out_of_order")).To(Equal(1))
 		Expect(heartbeater.GetCount("metrics.post.errors.unknown")).To(Equal(0))
@@ -247,7 +286,7 @@ var _ = Describe("MetricAdapter", func() {
 		client.PostFn = func(req *monitoringpb.CreateTimeSeriesRequest) error {
 			return errors.New("tragedy strikes")
 		}
-		Expect(subject.PostMetricEvents(metricEvents)).NotTo(Succeed())
+		subject.PostMetricEvents(metricEvents)
 		Expect(heartbeater.GetCount("metrics.post.errors")).To(Equal(1))
 		Expect(heartbeater.GetCount("metrics.post.errors.out_of_order")).To(Equal(0))
 		Expect(heartbeater.GetCount("metrics.post.errors.unknown")).To(Equal(1))

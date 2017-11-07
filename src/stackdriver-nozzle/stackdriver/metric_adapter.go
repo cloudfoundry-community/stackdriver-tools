@@ -18,12 +18,14 @@ package stackdriver
 
 import (
 	"fmt"
+	"math"
 	"path"
 	"strings"
 	"sync"
 	"time"
 
 	"github.com/cloudfoundry-community/stackdriver-tools/src/stackdriver-nozzle/messages"
+	"github.com/cloudfoundry/lager"
 	"github.com/golang/protobuf/ptypes/timestamp"
 	labelpb "google.golang.org/genproto/googleapis/api/label"
 	metricpb "google.golang.org/genproto/googleapis/api/metric"
@@ -31,7 +33,7 @@ import (
 )
 
 type MetricAdapter interface {
-	PostMetricEvents([]*messages.MetricEvent) error
+	PostMetricEvents([]*messages.MetricEvent)
 }
 
 type Heartbeater interface {
@@ -46,56 +48,20 @@ type metricAdapter struct {
 	client                MetricClient
 	descriptors           map[string]struct{}
 	createDescriptorMutex *sync.Mutex
+	batchSize             int
+	logger                lager.Logger
 	heartbeater           Heartbeater
 }
 
-type postMetricErr struct {
-	metricDescriptor []error
-	postErr          error
-	heartbeater      Heartbeater
-}
-
-func (pme *postMetricErr) BuildError() error {
-	pme.processErrors()
-	if pme == nil || pme.postErr == nil && len(pme.metricDescriptor) == 0 {
-		return nil
-	}
-
-	return fmt.Errorf("PostMetricEvents, PostErr: %v, MetricDescriptor: %v", pme.postErr, pme.metricDescriptor)
-}
-
-func (pme *postMetricErr) processErrors() {
-	if pme == nil || pme.postErr == nil && len(pme.metricDescriptor) == 0 {
-		return
-	}
-
-	if pme.postErr != nil {
-		pme.heartbeater.Increment("metrics.post.errors")
-
-		// This is an expected error once there is more than a single nozzle writing to Stackdriver.
-		// If one nozzle writes a metric occuring at time T2 and this one tries to write at T1 (where T2 later than T1)
-		// we will receive this error.
-		if strings.Contains(pme.postErr.Error(), `Points must be written in order`) {
-			pme.heartbeater.Increment("metrics.post.errors.out_of_order")
-			pme.postErr = nil
-		} else {
-			pme.heartbeater.Increment("metrics.post.errors.unknown")
-		}
-	}
-
-	metricDescriptorErrs := len(pme.metricDescriptor)
-	if metricDescriptorErrs > 0 {
-		pme.heartbeater.IncrementBy("metrics.metric_descriptor.errors", uint(metricDescriptorErrs))
-	}
-}
-
 // NewMetricAdapter returns a MetricAdapater that can write to Stackdriver Monitoring
-func NewMetricAdapter(projectID string, client MetricClient, heartbeater Heartbeater) (MetricAdapter, error) {
+func NewMetricAdapter(projectID string, client MetricClient, batchSize int, heartbeater Heartbeater, logger lager.Logger) (MetricAdapter, error) {
 	ma := &metricAdapter{
 		projectID:             projectID,
 		client:                client,
 		createDescriptorMutex: &sync.Mutex{},
 		descriptors:           map[string]struct{}{},
+		batchSize:             batchSize,
+		logger:                logger,
 		heartbeater:           heartbeater,
 	}
 
@@ -103,10 +69,51 @@ func NewMetricAdapter(projectID string, client MetricClient, heartbeater Heartbe
 	return ma, err
 }
 
-func (ma *metricAdapter) PostMetricEvents(events []*messages.MetricEvent) error {
-	var timeSerieses []*monitoringpb.TimeSeries
+func (ma *metricAdapter) PostMetricEvents(events []*messages.MetricEvent) {
+	series := ma.buildTimeSeries(events)
+	projectName := path.Join("projects", ma.projectID)
 
-	compositeErr := postMetricErr{heartbeater: ma.heartbeater}
+	count := len(series)
+	chunks := int(math.Ceil(float64(count) / float64(ma.batchSize)))
+
+	ma.logger.Info("metricAdapter.PostMetricEvents", lager.Data{"info": "Posting TimeSeries to Stackdriver", "count": count, "chunks": chunks})
+	var low, high int
+	for i := 0; i < chunks; i++ {
+		low = i * ma.batchSize
+		high = low + ma.batchSize
+		// if we're at the last chunk, take the remaining size
+		// so we don't over index
+		if i == chunks-1 {
+			high = count
+		}
+
+		ma.heartbeater.Increment("metrics.requests")
+		request := &monitoringpb.CreateTimeSeriesRequest{
+			Name:       projectName,
+			TimeSeries: series[low:high],
+		}
+		err := ma.client.Post(request)
+
+		if err != nil {
+			ma.heartbeater.Increment("metrics.post.errors")
+
+			// This is an expected error once there is more than a single nozzle writing to Stackdriver.
+			// If one nozzle writes a metric occurring at time T2 and this one tries to write at T1 (where T2 later than T1)
+			// we will receive this error.
+			if strings.Contains(err.Error(), `Points must be written in order`) {
+				ma.heartbeater.Increment("metrics.post.errors.out_of_order")
+			} else {
+				ma.heartbeater.Increment("metrics.post.errors.unknown")
+				ma.logger.Error("metricAdapter.PostMetricEvents", err, lager.Data{"info": "Unexpected Error", "request": request})
+			}
+		}
+	}
+
+	return
+}
+
+func (ma *metricAdapter) buildTimeSeries(events []*messages.MetricEvent) []*monitoringpb.TimeSeries {
+	var timeSerieses []*monitoringpb.TimeSeries
 
 	for _, event := range events {
 		if len(event.Metrics) == 0 {
@@ -118,7 +125,8 @@ func (ma *metricAdapter) PostMetricEvents(events []*messages.MetricEvent) error 
 			ma.heartbeater.Increment("metrics.timeseries.count")
 			err := ma.ensureMetricDescriptor(metric, event.Labels)
 			if err != nil {
-				compositeErr.metricDescriptor = append(compositeErr.metricDescriptor, err)
+				ma.logger.Error("metricAdapter.buildTimeSeries", err, lager.Data{"metric": metric, "labels": event.Labels})
+				ma.heartbeater.IncrementBy("metrics.metric_descriptor.errors", 1)
 				continue
 			}
 
@@ -134,16 +142,7 @@ func (ma *metricAdapter) PostMetricEvents(events []*messages.MetricEvent) error 
 		}
 	}
 
-	projectName := path.Join("projects", ma.projectID)
-	request := &monitoringpb.CreateTimeSeriesRequest{
-		Name:       projectName,
-		TimeSeries: timeSerieses,
-	}
-
-	ma.heartbeater.Increment("metrics.requests")
-	compositeErr.postErr = ma.client.Post(request)
-
-	return compositeErr.BuildError()
+	return timeSerieses
 }
 
 func (ma *metricAdapter) CreateMetricDescriptor(metric *messages.Metric, labels map[string]string) error {

@@ -30,8 +30,6 @@ import (
 
 type autoCulledMetricsBuffer struct {
 	adapter     stackdriver.MetricAdapter
-	errs        chan error
-	size        int
 	ticker      *time.Ticker
 	ctx         context.Context
 	logger      lager.Logger
@@ -44,23 +42,20 @@ type autoCulledMetricsBuffer struct {
 // NewAutoCulledMetricsBuffer provides a MetricsBuffer that will cull like metrics over the defined frequency.
 // A like metric is defined as a metric with the same stackdriver.Metric.Hash()
 func NewAutoCulledMetricsBuffer(ctx context.Context, logger lager.Logger, frequency time.Duration,
-	size int, adapter stackdriver.MetricAdapter, heartbeater heartbeat.Heartbeater) (MetricsBuffer, <-chan error) {
-	errs := make(chan error)
+	adapter stackdriver.MetricAdapter, heartbeater heartbeat.Heartbeater) MetricsBuffer {
 	mb := &autoCulledMetricsBuffer{
 		adapter:     adapter,
-		errs:        errs,
 		metrics:     make(map[string]*messages.MetricEvent),
-		size:        size,
 		ctx:         ctx,
 		logger:      logger,
 		ticker:      time.NewTicker(frequency),
 		heartbeater: heartbeater,
 	}
 	mb.start()
-	return mb, errs
+	return mb
 }
 
-func (mb *autoCulledMetricsBuffer) PostMetricEvents(events []*messages.MetricEvent) error {
+func (mb *autoCulledMetricsBuffer) PostMetricEvents(events []*messages.MetricEvent) {
 	mb.metricsMu.Lock()
 	defer mb.metricsMu.Unlock()
 
@@ -79,8 +74,6 @@ func (mb *autoCulledMetricsBuffer) PostMetricEvents(events []*messages.MetricEve
 			}
 		}
 	}
-
-	return nil
 }
 
 func (mb *autoCulledMetricsBuffer) IsEmpty() bool {
@@ -88,24 +81,7 @@ func (mb *autoCulledMetricsBuffer) IsEmpty() bool {
 }
 
 func (mb *autoCulledMetricsBuffer) flush() {
-	metrics := mb.flushInternalBuffer()
-	count := len(metrics)
-	chunks := count/mb.size + 1
-
-	mb.logger.Info("autoCulledMetricsBuffer", lager.Data{"info": fmt.Sprintf("%v metrics will be flushed in %v batches", count, chunks)})
-	var low, high int
-	for i := 0; i < chunks; i++ {
-		low = i * mb.size
-		high = low + mb.size
-		if i == chunks-1 {
-			high = count
-		}
-		err := mb.adapter.PostMetricEvents(metrics[low:high])
-
-		if err != nil {
-			mb.errs <- err
-		}
-	}
+	mb.adapter.PostMetricEvents(mb.flushInternalBuffer())
 }
 
 func (mb *autoCulledMetricsBuffer) flushInternalBuffer() []*messages.MetricEvent {
@@ -125,7 +101,6 @@ func (mb *autoCulledMetricsBuffer) flushInternalBuffer() []*messages.MetricEvent
 
 func (mb *autoCulledMetricsBuffer) start() {
 	go func() {
-		defer close(mb.errs)
 		for {
 			select {
 			case <-mb.ticker.C:

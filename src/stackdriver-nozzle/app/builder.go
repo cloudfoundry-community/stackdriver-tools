@@ -42,7 +42,7 @@ func New(c *config.Config, logger lager.Logger) *App {
 	trigger := time.NewTicker(time.Duration(c.HeartbeatRate) * time.Second).C
 	adapterHeartbeater := heartbeat.NewHeartbeater(logger, trigger, "heartbeater.telemetry.emitted")
 	adapterHeartbeater.Start()
-	metricAdapter, err := stackdriver.NewMetricAdapter(c.ProjectID, metricClient, adapterHeartbeater)
+	metricAdapter, err := stackdriver.NewMetricAdapter(c.ProjectID, metricClient, c.MetricsBatchSize, adapterHeartbeater, logger)
 	if err != nil {
 		logger.Fatal("metricAdapter", err)
 	}
@@ -86,7 +86,7 @@ func (a *App) newProducer() cloudfoundry.Firehose {
 	return cloudfoundry.NewFirehose(a.cfConfig, a.cfClient, a.c.SubscriptionID)
 }
 
-func (a *App) newConsumer(ctx context.Context) (*nozzle.Nozzle, error) {
+func (a *App) newConsumer(ctx context.Context) (nozzle.Nozzle, error) {
 	logEvents, err := nozzle.ParseEvents(strings.Split(a.c.LoggingEvents, ","))
 	if err != nil {
 		return nil, err
@@ -116,11 +116,7 @@ func (a *App) newConsumer(ctx context.Context) (*nozzle.Nozzle, error) {
 		return nil, err
 	}
 
-	return &nozzle.Nozzle{
-		LogSink:     filteredLogSink,
-		MetricSink:  filteredMetricSink,
-		Heartbeater: a.heartbeater,
-	}, nil
+	return nozzle.NewNozzle(a.logger, filteredLogSink, filteredMetricSink, a.heartbeater), nil
 }
 
 func (a *App) newLogAdapter() stackdriver.LogAdapter {
@@ -144,7 +140,7 @@ func (a *App) newMetricAdapter() stackdriver.MetricAdapter {
 		a.logger.Fatal("metricClient", err)
 	}
 
-	metricAdapter, err := stackdriver.NewMetricAdapter(a.c.ProjectID, metricClient, a.heartbeater)
+	metricAdapter, err := stackdriver.NewMetricAdapter(a.c.ProjectID, metricClient, a.c.MetricsBatchSize, a.heartbeater, a.logger)
 	if err != nil {
 		a.logger.Fatal("metricAdapter", err)
 	}
@@ -153,13 +149,8 @@ func (a *App) newMetricAdapter() stackdriver.MetricAdapter {
 }
 
 func (a *App) newMetricSink(ctx context.Context, metricAdapter stackdriver.MetricAdapter) nozzle.Sink {
-	metricBuffer, errs := metrics_pipeline.NewAutoCulledMetricsBuffer(ctx, a.logger, time.Duration(a.c.MetricsBufferDuration)*time.Second, a.c.MetricsBufferSize, metricAdapter, a.heartbeater)
+	metricBuffer := metrics_pipeline.NewAutoCulledMetricsBuffer(ctx, a.logger, time.Duration(a.c.MetricsBufferDuration)*time.Second, metricAdapter, a.heartbeater)
 	a.bufferEmpty = metricBuffer.IsEmpty
-	go func() {
-		for err := range errs {
-			a.logger.Error("metricsBuffer", err)
-		}
-	}()
 
-	return nozzle.NewMetricSink(a.labelMaker, metricBuffer, nozzle.NewUnitParser())
+	return nozzle.NewMetricSink(a.logger, a.labelMaker, metricBuffer, nozzle.NewUnitParser())
 }

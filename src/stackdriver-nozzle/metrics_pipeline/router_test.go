@@ -25,12 +25,11 @@ var _ = Describe("Router", func() {
 		logEvent := events.Envelope_ValueMetric
 
 		router := NewRouter(metricAdapter, []events.Envelope_EventType{metricEvent}, logAdapter, []events.Envelope_EventType{logEvent})
-		err := router.PostMetricEvents([]*messages.MetricEvent{
+		router.PostMetricEvents([]*messages.MetricEvent{
 			{Type: metricEvent},
 			{Type: logEvent},
 		})
 
-		Expect(err).NotTo(HaveOccurred())
 		Expect(metricAdapter.PostedMetricEvents).To(HaveLen(1))
 		Expect(metricAdapter.PostMetricEventsCount).To(Equal(1))
 		Expect(metricAdapter.PostedMetricEvents[0].Type).To(Equal(metricEvent))
@@ -44,12 +43,11 @@ var _ = Describe("Router", func() {
 		events := []events.Envelope_EventType{metricEvent, logEvent}
 
 		router := NewRouter(metricAdapter, events, logAdapter, events)
-		err := router.PostMetricEvents([]*messages.MetricEvent{
+		router.PostMetricEvents([]*messages.MetricEvent{
 			{Type: metricEvent},
 			{Type: logEvent},
 		})
 
-		Expect(err).NotTo(HaveOccurred())
 		Expect(metricAdapter.PostedMetricEvents).To(HaveLen(2))
 		Expect(metricAdapter.PostMetricEventsCount).To(Equal(1))
 		Expect(metricAdapter.PostedMetricEvents[0].Type).To(Equal(metricEvent))

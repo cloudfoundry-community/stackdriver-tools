@@ -42,7 +42,7 @@ type logSink struct {
 	newlineToken string
 }
 
-func (ls *logSink) Receive(envelope *events.Envelope) (err error) {
+func (ls *logSink) Receive(envelope *events.Envelope) {
 	if envelope == nil {
 		// This happens when we get a fatal error from firehose,
 		// It also happens a few thousand times in a row.
@@ -51,8 +51,6 @@ func (ls *logSink) Receive(envelope *events.Envelope) (err error) {
 	}
 	log := ls.parseEnvelope(envelope)
 	ls.logAdapter.PostLog(&log)
-
-	return
 }
 
 func structToMap(obj interface{}) map[string]interface{} {

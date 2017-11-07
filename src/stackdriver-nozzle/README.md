@@ -47,7 +47,7 @@ go get github.com/cloudfoundry-community/stackdriver-tools/src/stackdriver-nozzl
   second
 - `METRICS_BUFFER_DURATION` - flush interval (in seconds) of the internal metric
   buffer; defaults to 30
-- `METRICS_BUFFER_SIZE` - batch size for metric time series being sent to
+- `METRICS_BATCH_SIZE` - batch size for metric time series being sent to
   Stackdriver; defaults to 200
 - `RESOLVE_APP_METADATA` - whether to hydrate app UUIDs into org name, org
   UUID, space name, space UUID, and app name; defaults to `true`

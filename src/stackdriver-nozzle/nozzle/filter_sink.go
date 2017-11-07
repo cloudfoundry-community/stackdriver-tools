@@ -25,9 +25,8 @@ func NewFilterSink(eventNames []events.Envelope_EventType, destination Sink) (Si
 	return f, nil
 }
 
-func (sf *filter) Receive(event *events.Envelope) error {
+func (sf *filter) Receive(event *events.Envelope) {
 	if sf.enabled[event.GetEventType()] {
-		return sf.destination.Receive(event)
+		sf.destination.Receive(event)
 	}
-	return nil
 }

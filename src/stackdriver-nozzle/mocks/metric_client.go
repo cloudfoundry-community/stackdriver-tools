@@ -10,6 +10,7 @@ import (
 type MockClient struct {
 	Mutex          sync.Mutex
 	MetricReqs     []*monitoringpb.CreateTimeSeriesRequest
+	TimeSeries     []*monitoringpb.TimeSeries
 	DescriptorReqs []*monitoringpb.CreateMetricDescriptorRequest
 	ListErr        error
 
@@ -24,6 +25,7 @@ func (mc *MockClient) Post(req *monitoringpb.CreateTimeSeriesRequest) error {
 
 	mc.Mutex.Lock()
 	mc.MetricReqs = append(mc.MetricReqs, req)
+	mc.TimeSeries = append(mc.TimeSeries, req.TimeSeries...)
 	mc.Mutex.Unlock()
 
 	return nil

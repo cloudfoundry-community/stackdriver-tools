@@ -24,16 +24,14 @@ import (
 
 type Sink struct {
 	HandledEnvelopes []events.Envelope
-	Error            error
 	mutex            sync.Mutex
 }
 
-func (s *Sink) Receive(envelope *events.Envelope) error {
+func (s *Sink) Receive(envelope *events.Envelope) {
 	s.mutex.Lock()
-	s.HandledEnvelopes = append(s.HandledEnvelopes, *envelope)
-	s.mutex.Unlock()
+	defer s.mutex.Unlock()
 
-	return s.Error
+	s.HandledEnvelopes = append(s.HandledEnvelopes, *envelope)
 }
 
 func (s *Sink) LastEnvelope() *events.Envelope {

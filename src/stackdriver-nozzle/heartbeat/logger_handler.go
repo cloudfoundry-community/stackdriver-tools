@@ -49,12 +49,11 @@ func (h *loggerHandler) Handle(event string, count uint) {
 	return
 }
 
-func (h *loggerHandler) Flush() error {
+func (h *loggerHandler) Flush() {
 	h.counterMu.Lock()
 	defer h.counterMu.Unlock()
 	h.logger.Info(
 		h.prefix, lager.Data{"counters": h.counter},
 	)
 	h.counter = map[string]uint{}
-	return nil
 }

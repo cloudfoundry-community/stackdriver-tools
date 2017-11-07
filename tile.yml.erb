@@ -38,7 +38,7 @@ packages:
         project_id: (( .properties.project_id.value ))
       nozzle:
         metrics_buffer_duration: (( .properties.metrics_buffer_duration.value ))
-        metrics_buffer_size: (( .properties.metrics_buffer_size.value ))
+        metrics_batch_size: (( .properties.metrics_batch_size.value ))
 
 
 forms:
@@ -86,7 +86,7 @@ forms:
     type: integer
     default: 30
     description: Flush interval (in seconds) of the internal metric buffer
-  - name: metrics_buffer_size
+  - name: metrics_batch_size
     type: integer
     default: 200
     description: Batch size for time series being sent to Stackdriver
