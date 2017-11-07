@@ -44,6 +44,14 @@ properties:
     description: Batch size for time series being sent to Stackdriver
     default: 200
 
+  nozzle.logging_batch_count:
+    description: Batch size for log messages being sent to Stackdriver
+    default: 1000
+
+ nozzle.logging_batch_duration:
+    description: Flush interval (in seconds) of the internal logging buffer
+    default: 30
+
   nozzle.debug:
     description: Enable debug features for the stackdriver-nozzle for development or troubleshooting
     default: false
