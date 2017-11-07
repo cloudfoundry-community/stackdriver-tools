@@ -22,6 +22,7 @@ import (
 
 	"cloud.google.com/go/monitoring/apiv3"
 	"golang.org/x/net/context"
+	"google.golang.org/api/iterator"
 	"google.golang.org/api/option"
 	monitoringpb "google.golang.org/genproto/googleapis/monitoring/v3"
 )
@@ -42,7 +43,7 @@ func main() {
 	it := metricClient.ListMetricDescriptors(ctx, req)
 	for {
 		resp, err := it.Next()
-		if err == monitoring.Done {
+		if err == iterator.Done {
 			break
 		}
 		if err != nil {
