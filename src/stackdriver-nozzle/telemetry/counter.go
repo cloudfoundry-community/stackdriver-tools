@@ -25,7 +25,7 @@ import (
 	"github.com/cloudfoundry/lager"
 )
 
-var CollectorStoppedErr = errors.New("attempted to increment counter without starting counter, further attempts will not be reported")
+var CounterStoppedErr = errors.New("attempted to increment counter without starting counter, further attempts will not be reported")
 
 const Action = "heartbeater"
 
@@ -107,7 +107,7 @@ func (t *counter) IncrementBy(name string, count int) {
 		t.counters[name] += count
 	} else {
 		t.nonStarterErrorOnce.Do(func() {
-			t.logger.Error(Action, CollectorStoppedErr)
+			t.logger.Error(Action, CounterStoppedErr)
 		})
 	}
 }

@@ -109,7 +109,7 @@ var _ = Describe("Counter", func() {
 		Eventually(logger.Logs).Should(ContainElement(mocks.Log{
 			Level:  lager.ERROR,
 			Action: telemetry.Action,
-			Err:    telemetry.CollectorStoppedErr,
+			Err:    telemetry.CounterStoppedErr,
 		}))
 
 		// The error is not repeated
