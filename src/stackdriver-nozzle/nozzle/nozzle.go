@@ -24,6 +24,7 @@ import (
 	"github.com/cloudfoundry-community/stackdriver-tools/src/stackdriver-nozzle/cloudfoundry"
 	"github.com/cloudfoundry-community/stackdriver-tools/src/stackdriver-nozzle/heartbeat"
 	"github.com/cloudfoundry/lager"
+	"github.com/cloudfoundry/noaa/consumer"
 	"github.com/cloudfoundry/sonde-go/events"
 	"github.com/gorilla/websocket"
 )
@@ -134,7 +135,11 @@ func (n *nozzle) handleEvent(envelope *events.Envelope) {
 }
 
 func (n *nozzle) handleFirehoseError(err error) {
-	n.logger.Error("firehose", err)
+	if err == consumer.ErrMaxRetriesReached {
+		n.logger.Fatal("firehose", err)
+	} else {
+		n.logger.Error("firehose", err)
+	}
 
 	closeErr, ok := err.(*websocket.CloseError)
 	if !ok {
