@@ -129,7 +129,7 @@ var _ = Describe("MetricSink", func() {
 		subject.Receive(envelope)
 
 		metrics := metricBuffer.PostedMetrics
-		Expect(metrics).To(HaveLen(6))
+		Expect(metrics).To(HaveLen(5))
 
 		eventName := func(element interface{}) string {
 			return element.(messages.Metric).Name
