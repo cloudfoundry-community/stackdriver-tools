@@ -14,21 +14,21 @@
  * limitations under the License.
  */
 
-package heartbeat
+package stackdriver
 
 import (
 	"sync"
 	"time"
 
+	"github.com/cloudfoundry-community/stackdriver-tools/src/stackdriver-nozzle/heartbeat"
 	"github.com/cloudfoundry-community/stackdriver-tools/src/stackdriver-nozzle/messages"
-	"github.com/cloudfoundry-community/stackdriver-tools/src/stackdriver-nozzle/stackdriver"
 	"github.com/cloudfoundry/lager"
 )
 
 type metricHandler struct {
 	start      time.Time
 	logger     lager.Logger
-	ma         stackdriver.MetricAdapter
+	ma         MetricAdapter
 	nozzleId   string
 	nozzleName string
 	nozzleZone string
@@ -37,7 +37,7 @@ type metricHandler struct {
 	counter   map[string]uint
 }
 
-func NewMetricHandler(ma stackdriver.MetricAdapter, logger lager.Logger, nozzleId, nozzleName, nozzleZone string) *metricHandler {
+func NewMetricHandler(ma MetricAdapter, logger lager.Logger, nozzleId, nozzleName, nozzleZone string) heartbeat.Handler {
 	return &metricHandler{
 		logger:     logger,
 		ma:         ma,

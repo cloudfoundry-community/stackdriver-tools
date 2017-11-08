@@ -24,6 +24,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/cloudfoundry-community/stackdriver-tools/src/stackdriver-nozzle/heartbeat"
 	"github.com/cloudfoundry-community/stackdriver-tools/src/stackdriver-nozzle/messages"
 	"github.com/cloudfoundry/lager"
 	"github.com/golang/protobuf/ptypes/timestamp"
@@ -36,13 +37,6 @@ type MetricAdapter interface {
 	PostMetricEvents([]*messages.MetricEvent)
 }
 
-type Heartbeater interface {
-	Start()
-	Increment(string)
-	IncrementBy(string, uint)
-	Stop()
-}
-
 type metricAdapter struct {
 	projectID             string
 	client                MetricClient
@@ -50,11 +44,11 @@ type metricAdapter struct {
 	createDescriptorMutex *sync.Mutex
 	batchSize             int
 	logger                lager.Logger
-	heartbeater           Heartbeater
+	heartbeater           heartbeat.Heartbeater
 }
 
 // NewMetricAdapter returns a MetricAdapater that can write to Stackdriver Monitoring
-func NewMetricAdapter(projectID string, client MetricClient, batchSize int, heartbeater Heartbeater, logger lager.Logger) (MetricAdapter, error) {
+func NewMetricAdapter(projectID string, client MetricClient, batchSize int, heartbeater heartbeat.Heartbeater, logger lager.Logger) (MetricAdapter, error) {
 	ma := &metricAdapter{
 		projectID:             projectID,
 		client:                client,
