@@ -22,19 +22,19 @@ import (
 	"github.com/cloudfoundry/sonde-go/events"
 )
 
-type Sink struct {
+type NozzleSink struct {
 	HandledEnvelopes []events.Envelope
 	mutex            sync.Mutex
 }
 
-func (s *Sink) Receive(envelope *events.Envelope) {
+func (s *NozzleSink) Receive(envelope *events.Envelope) {
 	s.mutex.Lock()
 	defer s.mutex.Unlock()
 
 	s.HandledEnvelopes = append(s.HandledEnvelopes, *envelope)
 }
 
-func (s *Sink) LastEnvelope() *events.Envelope {
+func (s *NozzleSink) LastEnvelope() *events.Envelope {
 	s.mutex.Lock()
 	defer s.mutex.Unlock()
 

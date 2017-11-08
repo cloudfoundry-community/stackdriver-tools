@@ -30,12 +30,12 @@ var _ = Describe("Counter", func() {
 	var (
 		subject telemetry.Counter
 		logger  *mocks.MockLogger
-		handler *mocks.MockTelemetrySink
+		handler *mocks.TelemetrySink
 	)
 
 	BeforeEach(func() {
 		logger = &mocks.MockLogger{}
-		handler = &mocks.MockTelemetrySink{}
+		handler = &mocks.TelemetrySink{}
 
 		subject = telemetry.NewCounter(logger, time.Duration(100*time.Millisecond), handler)
 		subject.Start()

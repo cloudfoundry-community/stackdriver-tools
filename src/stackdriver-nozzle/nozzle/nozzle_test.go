@@ -32,17 +32,17 @@ var _ = Describe("Nozzle", func() {
 	var (
 		subject    nozzle.Nozzle
 		firehose   *mocks.FirehoseClient
-		logSink    *mocks.Sink
-		metricSink *mocks.Sink
-		counter    *mocks.Collector
+		logSink    *mocks.NozzleSink
+		metricSink *mocks.NozzleSink
+		counter    *mocks.Counter
 		logger     *mocks.MockLogger
 	)
 
 	BeforeEach(func() {
 		firehose = mocks.NewFirehoseClient()
-		logSink = &mocks.Sink{}
-		metricSink = &mocks.Sink{}
-		counter = mocks.NewCollector()
+		logSink = &mocks.NozzleSink{}
+		metricSink = &mocks.NozzleSink{}
+		counter = mocks.NewCounter()
 		logger = &mocks.MockLogger{}
 
 		subject = nozzle.NewNozzle(logger, logSink, metricSink, counter)

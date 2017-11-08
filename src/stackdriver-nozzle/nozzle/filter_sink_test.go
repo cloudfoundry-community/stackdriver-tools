@@ -12,7 +12,7 @@ import (
 var _ = Describe("SinkFilter", func() {
 	var (
 		allEventTypes []events.Envelope_EventType
-		sink          *mocks.Sink
+		sink          *mocks.NozzleSink
 	)
 
 	BeforeEach(func() {
@@ -23,7 +23,7 @@ var _ = Describe("SinkFilter", func() {
 			events.Envelope_CounterEvent,
 			events.Envelope_ContainerMetric,
 		}
-		sink = &mocks.Sink{}
+		sink = &mocks.NozzleSink{}
 	})
 	It("can accept an empty filter and blocks all events", func() {
 		f, err := nozzle.NewFilterSink([]events.Envelope_EventType{}, sink)

@@ -41,13 +41,13 @@ var _ = Describe("MetricAdapter", func() {
 	var (
 		subject stackdriver.MetricAdapter
 		client  *mocks.MockClient
-		counter *mocks.Collector
+		counter *mocks.Counter
 		logger  *mocks.MockLogger
 	)
 
 	BeforeEach(func() {
 		client = &mocks.MockClient{}
-		counter = mocks.NewCollector()
+		counter = mocks.NewCounter()
 		logger = &mocks.MockLogger{}
 		subject, _ = stackdriver.NewMetricAdapter("my-awesome-project", client, batchSize, counter, logger)
 	})

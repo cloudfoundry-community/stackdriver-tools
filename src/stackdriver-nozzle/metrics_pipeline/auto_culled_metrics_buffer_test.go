@@ -32,13 +32,13 @@ import (
 var _ = Describe("autoCulledMetricsBuffer", func() {
 	var (
 		metricAdapter *mocks.MetricAdapter
-		counter       *mocks.Collector
+		counter       *mocks.Counter
 		logger        *mocks.MockLogger
 	)
 
 	BeforeEach(func() {
 		metricAdapter = &mocks.MetricAdapter{}
-		counter = mocks.NewCollector()
+		counter = mocks.NewCounter()
 		logger = &mocks.MockLogger{}
 	})
 

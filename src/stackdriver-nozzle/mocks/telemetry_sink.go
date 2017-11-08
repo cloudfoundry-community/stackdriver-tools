@@ -16,13 +16,13 @@ package mocks
  * limitations under the License.
  */
 
-type MockTelemetrySink struct {
+type TelemetrySink struct {
 	RecordFn func(counters map[string]int)
 
 	RecordCounters []map[string]int
 }
 
-func (mts *MockTelemetrySink) Record(counters map[string]int) {
+func (mts *TelemetrySink) Record(counters map[string]int) {
 	if mts.RecordFn != nil {
 		mts.RecordFn(counters)
 	}
