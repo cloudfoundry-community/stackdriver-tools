@@ -37,7 +37,7 @@ var _ = Describe("Counter", func() {
 		logger = &mocks.MockLogger{}
 		handler = &mocks.MockTelemetrySink{}
 
-		subject = telemetry.NewCollector(logger, time.Duration(100*time.Millisecond), handler)
+		subject = telemetry.NewCounter(logger, time.Duration(100*time.Millisecond), handler)
 		subject.Start()
 	})
 

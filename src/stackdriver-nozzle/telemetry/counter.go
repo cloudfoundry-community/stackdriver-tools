@@ -50,7 +50,7 @@ type counter struct {
 	counters map[string]int
 }
 
-func NewCollector(logger lager.Logger, period time.Duration, handler Sink) Counter {
+func NewCounter(logger lager.Logger, period time.Duration, handler Sink) Counter {
 	return &counter{
 		logger:   logger,
 		period:   period,

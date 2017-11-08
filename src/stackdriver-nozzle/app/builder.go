@@ -40,7 +40,7 @@ func New(c *config.Config, logger lager.Logger) *App {
 	// to send heartbeat metrics to Stackdriver. This metricAdapter
 	// has its own counter (with its own trigger) that writes to a logger.
 	period := time.Duration(c.HeartbeatRate) * time.Second
-	adapterHeartbeater := telemetry.NewCollector(logger, period, nil)
+	adapterHeartbeater := telemetry.NewCounter(logger, period, nil)
 	adapterHeartbeater.Start()
 	metricAdapter, err := stackdriver.NewMetricAdapter(c.ProjectID, metricClient, c.MetricsBatchSize, adapterHeartbeater, logger)
 	if err != nil {
@@ -51,7 +51,7 @@ func New(c *config.Config, logger lager.Logger) *App {
 	// logging and monitoring. It uses the metricAdapter created previously
 	// to write to Stackdriver.
 	telemetrySink := stackdriver.NewTelemetrySink(metricAdapter, logger, c.NozzleId, c.NozzleName, c.NozzleZone)
-	counter := telemetry.NewCollector(logger, period, telemetrySink)
+	counter := telemetry.NewCounter(logger, period, telemetrySink)
 
 	cfConfig := &cfclient.Config{
 		ApiAddress:        c.APIEndpoint,

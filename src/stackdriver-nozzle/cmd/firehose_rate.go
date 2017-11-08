@@ -51,7 +51,7 @@ func main() {
 	messages, _ := client.Connect()
 
 	period := time.Duration(1 * time.Second)
-	counter := telemetry.NewCollector(logger, period, nil)
+	counter := telemetry.NewCounter(logger, period, nil)
 	counter.Start()
 	defer counter.Stop()
 	for _ = range messages {
