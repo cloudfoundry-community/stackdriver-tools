@@ -19,18 +19,25 @@ package mocks
 type MockHandler struct {
 	HandleFn func(name string, count uint)
 	FlushFn  func()
+
+	HandleCount int
+	FlushCount  int
 }
 
 func (mh *MockHandler) Handle(name string, count uint) {
 	if mh.HandleFn != nil {
 		mh.HandleFn(name, count)
 	}
+
+	mh.HandleCount += 1
 }
 
 func (mh *MockHandler) Flush() {
 	if mh.FlushFn != nil {
 		mh.FlushFn()
 	}
+
+	mh.FlushCount += 1
 }
 
 func (mh *MockHandler) Name() string {

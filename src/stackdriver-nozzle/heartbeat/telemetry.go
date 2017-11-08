@@ -25,6 +25,21 @@ import (
 	"github.com/cloudfoundry/lager"
 )
 
+var HeartbeaterStoppedErr = errors.New("attempted to increment counter without starting heartbeater, further attempts will not be reported")
+
+type Heartbeater interface {
+	Start()
+	Increment(name string)
+	IncrementBy(name string, count uint)
+	Stop()
+}
+
+type Handler interface {
+	Handle(name string, count uint)
+	Flush()
+	Name() string
+}
+
 type telemetry struct {
 	logger lager.Logger
 	period time.Duration

@@ -21,7 +21,6 @@ import (
 
 	"github.com/cloudfoundry-community/stackdriver-tools/src/stackdriver-nozzle/heartbeat"
 	"github.com/cloudfoundry-community/stackdriver-tools/src/stackdriver-nozzle/mocks"
-	"github.com/cloudfoundry-community/stackdriver-tools/src/stackdriver-nozzle/stackdriver"
 	"github.com/cloudfoundry/lager"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -29,22 +28,16 @@ import (
 
 var _ = Describe("Heartbeater", func() {
 	var (
-		subject       heartbeat.Heartbeater
-		logger        *mocks.MockLogger
-		client        *mocks.MockClient
-		metricAdapter stackdriver.MetricAdapter
-		metricHandler heartbeat.Handler
+		subject heartbeat.Heartbeater
+		logger  *mocks.MockLogger
+		handler *mocks.MockHandler
 	)
 
 	BeforeEach(func() {
 		logger = &mocks.MockLogger{}
-		heartbeater := mocks.NewHeartbeater()
+		handler = &mocks.MockHandler{}
 
-		client = &mocks.MockClient{}
-		metricAdapter, _ = stackdriver.NewMetricAdapter("my-awesome-project", client, 200, heartbeater, logger)
-		metricHandler = heartbeat.NewMetricHandler(metricAdapter, logger, "nozzle-id", "nozzle-name", "nozle-zone")
-
-		subject = heartbeat.NewTelemetry(logger, time.Duration(100*time.Millisecond), metricHandler)
+		subject = heartbeat.NewTelemetry(logger, time.Duration(100*time.Millisecond), handler)
 		subject.Start()
 	})
 
@@ -69,11 +62,8 @@ var _ = Describe("Heartbeater", func() {
 			},
 		}))
 
-		Eventually(func() int {
-			client.Mutex.Lock()
-			defer client.Mutex.Unlock()
-			return len(client.MetricReqs[0].TimeSeries)
-		}).Should(Equal(1))
+		Expect(handler.HandleCount).To(Equal(1))
+		Expect(handler.FlushCount).To(Equal(1))
 	})
 
 	It("should reset the heartbeater on triggers", func() {
@@ -95,12 +85,8 @@ var _ = Describe("Heartbeater", func() {
 			},
 		}))
 
-		Eventually(func() int {
-			client.Mutex.Lock()
-			defer client.Mutex.Unlock()
-			return len(client.MetricReqs[len(client.MetricReqs)-1].TimeSeries)
-		}).Should(Equal(1))
-
+		Expect(handler.HandleCount).To(Equal(2))
+		Expect(handler.FlushCount).To(Equal(2))
 	})
 
 	It("should stop counting", func() {
@@ -146,24 +132,16 @@ var _ = Describe("Heartbeater", func() {
 			},
 		}))
 
-		Eventually(func() int {
-			client.Mutex.Lock()
-			defer client.Mutex.Unlock()
-			if len(client.MetricReqs) > 0 {
-				return len(client.MetricReqs[len(client.MetricReqs)-1].TimeSeries)
-			}
-			return 0
-		}).Should(Equal(3))
+		Expect(handler.FlushCount).To(Equal(1))
+		Expect(handler.HandleCount).To(Equal(3))
 	})
 
 	Context("with a slow handler", func() {
 		var (
-			handler      *mocks.MockHandler
 			handlePosted chan struct{}
 		)
 		BeforeEach(func() {
 			handlePosted = make(chan struct{})
-			handler = &mocks.MockHandler{}
 			handler.HandleFn = func(string, uint) {
 				handlePosted <- struct{}{}
 				time.Sleep(5 * time.Second)
@@ -171,8 +149,6 @@ var _ = Describe("Heartbeater", func() {
 			handler.FlushFn = func() {
 				time.Sleep(5 * time.Second)
 			}
-			subject = heartbeat.NewTelemetry(logger, time.Duration(100*time.Millisecond), handler)
-			subject.Start()
 		})
 		It("isn't blocked", func() {
 			subject.IncrementBy("foo", 5)
