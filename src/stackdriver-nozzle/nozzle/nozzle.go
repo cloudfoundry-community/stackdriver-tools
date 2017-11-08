@@ -22,7 +22,7 @@ import (
 
 	"code.cloudfoundry.org/diodes"
 	"github.com/cloudfoundry-community/stackdriver-tools/src/stackdriver-nozzle/cloudfoundry"
-	"github.com/cloudfoundry-community/stackdriver-tools/src/stackdriver-nozzle/heartbeat"
+	"github.com/cloudfoundry-community/stackdriver-tools/src/stackdriver-nozzle/telemetry"
 	"github.com/cloudfoundry/lager"
 	"github.com/cloudfoundry/noaa/consumer"
 	"github.com/cloudfoundry/sonde-go/events"
@@ -40,8 +40,8 @@ type nozzle struct {
 	logSink    Sink
 	metricSink Sink
 
-	heartbeater heartbeat.Heartbeater
-	logger      lager.Logger
+	counter telemetry.Counter
+	logger  lager.Logger
 
 	session state
 }
@@ -52,17 +52,17 @@ type state struct {
 	running bool
 }
 
-func NewNozzle(logger lager.Logger, logSink Sink, metricSink Sink, heartbeater heartbeat.Heartbeater) Nozzle {
+func NewNozzle(logger lager.Logger, logSink Sink, metricSink Sink, counter telemetry.Counter) Nozzle {
 	return &nozzle{
-		logSink:     logSink,
-		metricSink:  metricSink,
-		heartbeater: heartbeater,
-		logger:      logger,
+		logSink:    logSink,
+		metricSink: metricSink,
+		counter:    counter,
+		logger:     logger,
 	}
 }
 
 func (n *nozzle) Start(firehose cloudfoundry.Firehose) {
-	n.heartbeater.Start()
+	n.counter.Start()
 	n.session = state{done: make(chan struct{}), running: true}
 
 	messages, fhErrInternal := firehose.Connect()
@@ -72,7 +72,7 @@ func (n *nozzle) Start(firehose cloudfoundry.Firehose) {
 		for err := range fhErrInternal {
 			if err == nil {
 				// Ignore empty errors. Customers observe a flooding of empty errors from firehose.
-				go n.heartbeater.Increment("firehose.errors.empty")
+				go n.counter.Increment("firehose.errors.empty")
 				continue
 			}
 
@@ -84,7 +84,7 @@ func (n *nozzle) Start(firehose cloudfoundry.Firehose) {
 		if missed < 0 {
 			panic("negative missed value received")
 		}
-		go n.heartbeater.IncrementBy("nozzle.events.dropped", uint(missed))
+		go n.counter.IncrementBy("nozzle.events.dropped", uint(missed))
 	})))
 
 	// Drain messages from the firehose and place them into the ring buffer
@@ -118,7 +118,7 @@ func (n *nozzle) Stop() error {
 	if !n.session.running {
 		return errors.New("nozzle is not running")
 	}
-	n.heartbeater.Stop()
+	n.counter.Stop()
 	close(n.session.done)
 	n.session.running = false
 
@@ -126,7 +126,7 @@ func (n *nozzle) Stop() error {
 }
 
 func (n *nozzle) handleEvent(envelope *events.Envelope) {
-	n.heartbeater.Increment("nozzle.events")
+	n.counter.Increment("nozzle.events")
 	if isMetric(envelope) {
 		n.metricSink.Receive(envelope)
 	} else {
@@ -143,17 +143,17 @@ func (n *nozzle) handleFirehoseError(err error) {
 
 	closeErr, ok := err.(*websocket.CloseError)
 	if !ok {
-		n.heartbeater.Increment("firehose.errors.unknwon")
+		n.counter.Increment("firehose.errors.unknwon")
 		return
 	}
 
 	switch closeErr.Code {
 	case websocket.CloseNormalClosure:
-		n.heartbeater.Increment("firehose.errors.close.normal_close")
+		n.counter.Increment("firehose.errors.close.normal_close")
 	case websocket.ClosePolicyViolation:
-		n.heartbeater.Increment("firehose.errors.close.policy_violation")
+		n.counter.Increment("firehose.errors.close.policy_violation")
 	default:
-		n.heartbeater.Increment("firehose.errors.close.unknown")
+		n.counter.Increment("firehose.errors.close.unknown")
 	}
 }
 

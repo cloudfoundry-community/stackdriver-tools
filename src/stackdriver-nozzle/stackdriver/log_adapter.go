@@ -20,8 +20,8 @@ import (
 	"time"
 
 	"cloud.google.com/go/logging"
-	"github.com/cloudfoundry-community/stackdriver-tools/src/stackdriver-nozzle/heartbeat"
 	"github.com/cloudfoundry-community/stackdriver-tools/src/stackdriver-nozzle/messages"
+	"github.com/cloudfoundry-community/stackdriver-tools/src/stackdriver-nozzle/telemetry"
 	"github.com/cloudfoundry-community/stackdriver-tools/src/stackdriver-nozzle/version"
 	"golang.org/x/net/context"
 	"google.golang.org/api/option"
@@ -38,7 +38,7 @@ type LogAdapter interface {
 }
 
 // NewLogAdapter returns a LogAdapter that can post to Stackdriver Logging.
-func NewLogAdapter(projectID string, batchCount int, batchDuration time.Duration, heartbeater heartbeat.Heartbeater) (LogAdapter, <-chan error) {
+func NewLogAdapter(projectID string, batchCount int, batchDuration time.Duration, counter telemetry.Counter) (LogAdapter, <-chan error) {
 	errs := make(chan error)
 	loggingClient, err := logging.NewClient(context.Background(), projectID, option.WithUserAgent(version.UserAgent()))
 	if err != nil {
@@ -63,21 +63,21 @@ func NewLogAdapter(projectID string, batchCount int, batchDuration time.Duration
 	}
 
 	return &logAdapter{
-		sdLogger:    sdLogger,
-		heartbeater: heartbeater,
-		resource:    resource,
+		sdLogger: sdLogger,
+		counter:  counter,
+		resource: resource,
 	}, errs
 }
 
 type logAdapter struct {
-	sdLogger    *logging.Logger
-	resource    *mrpb.MonitoredResource
-	heartbeater heartbeat.Heartbeater
+	sdLogger *logging.Logger
+	resource *mrpb.MonitoredResource
+	counter  telemetry.Counter
 }
 
 // PostLog sends a single message to Stackdriver Logging
 func (s *logAdapter) PostLog(log *messages.Log) {
-	s.heartbeater.Increment("logs.count")
+	s.counter.Increment("logs.count")
 	entry := logging.Entry{
 		Payload:  log.Payload,
 		Labels:   log.Labels,

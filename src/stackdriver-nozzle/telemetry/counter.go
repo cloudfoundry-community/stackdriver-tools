@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package heartbeat
+package telemetry
 
 import (
 	"errors"
@@ -25,22 +25,18 @@ import (
 	"github.com/cloudfoundry/lager"
 )
 
-var HeartbeaterStoppedErr = errors.New("attempted to increment counter without starting heartbeater, further attempts will not be reported")
+var CollectorStoppedErr = errors.New("attempted to increment counter without starting counter, further attempts will not be reported")
 
-type Heartbeater interface {
+const Action = "heartbeater"
+
+type Counter interface {
 	Start()
 	Increment(name string)
 	IncrementBy(name string, count uint)
 	Stop()
 }
 
-type Handler interface {
-	Handle(name string, count uint)
-	Flush()
-	Name() string
-}
-
-type telemetry struct {
+type counter struct {
 	logger lager.Logger
 	period time.Duration
 
@@ -48,14 +44,14 @@ type telemetry struct {
 	done                chan struct{}
 	nonStarterErrorOnce sync.Once
 
-	handler Handler
+	handler Sink
 
 	mutex    sync.Mutex
 	counters map[string]uint
 }
 
-func NewTelemetry(logger lager.Logger, period time.Duration, handler Handler) Heartbeater {
-	return &telemetry{
+func NewCollector(logger lager.Logger, period time.Duration, handler Sink) Counter {
+	return &counter{
 		logger:   logger,
 		period:   period,
 		done:     make(chan struct{}),
@@ -63,10 +59,10 @@ func NewTelemetry(logger lager.Logger, period time.Duration, handler Handler) He
 		handler:  handler}
 }
 
-func (t *telemetry) Start() {
+func (t *counter) Start() {
 	t.mutex.Lock()
 	if t.started {
-		t.logger.Fatal("heartbeater", errors.New("attempting to start an already running heartbeater"))
+		t.logger.Fatal(Action, errors.New("attempting to start an already running counter"))
 		return
 	}
 	t.started = true
@@ -79,20 +75,20 @@ func (t *telemetry) Start() {
 			case <-trigger.C:
 				t.emit()
 			case <-t.done:
-				t.logger.Info("heartbeater", lager.Data{"debug": "done"})
+				t.logger.Info(Action, lager.Data{"debug": "done"})
 				return
 			}
 		}
 	}()
 }
 
-func (t *telemetry) emit() {
+func (t *counter) emit() {
 	t.mutex.Lock()
 	counters := t.counters
 	t.counters = make(map[string]uint)
 	t.mutex.Unlock()
 
-	t.logger.Info("heartbeater", lager.Data{"counters": counters})
+	t.logger.Info(Action, lager.Data{"counters": counters})
 
 	if t.handler == nil {
 		return
@@ -105,11 +101,11 @@ func (t *telemetry) emit() {
 	t.handler.Flush()
 }
 
-func (t *telemetry) Increment(name string) {
+func (t *counter) Increment(name string) {
 	t.IncrementBy(name, 1)
 }
 
-func (t *telemetry) IncrementBy(name string, count uint) {
+func (t *counter) IncrementBy(name string, count uint) {
 	t.mutex.Lock()
 	defer t.mutex.Unlock()
 
@@ -117,13 +113,13 @@ func (t *telemetry) IncrementBy(name string, count uint) {
 		t.counters[name] += count
 	} else {
 		t.nonStarterErrorOnce.Do(func() {
-			t.logger.Error("heartbeater", HeartbeaterStoppedErr)
+			t.logger.Error(Action, CollectorStoppedErr)
 		})
 	}
 }
 
-func (t *telemetry) Stop() {
-	t.logger.Info("heartbeater", lager.Data{"debug": "Stopping"})
+func (t *counter) Stop() {
+	t.logger.Info(Action, lager.Data{"debug": "Stopping"})
 
 	t.mutex.Lock()
 	close(t.done)

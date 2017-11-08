@@ -30,30 +30,30 @@ import (
 
 var _ = Describe("Nozzle", func() {
 	var (
-		subject     nozzle.Nozzle
-		firehose    *mocks.FirehoseClient
-		logSink     *mocks.Sink
-		metricSink  *mocks.Sink
-		heartbeater *mocks.Heartbeater
-		logger      *mocks.MockLogger
+		subject    nozzle.Nozzle
+		firehose   *mocks.FirehoseClient
+		logSink    *mocks.Sink
+		metricSink *mocks.Sink
+		counter    *mocks.Collector
+		logger     *mocks.MockLogger
 	)
 
 	BeforeEach(func() {
 		firehose = mocks.NewFirehoseClient()
 		logSink = &mocks.Sink{}
 		metricSink = &mocks.Sink{}
-		heartbeater = mocks.NewHeartbeater()
+		counter = mocks.NewCollector()
 		logger = &mocks.MockLogger{}
 
-		subject = nozzle.NewNozzle(logger, logSink, metricSink, heartbeater)
+		subject = nozzle.NewNozzle(logger, logSink, metricSink, counter)
 		subject.Start(firehose)
 	})
 
-	It("starts the heartbeater", func() {
-		Expect(heartbeater.IsRunning()).To(Equal(true))
+	It("starts the counter", func() {
+		Expect(counter.IsRunning()).To(Equal(true))
 	})
 
-	It("updates the heartbeater", func() {
+	It("updates the counter", func() {
 		for _, value := range events.Envelope_EventType_value {
 			eventType := events.Envelope_EventType(value)
 			event := events.Envelope{EventType: &eventType}
@@ -61,13 +61,13 @@ var _ = Describe("Nozzle", func() {
 		}
 
 		Eventually(func() int {
-			return heartbeater.GetCount("nozzle.events")
+			return counter.GetCount("nozzle.events")
 		}).Should(Equal(len(events.Envelope_EventType_value)))
 	})
 
-	It("stops the heartbeater", func() {
+	It("stops the counter", func() {
 		subject.Stop()
-		Expect(heartbeater.IsRunning()).To(Equal(false))
+		Expect(counter.IsRunning()).To(Equal(false))
 	})
 
 	It("does not receive errors", func() {
@@ -158,7 +158,7 @@ var _ = Describe("Nozzle", func() {
 		Expect(subject.Stop()).To(HaveOccurred())
 		Expect(subject.Stop()).To(HaveOccurred())
 
-		Expect(heartbeater.IsRunning()).To(Equal(false))
+		Expect(counter.IsRunning()).To(Equal(false))
 		close(done)
 	}, 0.2)
 })

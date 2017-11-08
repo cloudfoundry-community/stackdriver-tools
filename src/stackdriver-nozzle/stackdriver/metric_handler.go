@@ -20,8 +20,8 @@ import (
 	"sync"
 	"time"
 
-	"github.com/cloudfoundry-community/stackdriver-tools/src/stackdriver-nozzle/heartbeat"
 	"github.com/cloudfoundry-community/stackdriver-tools/src/stackdriver-nozzle/messages"
+	"github.com/cloudfoundry-community/stackdriver-tools/src/stackdriver-nozzle/telemetry"
 	"github.com/cloudfoundry/lager"
 )
 
@@ -37,7 +37,7 @@ type metricHandler struct {
 	counter   map[string]uint
 }
 
-func NewMetricHandler(ma MetricAdapter, logger lager.Logger, nozzleId, nozzleName, nozzleZone string) heartbeat.Handler {
+func NewMetricHandler(ma MetricAdapter, logger lager.Logger, nozzleId, nozzleName, nozzleZone string) telemetry.Sink {
 	return &metricHandler{
 		logger:     logger,
 		ma:         ma,

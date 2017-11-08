@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package heartbeat_test
+package telemetry_test
 
 import (
 	"testing"
@@ -25,5 +25,5 @@ import (
 
 func TestHeartbeat(t *testing.T) {
 	RegisterFailHandler(Fail)
-	RunSpecs(t, "Heartbeat Suite")
+	RunSpecs(t, "Telemetry Suite")
 }

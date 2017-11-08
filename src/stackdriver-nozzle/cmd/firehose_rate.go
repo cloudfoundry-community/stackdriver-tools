@@ -21,9 +21,9 @@ import (
 	"time"
 
 	"github.com/cloudfoundry-community/stackdriver-tools/src/stackdriver-nozzle/cloudfoundry"
-	"github.com/cloudfoundry-community/stackdriver-tools/src/stackdriver-nozzle/heartbeat"
 
 	"github.com/cloudfoundry-community/go-cfclient"
+	"github.com/cloudfoundry-community/stackdriver-tools/src/stackdriver-nozzle/telemetry"
 	"github.com/cloudfoundry/lager"
 )
 
@@ -51,10 +51,10 @@ func main() {
 	messages, _ := client.Connect()
 
 	period := time.Duration(1 * time.Second)
-	heartbeater := heartbeat.NewTelemetry(logger, period, nil)
-	heartbeater.Start()
-	defer heartbeater.Stop()
+	counter := telemetry.NewCollector(logger, period, nil)
+	counter.Start()
+	defer counter.Stop()
 	for _ = range messages {
-		heartbeater.Increment("count")
+		counter.Increment("count")
 	}
 }

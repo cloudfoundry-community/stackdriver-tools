@@ -18,45 +18,45 @@ package mocks
 
 import "sync"
 
-func NewHeartbeater() *Heartbeater {
-	return &Heartbeater{counters: map[string]int{}}
+func NewCollector() *Collector {
+	return &Collector{counters: map[string]int{}}
 }
 
-type Heartbeater struct {
+type Collector struct {
 	started  bool
 	counters map[string]int
 	mutex    sync.Mutex
 }
 
-func (h *Heartbeater) Start() {
+func (h *Collector) Start() {
 	h.mutex.Lock()
 	h.started = true
 	h.mutex.Unlock()
 }
 
-func (h *Heartbeater) Increment(name string) {
+func (h *Collector) Increment(name string) {
 	h.IncrementBy(name, 1)
 }
 
-func (h *Heartbeater) IncrementBy(name string, count uint) {
+func (h *Collector) IncrementBy(name string, count uint) {
 	h.mutex.Lock()
 	h.counters[name] += int(count)
 	h.mutex.Unlock()
 }
 
-func (h *Heartbeater) Stop() {
+func (h *Collector) Stop() {
 	h.mutex.Lock()
 	h.started = false
 	h.mutex.Unlock()
 }
 
-func (h *Heartbeater) IsRunning() bool {
+func (h *Collector) IsRunning() bool {
 	h.mutex.Lock()
 	defer h.mutex.Unlock()
 	return h.started
 }
 
-func (h *Heartbeater) GetCount(name string) int {
+func (h *Collector) GetCount(name string) int {
 	h.mutex.Lock()
 	defer h.mutex.Unlock()
 

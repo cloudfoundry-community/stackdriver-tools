@@ -14,21 +14,21 @@
  * limitations under the License.
  */
 
-package heartbeat_test
+package telemetry_test
 
 import (
 	"time"
 
-	"github.com/cloudfoundry-community/stackdriver-tools/src/stackdriver-nozzle/heartbeat"
 	"github.com/cloudfoundry-community/stackdriver-tools/src/stackdriver-nozzle/mocks"
+	"github.com/cloudfoundry-community/stackdriver-tools/src/stackdriver-nozzle/telemetry"
 	"github.com/cloudfoundry/lager"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 )
 
-var _ = Describe("Heartbeater", func() {
+var _ = Describe("Counter", func() {
 	var (
-		subject heartbeat.Heartbeater
+		subject telemetry.Counter
 		logger  *mocks.MockLogger
 		handler *mocks.MockHandler
 	)
@@ -37,14 +37,14 @@ var _ = Describe("Heartbeater", func() {
 		logger = &mocks.MockLogger{}
 		handler = &mocks.MockHandler{}
 
-		subject = heartbeat.NewTelemetry(logger, time.Duration(100*time.Millisecond), handler)
+		subject = telemetry.NewCollector(logger, time.Duration(100*time.Millisecond), handler)
 		subject.Start()
 	})
 
 	It("should start at zero", func() {
 		Eventually(logger.Logs).Should(ContainElement(mocks.Log{
 			Level:  lager.INFO,
-			Action: "heartbeater",
+			Action: telemetry.Action,
 			Datas: []lager.Data{
 				{"counters": map[string]uint{}},
 			},
@@ -56,7 +56,7 @@ var _ = Describe("Heartbeater", func() {
 
 		Eventually(logger.Logs).Should(ContainElement(mocks.Log{
 			Level:  lager.INFO,
-			Action: "heartbeater",
+			Action: telemetry.Action,
 			Datas: []lager.Data{
 				{"counters": map[string]uint{"foo": 10}},
 			},
@@ -66,11 +66,11 @@ var _ = Describe("Heartbeater", func() {
 		Expect(handler.FlushCount).To(Equal(1))
 	})
 
-	It("should reset the heartbeater on triggers", func() {
+	It("should reset the counter on triggers", func() {
 		subject.IncrementBy("foo", 10)
 		Eventually(logger.Logs).Should(ContainElement(mocks.Log{
 			Level:  lager.INFO,
-			Action: "heartbeater",
+			Action: telemetry.Action,
 			Datas: []lager.Data{
 				{"counters": map[string]uint{"foo": 10}},
 			},
@@ -79,7 +79,7 @@ var _ = Describe("Heartbeater", func() {
 		subject.IncrementBy("foo", 5)
 		Eventually(logger.Logs).Should(ContainElement(mocks.Log{
 			Level:  lager.INFO,
-			Action: "heartbeater",
+			Action: telemetry.Action,
 			Datas: []lager.Data{
 				{"counters": map[string]uint{"foo": 5}},
 			},
@@ -95,7 +95,7 @@ var _ = Describe("Heartbeater", func() {
 
 		Eventually(logger.Logs).Should(ContainElement(mocks.Log{
 			Level:  lager.INFO,
-			Action: "heartbeater",
+			Action: telemetry.Action,
 			Datas: []lager.Data{
 				{"counters": map[string]uint{"foo": 5}},
 			},
@@ -105,8 +105,8 @@ var _ = Describe("Heartbeater", func() {
 		subject.Increment("foo")
 		Eventually(logger.Logs).Should(ContainElement(mocks.Log{
 			Level:  lager.ERROR,
-			Action: "heartbeater",
-			Err:    heartbeat.HeartbeaterStoppedErr,
+			Action: telemetry.Action,
+			Err:    telemetry.CollectorStoppedErr,
 		}))
 
 		// The error is not repeated
@@ -122,7 +122,7 @@ var _ = Describe("Heartbeater", func() {
 
 		Eventually(logger.Logs).Should(ContainElement(mocks.Log{
 			Level:  lager.INFO,
-			Action: "heartbeater",
+			Action: telemetry.Action,
 			Datas: []lager.Data{
 				{"counters": map[string]uint{
 					"foo": 10,
