@@ -31,15 +31,12 @@ var _ = Describe("Heartbeater", func() {
 	var (
 		subject       heartbeat.Heartbeater
 		logger        *mocks.MockLogger
-		trigger       chan time.Time
 		client        *mocks.MockClient
 		metricAdapter stackdriver.MetricAdapter
 		metricHandler heartbeat.Handler
 	)
 
 	BeforeEach(func() {
-		trigger = make(chan time.Time)
-
 		logger = &mocks.MockLogger{}
 		heartbeater := mocks.NewHeartbeater()
 
@@ -47,14 +44,12 @@ var _ = Describe("Heartbeater", func() {
 		metricAdapter, _ = stackdriver.NewMetricAdapter("my-awesome-project", client, 200, heartbeater, logger)
 		metricHandler = heartbeat.NewMetricHandler(metricAdapter, logger, "nozzle-id", "nozzle-name", "nozle-zone")
 
-		subject = heartbeat.NewLoggerMetricHeartbeater(metricHandler, logger, trigger, "heartbeater")
+		subject = heartbeat.NewTelemetry(logger, time.Duration(100*time.Millisecond), metricHandler)
 		subject.Start()
 	})
 
 	It("should start at zero", func() {
-		trigger <- time.Now()
-
-		Eventually(logger.Logs()).Should(ContainElement(mocks.Log{
+		Eventually(logger.Logs).Should(ContainElement(mocks.Log{
 			Level:  lager.INFO,
 			Action: "heartbeater",
 			Datas: []lager.Data{
@@ -64,13 +59,9 @@ var _ = Describe("Heartbeater", func() {
 	})
 
 	It("should count events", func() {
-		for i := 0; i < 10; i++ {
-			subject.Increment("foo")
-		}
+		subject.IncrementBy("foo", 10)
 
-		trigger <- time.Now()
-
-		Eventually(logger.Logs()).Should(ContainElement(mocks.Log{
+		Eventually(logger.Logs).Should(ContainElement(mocks.Log{
 			Level:  lager.INFO,
 			Action: "heartbeater",
 			Datas: []lager.Data{
@@ -86,19 +77,17 @@ var _ = Describe("Heartbeater", func() {
 	})
 
 	It("should reset the heartbeater on triggers", func() {
-		for i := 0; i < 10; i++ {
-			subject.Increment("foo")
-		}
+		subject.IncrementBy("foo", 10)
+		Eventually(logger.Logs).Should(ContainElement(mocks.Log{
+			Level:  lager.INFO,
+			Action: "heartbeater",
+			Datas: []lager.Data{
+				{"counters": map[string]uint{"foo": 10}},
+			},
+		}))
 
-		trigger <- time.Now()
-
-		for i := 0; i < 5; i++ {
-			subject.Increment("foo")
-		}
-
-		trigger <- time.Now()
-
-		Eventually(logger.Logs()).Should(ContainElement(mocks.Log{
+		subject.IncrementBy("foo", 5)
+		Eventually(logger.Logs).Should(ContainElement(mocks.Log{
 			Level:  lager.INFO,
 			Action: "heartbeater",
 			Datas: []lager.Data{
@@ -115,13 +104,10 @@ var _ = Describe("Heartbeater", func() {
 	})
 
 	It("should stop counting", func() {
-		for i := 0; i < 5; i++ {
-			subject.Increment("foo")
-		}
-		trigger <- time.Now()
+		subject.IncrementBy("foo", 5)
 		subject.Stop()
 
-		Expect(logger.Logs()).To(ContainElement(mocks.Log{
+		Eventually(logger.Logs).Should(ContainElement(mocks.Log{
 			Level:  lager.INFO,
 			Action: "heartbeater",
 			Datas: []lager.Data{
@@ -131,7 +117,7 @@ var _ = Describe("Heartbeater", func() {
 
 		// The error is reported
 		subject.Increment("foo")
-		Expect(logger.LastLog()).To(Equal(mocks.Log{
+		Eventually(logger.Logs).Should(ContainElement(mocks.Log{
 			Level:  lager.ERROR,
 			Action: "heartbeater",
 			Err:    heartbeat.HeartbeaterStoppedErr,
@@ -145,18 +131,10 @@ var _ = Describe("Heartbeater", func() {
 
 	It("can count multiple events", func() {
 		subject.IncrementBy("baz", 15)
+		subject.IncrementBy("foo", 10)
+		subject.IncrementBy("bar", 5)
 
-		for i := 0; i < 10; i++ {
-			subject.Increment("foo")
-		}
-
-		for i := 0; i < 5; i++ {
-			subject.Increment("bar")
-		}
-
-		trigger <- time.Now()
-
-		Eventually(logger.Logs()).Should(ContainElement(mocks.Log{
+		Eventually(logger.Logs).Should(ContainElement(mocks.Log{
 			Level:  lager.INFO,
 			Action: "heartbeater",
 			Datas: []lager.Data{
@@ -176,6 +154,36 @@ var _ = Describe("Heartbeater", func() {
 			}
 			return 0
 		}).Should(Equal(3))
+	})
 
+	Context("with a slow handler", func() {
+		var (
+			handler      *mocks.MockHandler
+			handlePosted chan struct{}
+		)
+		BeforeEach(func() {
+			handlePosted = make(chan struct{})
+			handler = &mocks.MockHandler{}
+			handler.HandleFn = func(string, uint) {
+				handlePosted <- struct{}{}
+				time.Sleep(5 * time.Second)
+			}
+			handler.FlushFn = func() {
+				time.Sleep(5 * time.Second)
+			}
+			subject = heartbeat.NewTelemetry(logger, time.Duration(100*time.Millisecond), handler)
+			subject.Start()
+		})
+		It("isn't blocked", func() {
+			subject.IncrementBy("foo", 5)
+			Eventually(handlePosted).Should(Receive())
+
+			unblocked := make(chan struct{})
+			go func() {
+				subject.IncrementBy("foo", 2)
+				unblocked <- struct{}{}
+			}()
+			Eventually(unblocked).Should(Receive())
+		})
 	})
 })
