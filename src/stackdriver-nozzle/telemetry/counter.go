@@ -32,7 +32,7 @@ const Action = "heartbeater"
 type Counter interface {
 	Start()
 	Increment(name string)
-	IncrementBy(name string, count uint)
+	IncrementBy(name string, count int)
 	Stop()
 }
 
@@ -44,10 +44,10 @@ type counter struct {
 	done                chan struct{}
 	nonStarterErrorOnce sync.Once
 
-	handler Sink
+	sink Sink
 
 	mutex    sync.Mutex
-	counters map[string]uint
+	counters map[string]int
 }
 
 func NewCollector(logger lager.Logger, period time.Duration, handler Sink) Counter {
@@ -55,8 +55,8 @@ func NewCollector(logger lager.Logger, period time.Duration, handler Sink) Count
 		logger:   logger,
 		period:   period,
 		done:     make(chan struct{}),
-		counters: make(map[string]uint),
-		handler:  handler}
+		counters: make(map[string]int),
+		sink:     handler}
 }
 
 func (t *counter) Start() {
@@ -85,27 +85,21 @@ func (t *counter) Start() {
 func (t *counter) emit() {
 	t.mutex.Lock()
 	counters := t.counters
-	t.counters = make(map[string]uint)
+	t.counters = make(map[string]int)
 	t.mutex.Unlock()
 
 	t.logger.Info(Action, lager.Data{"counters": counters})
 
-	if t.handler == nil {
-		return
+	if t.sink != nil {
+		t.sink.Record(counters)
 	}
-
-	for name, count := range counters {
-		t.handler.Handle(name, count)
-	}
-
-	t.handler.Flush()
 }
 
 func (t *counter) Increment(name string) {
 	t.IncrementBy(name, 1)
 }
 
-func (t *counter) IncrementBy(name string, count uint) {
+func (t *counter) IncrementBy(name string, count int) {
 	t.mutex.Lock()
 	defer t.mutex.Unlock()
 

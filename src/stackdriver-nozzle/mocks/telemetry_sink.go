@@ -16,30 +16,16 @@ package mocks
  * limitations under the License.
  */
 
-type MockHandler struct {
-	HandleFn func(name string, count uint)
-	FlushFn  func()
+type MockTelemetrySink struct {
+	RecordFn func(counters map[string]int)
 
-	HandleCount int
-	FlushCount  int
+	RecordCounters []map[string]int
 }
 
-func (mh *MockHandler) Handle(name string, count uint) {
-	if mh.HandleFn != nil {
-		mh.HandleFn(name, count)
+func (mts *MockTelemetrySink) Record(counters map[string]int) {
+	if mts.RecordFn != nil {
+		mts.RecordFn(counters)
 	}
 
-	mh.HandleCount += 1
-}
-
-func (mh *MockHandler) Flush() {
-	if mh.FlushFn != nil {
-		mh.FlushFn()
-	}
-
-	mh.FlushCount += 1
-}
-
-func (mh *MockHandler) Name() string {
-	return "mock-handler"
+	mts.RecordCounters = append(mts.RecordCounters, counters)
 }

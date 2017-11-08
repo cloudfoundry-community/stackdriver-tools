@@ -30,12 +30,12 @@ var _ = Describe("Counter", func() {
 	var (
 		subject telemetry.Counter
 		logger  *mocks.MockLogger
-		handler *mocks.MockHandler
+		handler *mocks.MockTelemetrySink
 	)
 
 	BeforeEach(func() {
 		logger = &mocks.MockLogger{}
-		handler = &mocks.MockHandler{}
+		handler = &mocks.MockTelemetrySink{}
 
 		subject = telemetry.NewCollector(logger, time.Duration(100*time.Millisecond), handler)
 		subject.Start()
@@ -46,7 +46,7 @@ var _ = Describe("Counter", func() {
 			Level:  lager.INFO,
 			Action: telemetry.Action,
 			Datas: []lager.Data{
-				{"counters": map[string]uint{}},
+				{"counters": map[string]int{}},
 			},
 		}))
 	})
@@ -58,12 +58,12 @@ var _ = Describe("Counter", func() {
 			Level:  lager.INFO,
 			Action: telemetry.Action,
 			Datas: []lager.Data{
-				{"counters": map[string]uint{"foo": 10}},
+				{"counters": map[string]int{"foo": 10}},
 			},
 		}))
 
-		Expect(handler.HandleCount).To(Equal(1))
-		Expect(handler.FlushCount).To(Equal(1))
+		Expect(handler.RecordCounters).To(HaveLen(1))
+		Expect(handler.RecordCounters[0]).To(HaveKeyWithValue("foo", 10))
 	})
 
 	It("should reset the counter on triggers", func() {
@@ -72,21 +72,24 @@ var _ = Describe("Counter", func() {
 			Level:  lager.INFO,
 			Action: telemetry.Action,
 			Datas: []lager.Data{
-				{"counters": map[string]uint{"foo": 10}},
+				{"counters": map[string]int{"foo": 10}},
 			},
 		}))
+
+		Expect(handler.RecordCounters).To(HaveLen(1))
+		Expect(handler.RecordCounters[0]).To(HaveKeyWithValue("foo", 10))
 
 		subject.IncrementBy("foo", 5)
 		Eventually(logger.Logs).Should(ContainElement(mocks.Log{
 			Level:  lager.INFO,
 			Action: telemetry.Action,
 			Datas: []lager.Data{
-				{"counters": map[string]uint{"foo": 5}},
+				{"counters": map[string]int{"foo": 5}},
 			},
 		}))
 
-		Expect(handler.HandleCount).To(Equal(2))
-		Expect(handler.FlushCount).To(Equal(2))
+		Expect(handler.RecordCounters).To(HaveLen(2))
+		Expect(handler.RecordCounters[1]).To(HaveKeyWithValue("foo", 5))
 	})
 
 	It("should stop counting", func() {
@@ -97,7 +100,7 @@ var _ = Describe("Counter", func() {
 			Level:  lager.INFO,
 			Action: telemetry.Action,
 			Datas: []lager.Data{
-				{"counters": map[string]uint{"foo": 5}},
+				{"counters": map[string]int{"foo": 5}},
 			},
 		}))
 
@@ -124,7 +127,7 @@ var _ = Describe("Counter", func() {
 			Level:  lager.INFO,
 			Action: telemetry.Action,
 			Datas: []lager.Data{
-				{"counters": map[string]uint{
+				{"counters": map[string]int{
 					"foo": 10,
 					"bar": 5,
 					"baz": 15,
@@ -132,8 +135,11 @@ var _ = Describe("Counter", func() {
 			},
 		}))
 
-		Expect(handler.FlushCount).To(Equal(1))
-		Expect(handler.HandleCount).To(Equal(3))
+		Expect(handler.RecordCounters).To(HaveLen(1))
+		counters := handler.RecordCounters[0]
+		Expect(counters).To(HaveKeyWithValue("foo", 10))
+		Expect(counters).To(HaveKeyWithValue("bar", 5))
+		Expect(counters).To(HaveKeyWithValue("baz", 15))
 	})
 
 	Context("with a slow handler", func() {
@@ -142,11 +148,8 @@ var _ = Describe("Counter", func() {
 		)
 		BeforeEach(func() {
 			handlePosted = make(chan struct{})
-			handler.HandleFn = func(string, uint) {
+			handler.RecordFn = func(map[string]int) {
 				handlePosted <- struct{}{}
-				time.Sleep(5 * time.Second)
-			}
-			handler.FlushFn = func() {
 				time.Sleep(5 * time.Second)
 			}
 		})

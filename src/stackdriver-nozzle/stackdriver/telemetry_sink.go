@@ -17,7 +17,6 @@
 package stackdriver
 
 import (
-	"sync"
 	"time"
 
 	"github.com/cloudfoundry-community/stackdriver-tools/src/stackdriver-nozzle/messages"
@@ -32,9 +31,6 @@ type telemetrySink struct {
 	nozzleId   string
 	nozzleName string
 	nozzleZone string
-
-	counterMu *sync.Mutex // Guards counter
-	counter   map[string]uint
 }
 
 func NewTelemetrySink(ma MetricAdapter, logger lager.Logger, nozzleId, nozzleName, nozzleZone string) telemetry.Sink {
@@ -45,25 +41,10 @@ func NewTelemetrySink(ma MetricAdapter, logger lager.Logger, nozzleId, nozzleNam
 		nozzleName: nozzleName,
 		nozzleZone: nozzleZone,
 		start:      time.Now(),
-		counterMu:  &sync.Mutex{},
-		counter:    map[string]uint{},
 	}
 }
 
-func (h *telemetrySink) Name() string {
-	return "stackdriverMonitoring"
-}
-
-func (h *telemetrySink) Handle(event string, count uint) {
-	h.counterMu.Lock()
-	defer h.counterMu.Unlock()
-	h.counter[event] += count
-	return
-}
-
-func (h *telemetrySink) Flush() {
-	counter := h.flushInternal()
-
+func (h *telemetrySink) Record(counter map[string]int) {
 	metrics := []*messages.Metric{}
 	t := time.Now()
 	labels := map[string]string{
@@ -79,13 +60,4 @@ func (h *telemetrySink) Flush() {
 		})
 	}
 	h.ma.PostMetricEvents([]*messages.MetricEvent{{Labels: labels, Metrics: metrics}})
-}
-
-func (h *telemetrySink) flushInternal() map[string]uint {
-	h.counterMu.Lock()
-	defer h.counterMu.Unlock()
-
-	counter := h.counter
-	h.counter = map[string]uint{}
-	return counter
 }

@@ -38,7 +38,7 @@ func (h *Collector) Increment(name string) {
 	h.IncrementBy(name, 1)
 }
 
-func (h *Collector) IncrementBy(name string, count uint) {
+func (h *Collector) IncrementBy(name string, count int) {
 	h.mutex.Lock()
 	h.counters[name] += int(count)
 	h.mutex.Unlock()

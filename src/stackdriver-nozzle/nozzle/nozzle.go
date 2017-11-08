@@ -81,10 +81,7 @@ func (n *nozzle) Start(firehose cloudfoundry.Firehose) {
 	}()
 
 	buffer := diodes.NewPoller(diodes.NewOneToOne(bufferSize, diodes.AlertFunc(func(missed int) {
-		if missed < 0 {
-			panic("negative missed value received")
-		}
-		go n.counter.IncrementBy("nozzle.events.dropped", uint(missed))
+		go n.counter.IncrementBy("nozzle.events.dropped", missed)
 	})))
 
 	// Drain messages from the firehose and place them into the ring buffer

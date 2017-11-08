@@ -17,7 +17,7 @@
 package telemetry
 
 type Sink interface {
-	Handle(name string, count uint)
-	Flush()
-	Name() string
+	// Record a set of metrics to the telemetry sink.
+	// This method can block till finished.
+	Record(map[string]int)
 }
