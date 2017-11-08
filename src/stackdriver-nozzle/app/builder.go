@@ -50,8 +50,8 @@ func New(c *config.Config, logger lager.Logger) *App {
 	// Create a counter that will write heartbeat events to Stackdriver
 	// logging and monitoring. It uses the metricAdapter created previously
 	// to write to Stackdriver.
-	metricHandler := stackdriver.NewMetricHandler(metricAdapter, logger, c.NozzleId, c.NozzleName, c.NozzleZone)
-	counter := telemetry.NewCollector(logger, period, metricHandler)
+	telemetrySink := stackdriver.NewTelemetrySink(metricAdapter, logger, c.NozzleId, c.NozzleName, c.NozzleZone)
+	counter := telemetry.NewCollector(logger, period, telemetrySink)
 
 	cfConfig := &cfclient.Config{
 		ApiAddress:        c.APIEndpoint,

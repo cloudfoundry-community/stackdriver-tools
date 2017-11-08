@@ -25,7 +25,7 @@ import (
 	"github.com/cloudfoundry/lager"
 )
 
-type metricHandler struct {
+type telemetrySink struct {
 	start      time.Time
 	logger     lager.Logger
 	ma         MetricAdapter
@@ -37,8 +37,8 @@ type metricHandler struct {
 	counter   map[string]uint
 }
 
-func NewMetricHandler(ma MetricAdapter, logger lager.Logger, nozzleId, nozzleName, nozzleZone string) telemetry.Sink {
-	return &metricHandler{
+func NewTelemetrySink(ma MetricAdapter, logger lager.Logger, nozzleId, nozzleName, nozzleZone string) telemetry.Sink {
+	return &telemetrySink{
 		logger:     logger,
 		ma:         ma,
 		nozzleId:   nozzleId,
@@ -50,18 +50,18 @@ func NewMetricHandler(ma MetricAdapter, logger lager.Logger, nozzleId, nozzleNam
 	}
 }
 
-func (h *metricHandler) Name() string {
-	return "metricHandler"
+func (h *telemetrySink) Name() string {
+	return "stackdriverMonitoring"
 }
 
-func (h *metricHandler) Handle(event string, count uint) {
+func (h *telemetrySink) Handle(event string, count uint) {
 	h.counterMu.Lock()
 	defer h.counterMu.Unlock()
 	h.counter[event] += count
 	return
 }
 
-func (h *metricHandler) Flush() {
+func (h *telemetrySink) Flush() {
 	counter := h.flushInternal()
 
 	metrics := []*messages.Metric{}
@@ -81,7 +81,7 @@ func (h *metricHandler) Flush() {
 	h.ma.PostMetricEvents([]*messages.MetricEvent{{Labels: labels, Metrics: metrics}})
 }
 
-func (h *metricHandler) flushInternal() map[string]uint {
+func (h *telemetrySink) flushInternal() map[string]uint {
 	h.counterMu.Lock()
 	defer h.counterMu.Unlock()
 
