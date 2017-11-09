@@ -52,27 +52,35 @@ func (m *MockLogger) Debug(action string, data ...lager.Data) {
 
 func (m *MockLogger) Info(action string, data ...lager.Data) {
 	m.mutex.Lock()
+	defer m.mutex.Unlock()
 	m.logs = append(m.logs, Log{
 		Level:  lager.INFO,
 		Action: action,
 		Datas:  data,
 	})
-	m.mutex.Unlock()
+
 }
 
 func (m *MockLogger) Error(action string, err error, data ...lager.Data) {
 	m.mutex.Lock()
+	defer m.mutex.Unlock()
 	m.logs = append(m.logs, Log{
 		Level:  lager.ERROR,
 		Action: action,
 		Err:    err,
 		Datas:  data,
 	})
-	m.mutex.Unlock()
 }
 
 func (m *MockLogger) Fatal(action string, err error, data ...lager.Data) {
-	panic("NYI")
+	m.mutex.Lock()
+	defer m.mutex.Unlock()
+	m.logs = append(m.logs, Log{
+		Level:  lager.FATAL,
+		Action: action,
+		Err:    err,
+		Datas:  data,
+	})
 }
 
 func (m *MockLogger) WithData(lager.Data) lager.Logger {

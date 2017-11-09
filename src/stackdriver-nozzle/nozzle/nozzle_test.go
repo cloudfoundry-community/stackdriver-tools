@@ -22,6 +22,7 @@ import (
 	"github.com/cloudfoundry-community/stackdriver-tools/src/stackdriver-nozzle/mocks"
 	"github.com/cloudfoundry-community/stackdriver-tools/src/stackdriver-nozzle/nozzle"
 	"github.com/cloudfoundry/lager"
+	"github.com/cloudfoundry/noaa/consumer"
 	"github.com/cloudfoundry/sonde-go/events"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -137,6 +138,16 @@ var _ = Describe("Nozzle", func() {
 
 		Eventually(logger.Logs).Should(ContainElement(mocks.Log{
 			Level:  lager.ERROR,
+			Err:    err,
+			Action: "firehose",
+		}))
+	})
+
+	It("crashes on unrecoverable firehose errors", func() {
+		err := consumer.ErrMaxRetriesReached
+		go func() { firehose.Errs <- err }()
+		Eventually(logger.Logs).Should(ContainElement(mocks.Log{
+			Level:  lager.FATAL,
 			Err:    err,
 			Action: "firehose",
 		}))
