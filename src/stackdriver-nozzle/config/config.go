@@ -58,8 +58,8 @@ type Config struct {
 
 	// Stackdriver config
 	ProjectID            string `envconfig:"gcp_project_id"`
-	LoggingBatchCount    int    `envconfig:"logging_batch_count" default:"10"`
-	LoggingBatchDuration int    `envconfig:"logging_batch_duration" default:"1"`
+	LoggingBatchCount    int    `envconfig:"logging_batch_count" default:"1000"`
+	LoggingBatchDuration int    `envconfig:"logging_batch_duration" default:"30"`
 
 	// Nozzle config
 	HeartbeatRate         int    `envconfig:"heartbeat_rate" default:"30"`

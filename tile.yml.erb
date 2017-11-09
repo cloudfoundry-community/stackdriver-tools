@@ -41,6 +41,9 @@ packages:
         metrics_batch_size: (( .properties.metrics_batch_size.value ))
         metric_path_prefix: (( .properties.metric_path_prefix.value ))
         bosh_director_name: (( .properties.bosh_director_name.value ))
+        logging_batch_count: (( .properties.logging_batch_count.value ))
+        logging_batch_duration: (( .properties.logging_batch_duration.value ))
+        debug: (( .properties.debug.value ))
 
 
 forms:
@@ -87,16 +90,34 @@ forms:
   - name: metrics_buffer_duration
     type: integer
     default: 30
+    label: Metrics Buffer Duration
     description: Flush interval (in seconds) of the internal metric buffer
   - name: metrics_batch_size
     type: integer
     default: 200
+    label: Metrics Batch Size
     description: Batch size for time series being sent to Stackdriver
+  - name: logging_batch_duration
+    type: integer
+    default: 30
+    label: Logging Buffer Duration
+    description: Flush interval (in seconds) of the internal logging buffer
+  - name: logging_batch_count
+    default: 1000
+    label: Logging Batch Count
+    description: Batch size for log messages being sent to Stackdriver
   - name: metric_path_prefix
     type: string
     default: firehose
+    label: Metric Path Prefix
     description: Prefix added to all metric names being sent to Stackdriver, e.g. 'custom/PREFIX/gorouter.total_requests'. May contain slashes.
   - name: bosh_director_name
     type: string
     default: cf
+    label: Bosh Director Name
     description: Name added as the 'director' label to all time series being sent to Stackdriver, useful for differentiating between multiple PCF instances in a project.
+  - name: debug
+    type: boolean
+    default: false
+    label: Nozzle Debugging
+    description: Enable Nozzle Debugging Features. With this enabled each Stackdriver Nozzle instance will host a web server on 0.0.0.0:6060 that exposes debug information such as a heap dump and running threads.

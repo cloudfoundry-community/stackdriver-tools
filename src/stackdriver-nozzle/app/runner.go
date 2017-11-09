@@ -25,7 +25,7 @@ func Run(ctx context.Context, a *App) {
 
 		go func() {
 			a.logger.Info("pprof", lager.Data{
-				"http.ListenAndServe": http.ListenAndServe("localhost:6060", nil),
+				"http.ListenAndServe": http.ListenAndServe("0.0.0.0:6060", nil),
 			})
 		}()
 	}
