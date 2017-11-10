@@ -23,7 +23,6 @@ type App struct {
 	cfConfig    *cfclient.Config
 	cfClient    *cfclient.Client
 	labelMaker  nozzle.LabelMaker
-	reporter    telemetry.Reporter
 	bufferEmpty func() bool
 }
 
@@ -49,16 +48,12 @@ func New(c *config.Config, logger lager.Logger) *App {
 	}
 	labelMaker := nozzle.NewLabelMaker(appInfoRepository, c.BoshDirectorName)
 
-	logSink := telemetry.NewLogSink(logger)
-	reporter := telemetry.NewReporter(time.Duration(c.HeartbeatRate)*time.Second, logSink)
-
 	return &App{
 		logger:     logger,
 		c:          c,
 		cfConfig:   cfConfig,
 		cfClient:   cfClient,
 		labelMaker: labelMaker,
-		reporter:   reporter,
 	}
 }
 
@@ -132,4 +127,15 @@ func (a *App) newMetricSink(ctx context.Context, metricAdapter stackdriver.Metri
 	a.bufferEmpty = metricBuffer.IsEmpty
 
 	return nozzle.NewMetricSink(a.logger, a.c.MetricPathPrefix, a.labelMaker, metricBuffer, nozzle.NewUnitParser())
+}
+
+func (a *App) newTelemetryReporter() telemetry.Reporter {
+	metricClient, err := stackdriver.NewMetricClient()
+	if err != nil {
+		a.logger.Fatal("metricClient", err)
+	}
+
+	logSink := telemetry.NewLogSink(a.logger)
+	metricSink := stackdriver.NewTelemetrySink(a.logger, metricClient, a.c.ProjectID, a.c.MetricPathPrefix, a.c.SubscriptionID, a.c.BoshDirectorName)
+	return telemetry.NewReporter(time.Duration(a.c.HeartbeatRate)*time.Second, logSink, metricSink)
 }

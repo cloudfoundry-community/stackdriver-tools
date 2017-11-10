@@ -30,7 +30,8 @@ func Run(ctx context.Context, a *App) {
 			})
 		}()
 	}
-	a.reporter.Start(ctx)
+	reporter := a.newTelemetryReporter()
+	reporter.Start(ctx)
 
 	producer := a.newProducer()
 	consumer, err := a.newConsumer(ctx)

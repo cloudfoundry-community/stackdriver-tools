@@ -187,7 +187,7 @@ func (ma *metricAdapter) CreateMetricDescriptor(metric *messages.Metric, labels 
 func (ma *metricAdapter) fetchMetricDescriptorNames() error {
 	req := &monitoringpb.ListMetricDescriptorsRequest{
 		Name:   fmt.Sprintf("projects/%s", ma.projectID),
-		Filter: "metric.type = starts_with(\"custom.googleapis.com/\")",
+		Filter: `metric.type = starts_with("custom.googleapis.com/")`,
 	}
 
 	descriptors, err := ma.client.ListMetricDescriptors(req)
