@@ -24,8 +24,9 @@ import (
 	"sync"
 	"time"
 
+	"expvar"
+
 	"github.com/cloudfoundry-community/stackdriver-tools/src/stackdriver-nozzle/messages"
-	"github.com/cloudfoundry-community/stackdriver-tools/src/stackdriver-nozzle/telemetry"
 	"github.com/cloudfoundry/lager"
 	"github.com/golang/protobuf/ptypes/timestamp"
 	labelpb "google.golang.org/genproto/googleapis/api/label"
@@ -37,6 +38,24 @@ type MetricAdapter interface {
 	PostMetricEvents([]*messages.MetricEvent)
 }
 
+var (
+	requestCount                   *expvar.Int
+	eventsCount                    *expvar.Int
+	postErrOutOfOrderCount         *expvar.Int
+	postErrUnknownCount            *expvar.Int
+	timeSeriesCount                *expvar.Int
+	createMetricDescriptorErrCount *expvar.Int
+)
+
+func init() {
+	requestCount = expvar.NewInt("metrics.requests")
+	eventsCount = expvar.NewInt("metrics.events.count")
+	postErrOutOfOrderCount = expvar.NewInt("metrics.post.errors.out_of_order")
+	postErrUnknownCount = expvar.NewInt("metrics.post.errors.unknown")
+	timeSeriesCount = expvar.NewInt("metrics.timeseries.count")
+	createMetricDescriptorErrCount = expvar.NewInt("metrics.metric_descriptor.errors")
+}
+
 type metricAdapter struct {
 	projectID             string
 	client                MetricClient
@@ -44,11 +63,10 @@ type metricAdapter struct {
 	createDescriptorMutex *sync.Mutex
 	batchSize             int
 	logger                lager.Logger
-	counter               telemetry.Counter
 }
 
 // NewMetricAdapter returns a MetricAdapater that can write to Stackdriver Monitoring
-func NewMetricAdapter(projectID string, client MetricClient, batchSize int, counter telemetry.Counter, logger lager.Logger) (MetricAdapter, error) {
+func NewMetricAdapter(projectID string, client MetricClient, batchSize int, logger lager.Logger) (MetricAdapter, error) {
 	ma := &metricAdapter{
 		projectID:             projectID,
 		client:                client,
@@ -56,7 +74,6 @@ func NewMetricAdapter(projectID string, client MetricClient, batchSize int, coun
 		descriptors:           map[string]struct{}{},
 		batchSize:             batchSize,
 		logger:                logger,
-		counter:               counter,
 	}
 
 	err := ma.fetchMetricDescriptorNames()
@@ -81,7 +98,7 @@ func (ma *metricAdapter) PostMetricEvents(events []*messages.MetricEvent) {
 			high = count
 		}
 
-		ma.counter.Increment("metrics.requests")
+		requestCount.Add(1)
 		request := &monitoringpb.CreateTimeSeriesRequest{
 			Name:       projectName,
 			TimeSeries: series[low:high],
@@ -89,15 +106,13 @@ func (ma *metricAdapter) PostMetricEvents(events []*messages.MetricEvent) {
 		err := ma.client.Post(request)
 
 		if err != nil {
-			ma.counter.Increment("metrics.post.errors")
-
 			// This is an expected error once there is more than a single nozzle writing to Stackdriver.
 			// If one nozzle writes a metric occurring at time T2 and this one tries to write at T1 (where T2 later than T1)
 			// we will receive this error.
 			if strings.Contains(err.Error(), `Points must be written in order`) {
-				ma.counter.Increment("metrics.post.errors.out_of_order")
+				postErrOutOfOrderCount.Add(1)
 			} else {
-				ma.counter.Increment("metrics.post.errors.unknown")
+				postErrUnknownCount.Add(1)
 				ma.logger.Error("metricAdapter.PostMetricEvents", err, lager.Data{"info": "Unexpected Error", "request": request})
 			}
 		}
@@ -114,13 +129,13 @@ func (ma *metricAdapter) buildTimeSeries(events []*messages.MetricEvent) []*moni
 			continue
 		}
 
-		ma.counter.Increment("metrics.events.count")
+		eventsCount.Add(1)
 		for _, metric := range event.Metrics {
-			ma.counter.Increment("metrics.timeseries.count")
+			timeSeriesCount.Add(1)
 			err := ma.ensureMetricDescriptor(metric, event.Labels)
 			if err != nil {
+				createMetricDescriptorErrCount.Add(1)
 				ma.logger.Error("metricAdapter.buildTimeSeries", err, lager.Data{"metric": metric, "labels": event.Labels})
-				ma.counter.IncrementBy("metrics.metric_descriptor.errors", 1)
 				continue
 			}
 

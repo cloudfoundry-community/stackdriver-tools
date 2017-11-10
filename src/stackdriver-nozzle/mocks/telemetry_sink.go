@@ -1,5 +1,12 @@
 package mocks
 
+import (
+	"expvar"
+	"sync"
+
+	"github.com/pkg/errors"
+)
+
 /*
  * Copyright 2017 Google Inc.
  *
@@ -17,15 +24,40 @@ package mocks
  */
 
 type TelemetrySink struct {
-	RecordFn func(counters map[string]int)
+	init       []*expvar.KeyValue
+	lastReport []*expvar.KeyValue
 
-	RecordCounters []map[string]int
+	mu sync.Mutex
 }
 
-func (mts *TelemetrySink) Record(counters map[string]int) {
-	if mts.RecordFn != nil {
-		mts.RecordFn(counters)
+func (ts *TelemetrySink) Init(val []*expvar.KeyValue) {
+	ts.mu.Lock()
+	defer ts.mu.Unlock()
+
+	if ts.init != nil {
+		panic(errors.New("Init called more than once"))
 	}
 
-	mts.RecordCounters = append(mts.RecordCounters, counters)
+	ts.init = val
+}
+
+func (ts *TelemetrySink) Report(val []*expvar.KeyValue) {
+	ts.mu.Lock()
+	defer ts.mu.Unlock()
+
+	ts.lastReport = val
+}
+
+func (ts *TelemetrySink) GetInit() []*expvar.KeyValue {
+	ts.mu.Lock()
+	defer ts.mu.Unlock()
+
+	return ts.init
+}
+
+func (ts *TelemetrySink) GetLastReport() []*expvar.KeyValue {
+	ts.mu.Lock()
+	defer ts.mu.Unlock()
+
+	return ts.lastReport
 }

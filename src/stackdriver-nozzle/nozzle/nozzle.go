@@ -20,9 +20,10 @@ import (
 	"errors"
 	"sync"
 
+	"expvar"
+
 	"code.cloudfoundry.org/diodes"
 	"github.com/cloudfoundry-community/stackdriver-tools/src/stackdriver-nozzle/cloudfoundry"
-	"github.com/cloudfoundry-community/stackdriver-tools/src/stackdriver-nozzle/telemetry"
 	"github.com/cloudfoundry/lager"
 	"github.com/cloudfoundry/noaa/consumer"
 	"github.com/cloudfoundry/sonde-go/events"
@@ -36,12 +37,35 @@ type Nozzle interface {
 	Stop() error
 }
 
+var (
+	firehoseErrsEmptyCount   *expvar.Int
+	firehoseErrsUnknownCount *expvar.Int
+
+	firehoseErrsCloseUnknown         *expvar.Int
+	firehoseErrsCloseNormalCount     *expvar.Int
+	firehoseErrsClosePolicyViolation *expvar.Int
+
+	nozzleEvents        *expvar.Int
+	nozzleEventsDropped *expvar.Int
+)
+
+func init() {
+	firehoseErrsEmptyCount = expvar.NewInt("firehose.errors.empty")
+	firehoseErrsUnknownCount = expvar.NewInt("firehose.errors.unknwon")
+
+	firehoseErrsCloseUnknown = expvar.NewInt("firehose.errors.close.unknown")
+	firehoseErrsCloseNormalCount = expvar.NewInt("firehose.errors.close.normal_close")
+	firehoseErrsClosePolicyViolation = expvar.NewInt("firehose.errors.close.policy_violation")
+
+	nozzleEvents = expvar.NewInt("nozzle.events")
+	nozzleEventsDropped = expvar.NewInt("nozzle.events.dropped")
+}
+
 type nozzle struct {
 	logSink    Sink
 	metricSink Sink
 
-	counter telemetry.Counter
-	logger  lager.Logger
+	logger lager.Logger
 
 	session state
 }
@@ -52,17 +76,15 @@ type state struct {
 	running bool
 }
 
-func NewNozzle(logger lager.Logger, logSink Sink, metricSink Sink, counter telemetry.Counter) Nozzle {
+func NewNozzle(logger lager.Logger, logSink Sink, metricSink Sink) Nozzle {
 	return &nozzle{
 		logSink:    logSink,
 		metricSink: metricSink,
-		counter:    counter,
 		logger:     logger,
 	}
 }
 
 func (n *nozzle) Start(firehose cloudfoundry.Firehose) {
-	n.counter.Start()
 	n.session = state{done: make(chan struct{}), running: true}
 
 	messages, fhErrInternal := firehose.Connect()
@@ -72,7 +94,7 @@ func (n *nozzle) Start(firehose cloudfoundry.Firehose) {
 		for err := range fhErrInternal {
 			if err == nil {
 				// Ignore empty errors. Customers observe a flooding of empty errors from firehose.
-				go n.counter.Increment("firehose.errors.empty")
+				firehoseErrsEmptyCount.Add(1)
 				continue
 			}
 
@@ -81,7 +103,7 @@ func (n *nozzle) Start(firehose cloudfoundry.Firehose) {
 	}()
 
 	buffer := diodes.NewPoller(diodes.NewOneToOne(bufferSize, diodes.AlertFunc(func(missed int) {
-		go n.counter.IncrementBy("nozzle.events.dropped", missed)
+		nozzleEventsDropped.Add(int64(missed))
 	})))
 
 	// Drain messages from the firehose and place them into the ring buffer
@@ -115,7 +137,6 @@ func (n *nozzle) Stop() error {
 	if !n.session.running {
 		return errors.New("nozzle is not running")
 	}
-	n.counter.Stop()
 	close(n.session.done)
 	n.session.running = false
 
@@ -123,7 +144,7 @@ func (n *nozzle) Stop() error {
 }
 
 func (n *nozzle) handleEvent(envelope *events.Envelope) {
-	n.counter.Increment("nozzle.events")
+	nozzleEvents.Add(1)
 	if isMetric(envelope) {
 		n.metricSink.Receive(envelope)
 	} else {
@@ -140,17 +161,17 @@ func (n *nozzle) handleFirehoseError(err error) {
 
 	closeErr, ok := err.(*websocket.CloseError)
 	if !ok {
-		n.counter.Increment("firehose.errors.unknwon")
+		firehoseErrsUnknownCount.Add(1)
 		return
 	}
 
 	switch closeErr.Code {
 	case websocket.CloseNormalClosure:
-		n.counter.Increment("firehose.errors.close.normal_close")
+		firehoseErrsCloseNormalCount.Add(1)
 	case websocket.ClosePolicyViolation:
-		n.counter.Increment("firehose.errors.close.policy_violation")
+		firehoseErrsClosePolicyViolation.Add(1)
 	default:
-		n.counter.Increment("firehose.errors.close.unknown")
+		firehoseErrsCloseUnknown.Add(1)
 	}
 }
 

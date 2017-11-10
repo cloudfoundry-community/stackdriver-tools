@@ -14,14 +14,22 @@
  * limitations under the License.
  */
 
-package telemetry
+package telemetrytest
 
 import "expvar"
 
-// Sink represents an endpoint that records telemetry to an external source
-type Sink interface {
-	// Init is called a single time when the Reporter is starting before any data is reported
-	Init([]*expvar.KeyValue)
-	// Report is a snapshot of the cumulative telemetry values at the current time
-	Report([]*expvar.KeyValue)
+// Value reads an Int counter by name
+func Value(name string) int {
+	val := expvar.Get(name)
+	intVal := val.(*expvar.Int)
+	return int(intVal.Value())
+}
+
+// Reset sets all registered Int counters to 0
+func Reset() {
+	expvar.Do(func(value expvar.KeyValue) {
+		if intVal, ok := value.Value.(*expvar.Int); ok {
+			intVal.Set(0)
+		}
+	})
 }

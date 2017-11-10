@@ -23,35 +23,13 @@ type App struct {
 	cfConfig    *cfclient.Config
 	cfClient    *cfclient.Client
 	labelMaker  nozzle.LabelMaker
-	counter     telemetry.Counter
+	reporter    telemetry.Reporter
 	bufferEmpty func() bool
 }
 
 func New(c *config.Config, logger lager.Logger) *App {
 	logger.Info("version", lager.Data{"name": version.Name, "release": version.Release(), "user_agent": version.UserAgent()})
 	logger.Info("arguments", c.ToData())
-
-	metricClient, err := stackdriver.NewMetricClient()
-	if err != nil {
-		logger.Fatal("metricClient", err)
-	}
-
-	// Create a metricAdapter that will be used by the counter
-	// to send heartbeat metrics to Stackdriver. This metricAdapter
-	// has its own counter (with its own trigger) that writes to a logger.
-	period := time.Duration(c.HeartbeatRate) * time.Second
-	adapterHeartbeater := telemetry.NewCounter(logger, period, nil)
-	adapterHeartbeater.Start()
-	metricAdapter, err := stackdriver.NewMetricAdapter(c.ProjectID, metricClient, c.MetricsBatchSize, adapterHeartbeater, logger)
-	if err != nil {
-		logger.Fatal("metricAdapter", err)
-	}
-
-	// Create a counter that will write heartbeat events to Stackdriver
-	// logging and monitoring. It uses the metricAdapter created previously
-	// to write to Stackdriver.
-	telemetrySink := stackdriver.NewTelemetrySink(metricAdapter, logger, c.NozzleId, c.NozzleName, c.NozzleZone)
-	counter := telemetry.NewCounter(logger, period, telemetrySink)
 
 	cfConfig := &cfclient.Config{
 		ApiAddress:        c.APIEndpoint,
@@ -71,13 +49,16 @@ func New(c *config.Config, logger lager.Logger) *App {
 	}
 	labelMaker := nozzle.NewLabelMaker(appInfoRepository, c.BoshDirectorName)
 
+	logSink := telemetry.NewLogSink(logger)
+	reporter := telemetry.NewReporter(time.Duration(c.HeartbeatRate)*time.Second, logSink)
+
 	return &App{
 		logger:     logger,
 		c:          c,
 		cfConfig:   cfConfig,
 		cfClient:   cfClient,
 		labelMaker: labelMaker,
-		counter:    counter,
+		reporter:   reporter,
 	}
 }
 
@@ -115,7 +96,7 @@ func (a *App) newConsumer(ctx context.Context) (nozzle.Nozzle, error) {
 		return nil, err
 	}
 
-	return nozzle.NewNozzle(a.logger, filteredLogSink, filteredMetricSink, a.counter), nil
+	return nozzle.NewNozzle(a.logger, filteredLogSink, filteredMetricSink), nil
 }
 
 func (a *App) newLogAdapter() stackdriver.LogAdapter {
@@ -123,7 +104,6 @@ func (a *App) newLogAdapter() stackdriver.LogAdapter {
 		a.c.ProjectID,
 		a.c.LoggingBatchCount,
 		time.Duration(a.c.LoggingBatchDuration)*time.Second,
-		a.counter,
 	)
 	go func() {
 		err := <-logErrs
@@ -139,7 +119,7 @@ func (a *App) newMetricAdapter() stackdriver.MetricAdapter {
 		a.logger.Fatal("metricClient", err)
 	}
 
-	metricAdapter, err := stackdriver.NewMetricAdapter(a.c.ProjectID, metricClient, a.c.MetricsBatchSize, a.counter, a.logger)
+	metricAdapter, err := stackdriver.NewMetricAdapter(a.c.ProjectID, metricClient, a.c.MetricsBatchSize, a.logger)
 	if err != nil {
 		a.logger.Fatal("metricAdapter", err)
 	}
@@ -148,7 +128,7 @@ func (a *App) newMetricAdapter() stackdriver.MetricAdapter {
 }
 
 func (a *App) newMetricSink(ctx context.Context, metricAdapter stackdriver.MetricAdapter) nozzle.Sink {
-	metricBuffer := metrics_pipeline.NewAutoCulledMetricsBuffer(ctx, a.logger, time.Duration(a.c.MetricsBufferDuration)*time.Second, metricAdapter, a.counter)
+	metricBuffer := metrics_pipeline.NewAutoCulledMetricsBuffer(ctx, a.logger, time.Duration(a.c.MetricsBufferDuration)*time.Second, metricAdapter)
 	a.bufferEmpty = metricBuffer.IsEmpty
 
 	return nozzle.NewMetricSink(a.logger, a.c.MetricPathPrefix, a.labelMaker, metricBuffer, nozzle.NewUnitParser())

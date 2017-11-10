@@ -2,6 +2,7 @@ package app
 
 import (
 	"context"
+	_ "expvar"
 	"fmt"
 	"net/http"
 	_ "net/http/pprof"
@@ -24,11 +25,12 @@ func Run(ctx context.Context, a *App) {
 		defer handleFatalError(a, cancel)
 
 		go func() {
-			a.logger.Info("pprof", lager.Data{
+			a.logger.Info("debug", lager.Data{
 				"http.ListenAndServe": http.ListenAndServe("0.0.0.0:6060", nil),
 			})
 		}()
 	}
+	a.reporter.Start(ctx)
 
 	producer := a.newProducer()
 	consumer, err := a.newConsumer(ctx)

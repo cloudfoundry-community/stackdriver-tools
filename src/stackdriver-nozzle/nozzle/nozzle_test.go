@@ -21,6 +21,7 @@ import (
 
 	"github.com/cloudfoundry-community/stackdriver-tools/src/stackdriver-nozzle/mocks"
 	"github.com/cloudfoundry-community/stackdriver-tools/src/stackdriver-nozzle/nozzle"
+	"github.com/cloudfoundry-community/stackdriver-tools/src/stackdriver-nozzle/telemetry/telemetrytest"
 	"github.com/cloudfoundry/lager"
 	"github.com/cloudfoundry/noaa/consumer"
 	"github.com/cloudfoundry/sonde-go/events"
@@ -34,7 +35,6 @@ var _ = Describe("Nozzle", func() {
 		firehose   *mocks.FirehoseClient
 		logSink    *mocks.NozzleSink
 		metricSink *mocks.NozzleSink
-		counter    *mocks.Counter
 		logger     *mocks.MockLogger
 	)
 
@@ -42,15 +42,12 @@ var _ = Describe("Nozzle", func() {
 		firehose = mocks.NewFirehoseClient()
 		logSink = &mocks.NozzleSink{}
 		metricSink = &mocks.NozzleSink{}
-		counter = mocks.NewCounter()
 		logger = &mocks.MockLogger{}
 
-		subject = nozzle.NewNozzle(logger, logSink, metricSink, counter)
+		subject = nozzle.NewNozzle(logger, logSink, metricSink)
 		subject.Start(firehose)
-	})
 
-	It("starts the counter", func() {
-		Expect(counter.IsRunning()).To(Equal(true))
+		telemetrytest.Reset()
 	})
 
 	It("updates the counter", func() {
@@ -61,13 +58,8 @@ var _ = Describe("Nozzle", func() {
 		}
 
 		Eventually(func() int {
-			return counter.GetCount("nozzle.events")
+			return telemetrytest.Value("nozzle.events")
 		}).Should(Equal(len(events.Envelope_EventType_value)))
-	})
-
-	It("stops the counter", func() {
-		subject.Stop()
-		Expect(counter.IsRunning()).To(Equal(false))
 	})
 
 	It("does not receive errors", func() {
@@ -158,7 +150,6 @@ var _ = Describe("Nozzle", func() {
 		Expect(subject.Stop()).To(HaveOccurred())
 		Expect(subject.Stop()).To(HaveOccurred())
 
-		Expect(counter.IsRunning()).To(Equal(false))
 		close(done)
 	}, 0.2)
 })
