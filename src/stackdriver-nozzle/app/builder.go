@@ -136,6 +136,6 @@ func (a *App) newTelemetryReporter() telemetry.Reporter {
 	}
 
 	logSink := telemetry.NewLogSink(a.logger)
-	metricSink := stackdriver.NewTelemetrySink(a.logger, metricClient, a.c.ProjectID, a.c.MetricPathPrefix, a.c.SubscriptionID, a.c.BoshDirectorName)
+	metricSink := stackdriver.NewTelemetrySink(a.logger, metricClient, a.c.ProjectID, a.c.SubscriptionID, a.c.BoshDirectorName)
 	return telemetry.NewReporter(time.Duration(a.c.HeartbeatRate)*time.Second, logSink, metricSink)
 }

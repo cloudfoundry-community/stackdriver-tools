@@ -19,7 +19,6 @@ import (
 const (
 	projectID      = "myproject"
 	projectPath    = "projects/" + projectID
-	metricPrefix   = "firehose"
 	subscriptionID = "sdnozzle"
 	director       = "bosh"
 )
@@ -33,7 +32,7 @@ var _ = Describe("TelemetrySink", func() {
 	BeforeEach(func() {
 		logger = &mocks.MockLogger{}
 		client = &mocks.MockClient{}
-		sink = stackdriver.NewTelemetrySink(logger, client, projectID, metricPrefix, subscriptionID, director)
+		sink = stackdriver.NewTelemetrySink(logger, client, projectID, subscriptionID, director)
 	})
 
 	Context("Init with existing MetricDescriptors", func() {
@@ -43,7 +42,7 @@ var _ = Describe("TelemetrySink", func() {
 		BeforeEach(func() {
 			client.ListMetricDescriptorFn = func(request *monitoringpb.ListMetricDescriptorsRequest) ([]*metricpb.MetricDescriptor, error) {
 				return []*metricpb.MetricDescriptor{
-					{Name: projectPath + "/metricDescriptors/custom.googleapis.com/" + metricPrefix + "/stackdriver-nozzle/" + oldData.Key},
+					{Name: projectPath + "/metricDescriptors/custom.googleapis.com/stackdriver-nozzle/" + oldData.Key},
 				}, nil
 			}
 
@@ -57,7 +56,7 @@ var _ = Describe("TelemetrySink", func() {
 			Expect(req.Name).To(Equal(projectPath))
 			descriptor := req.MetricDescriptor
 
-			displayName := metricPrefix + "/stackdriver-nozzle/" + newData.Key
+			displayName := "stackdriver-nozzle/" + newData.Key
 			metricType := "custom.googleapis.com/" + displayName
 			name := projectPath + "/metricDescriptors/" + metricType
 
@@ -93,7 +92,7 @@ var _ = Describe("TelemetrySink", func() {
 			Expect(series.Resource).NotTo(BeNil())
 
 			metric := series.Metric
-			Expect(metric.Type).To(Equal("custom.googleapis.com/" + metricPrefix + "/stackdriver-nozzle/" + keyValue.Key))
+			Expect(metric.Type).To(Equal("custom.googleapis.com/stackdriver-nozzle/" + keyValue.Key))
 
 			labels := metric.Labels
 			Expect(labels).To(HaveLen(2))

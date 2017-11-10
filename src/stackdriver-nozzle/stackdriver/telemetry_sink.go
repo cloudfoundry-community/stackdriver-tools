@@ -32,13 +32,12 @@ import (
 )
 
 type telemetrySink struct {
-	projectPath  string
-	metricPrefix string
-	labels       map[string]string
-	resource     *monitoredres.MonitoredResource
-	logger       lager.Logger
-	client       MetricClient
-	startTime    *timestamp.Timestamp
+	projectPath string
+	labels      map[string]string
+	resource    *monitoredres.MonitoredResource
+	logger      lager.Logger
+	client      MetricClient
+	startTime   *timestamp.Timestamp
 }
 
 func now() *timestamp.Timestamp {
@@ -73,21 +72,20 @@ func detectMonitoredResource() (res *monitoredres.MonitoredResource) {
 }
 
 // NewTelemetrySink provides a telemetry.Sink that writes metrics to Stackdriver Monitoring
-func NewTelemetrySink(logger lager.Logger, client MetricClient, projectID, metricPrefix, subscriptionId, director string) telemetry.Sink {
+func NewTelemetrySink(logger lager.Logger, client MetricClient, projectID, subscriptionId, director string) telemetry.Sink {
 	return &telemetrySink{
-		logger:       logger,
-		client:       client,
-		projectPath:  fmt.Sprintf("projects/%s", projectID),
-		metricPrefix: metricPrefix,
-		labels:       map[string]string{"subscription_id": subscriptionId, "director": director},
-		startTime:    now(),
-		resource:     detectMonitoredResource()}
+		logger:      logger,
+		client:      client,
+		projectPath: fmt.Sprintf("projects/%s", projectID),
+		labels:      map[string]string{"subscription_id": subscriptionId, "director": director},
+		startTime:   now(),
+		resource:    detectMonitoredResource()}
 }
 
 func (ts *telemetrySink) Init(registeredSeries []*expvar.KeyValue) {
 	req := &monitoringpb.ListMetricDescriptorsRequest{
 		Name:   ts.projectPath,
-		Filter: fmt.Sprintf(`metric.type = starts_with("%s")`, ts.metricPrefix),
+		Filter: fmt.Sprintf(`metric.type = starts_with("stackdriver-nozzle")`),
 	}
 
 	descriptors, err := ts.client.ListMetricDescriptors(req)
@@ -132,7 +130,7 @@ func (ts *telemetrySink) Init(registeredSeries []*expvar.KeyValue) {
 }
 
 func (ts *telemetrySink) metricDescriptorDisplayName(key string) string {
-	return fmt.Sprintf("%s/stackdriver-nozzle/%s", ts.metricPrefix, key)
+	return fmt.Sprintf("stackdriver-nozzle/%s", key)
 }
 
 func (ts *telemetrySink) metricDescriptorName(key string) string {
@@ -140,7 +138,7 @@ func (ts *telemetrySink) metricDescriptorName(key string) string {
 }
 
 func (ts *telemetrySink) metricDescriptorType(key string) string {
-	return fmt.Sprintf("custom.googleapis.com/%s/stackdriver-nozzle/%s", ts.metricPrefix, key)
+	return fmt.Sprintf("custom.googleapis.com/stackdriver-nozzle/%s", key)
 }
 
 const maxTimeSeries = 200
