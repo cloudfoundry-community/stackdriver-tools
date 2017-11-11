@@ -31,7 +31,7 @@ var (
 )
 
 func init() {
-	intCount = expvar.NewInt("int")
+	intCount = expvar.NewInt("nozzle.int")
 }
 
 var _ = Describe("Reporter", func() {
@@ -55,12 +55,13 @@ var _ = Describe("Reporter", func() {
 		AfterEach(func() {
 			cancel()
 		})
+
 		It("initializes the sink on start", func() {
 			Expect(sink.GetInit()).NotTo(BeNil())
 			init := sink.GetInit()
 			Expect(init).To(HaveLen(1))
 			initCountKeyVal := init[0]
-			Expect(initCountKeyVal.Key).To(Equal("int"))
+			Expect(initCountKeyVal.Key).To(Equal("nozzle.int"))
 		})
 
 		It("reports updates", func() {
@@ -72,5 +73,4 @@ var _ = Describe("Reporter", func() {
 			Expect(initCountKeyVal.Value.(*expvar.Int).Value()).To(Equal(int64(100)))
 		})
 	})
-
 })

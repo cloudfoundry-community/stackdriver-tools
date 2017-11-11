@@ -38,27 +38,37 @@ type Nozzle interface {
 }
 
 var (
-	firehoseErrsEmptyCount   *expvar.Int
-	firehoseErrsUnknownCount *expvar.Int
+	firehoseErrs *expvar.Map
 
-	firehoseErrsCloseUnknown         *expvar.Int
-	firehoseErrsCloseNormalCount     *expvar.Int
-	firehoseErrsClosePolicyViolation *expvar.Int
+	firehoseErrEmpty                *expvar.Int
+	firehoseErrUnknown              *expvar.Int
+	firehoseErrCloseNormal          *expvar.Int
+	firehoseErrClosePolicyViolation *expvar.Int
+	firehoseErrCloseUnknown         *expvar.Int
 
-	nozzleEvents        *expvar.Int
-	nozzleEventsDropped *expvar.Int
+	nozzleEventsTotal    *expvar.Int
+	nozzleEventsDropped  *expvar.Int
+	nozzleEventsReceived *expvar.Int
 )
 
 func init() {
-	firehoseErrsEmptyCount = expvar.NewInt("firehose.errors.empty")
-	firehoseErrsUnknownCount = expvar.NewInt("firehose.errors.unknwon")
+	firehoseErrs = expvar.NewMap("nozzle.firehose.errors")
 
-	firehoseErrsCloseUnknown = expvar.NewInt("firehose.errors.close.unknown")
-	firehoseErrsCloseNormalCount = expvar.NewInt("firehose.errors.close.normal_close")
-	firehoseErrsClosePolicyViolation = expvar.NewInt("firehose.errors.close.policy_violation")
+	firehoseErrEmpty = &expvar.Int{}
+	firehoseErrUnknown = &expvar.Int{}
+	firehoseErrCloseNormal = &expvar.Int{}
+	firehoseErrClosePolicyViolation = &expvar.Int{}
+	firehoseErrCloseUnknown = &expvar.Int{}
 
-	nozzleEvents = expvar.NewInt("nozzle.events")
+	firehoseErrs.Set("empty", firehoseErrEmpty)
+	firehoseErrs.Set("unknown", firehoseErrUnknown)
+	firehoseErrs.Set("close_normal_closure", firehoseErrCloseNormal)
+	firehoseErrs.Set("close_policy_violation", firehoseErrClosePolicyViolation)
+	firehoseErrs.Set("close_unknown", firehoseErrCloseUnknown)
+
+	nozzleEventsTotal = expvar.NewInt("nozzle.events.total")
 	nozzleEventsDropped = expvar.NewInt("nozzle.events.dropped")
+	nozzleEventsReceived = expvar.NewInt("nozzle.events.received")
 }
 
 type nozzle struct {
@@ -94,7 +104,7 @@ func (n *nozzle) Start(firehose cloudfoundry.Firehose) {
 		for err := range fhErrInternal {
 			if err == nil {
 				// Ignore empty errors. Customers observe a flooding of empty errors from firehose.
-				firehoseErrsEmptyCount.Add(1)
+				firehoseErrEmpty.Add(1)
 				continue
 			}
 
@@ -104,6 +114,7 @@ func (n *nozzle) Start(firehose cloudfoundry.Firehose) {
 
 	buffer := diodes.NewPoller(diodes.NewOneToOne(bufferSize, diodes.AlertFunc(func(missed int) {
 		nozzleEventsDropped.Add(int64(missed))
+		nozzleEventsTotal.Add(int64(missed))
 	})))
 
 	// Drain messages from the firehose and place them into the ring buffer
@@ -144,7 +155,8 @@ func (n *nozzle) Stop() error {
 }
 
 func (n *nozzle) handleEvent(envelope *events.Envelope) {
-	nozzleEvents.Add(1)
+	nozzleEventsReceived.Add(1)
+	nozzleEventsTotal.Add(1)
 	if isMetric(envelope) {
 		n.metricSink.Receive(envelope)
 	} else {
@@ -161,17 +173,17 @@ func (n *nozzle) handleFirehoseError(err error) {
 
 	closeErr, ok := err.(*websocket.CloseError)
 	if !ok {
-		firehoseErrsUnknownCount.Add(1)
+		firehoseErrUnknown.Add(1)
 		return
 	}
 
 	switch closeErr.Code {
 	case websocket.CloseNormalClosure:
-		firehoseErrsCloseNormalCount.Add(1)
+		firehoseErrCloseNormal.Add(1)
 	case websocket.ClosePolicyViolation:
-		firehoseErrsClosePolicyViolation.Add(1)
+		firehoseErrClosePolicyViolation.Add(1)
 	default:
-		firehoseErrsCloseUnknown.Add(1)
+		firehoseErrCloseUnknown.Add(1)
 	}
 }
 

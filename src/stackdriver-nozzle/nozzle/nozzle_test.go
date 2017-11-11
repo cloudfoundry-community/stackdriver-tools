@@ -57,9 +57,11 @@ var _ = Describe("Nozzle", func() {
 			firehose.Messages <- &event
 		}
 
+		count := len(events.Envelope_EventType_value)
 		Eventually(func() int {
-			return telemetrytest.Value("nozzle.events")
-		}).Should(Equal(len(events.Envelope_EventType_value)))
+			return telemetrytest.Value("nozzle.events.received")
+		}).Should(Equal(count))
+		Expect(telemetrytest.Value("nozzle.events.total")).To(Equal(count))
 	})
 
 	It("does not receive errors", func() {

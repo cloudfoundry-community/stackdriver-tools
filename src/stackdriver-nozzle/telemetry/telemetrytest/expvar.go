@@ -25,11 +25,26 @@ func Value(name string) int {
 	return int(intVal.Value())
 }
 
+// MapValue reads a Map counter by name, key
+func MapValue(name, key string) int {
+	val := expvar.Get(name)
+	mapVal := val.(*expvar.Map)
+	return int(mapVal.Get(key).(*expvar.Int).Value())
+}
+
 // Reset sets all registered Int counters to 0
 func Reset() {
 	expvar.Do(func(value expvar.KeyValue) {
-		if intVal, ok := value.Value.(*expvar.Int); ok {
-			intVal.Set(0)
-		}
+		resetKey(&value)
 	})
+}
+
+func resetKey(value *expvar.KeyValue) {
+	if intVal, ok := value.Value.(*expvar.Int); ok {
+		intVal.Set(0)
+	} else if mapVal, ok := value.Value.(*expvar.Map); ok {
+		mapVal.Do(func(value expvar.KeyValue) {
+			resetKey(&value)
+		})
+	}
 }

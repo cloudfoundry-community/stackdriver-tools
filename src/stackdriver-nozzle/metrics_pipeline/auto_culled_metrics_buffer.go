@@ -33,7 +33,7 @@ var (
 )
 
 func init() {
-	eventsSampledCount = expvar.NewInt("metrics.events.sampled")
+	eventsSampledCount = expvar.NewInt("nozzle.metrics.firehose_events.sampled")
 }
 
 type autoCulledMetricsBuffer struct {

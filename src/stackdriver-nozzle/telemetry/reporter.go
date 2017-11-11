@@ -18,6 +18,7 @@ package telemetry
 
 import (
 	"expvar"
+	"strings"
 	"time"
 
 	"golang.org/x/net/context"
@@ -37,6 +38,8 @@ type reporter struct {
 func NewReporter(period time.Duration, sinks ...Sink) Reporter {
 	return &reporter{period: period, sinks: sinks}
 }
+
+const Prefix = "nozzle"
 
 func (r *reporter) Start(ctx context.Context) {
 	ticker := time.NewTicker(r.period)
@@ -70,9 +73,7 @@ func (r *reporter) data() []*expvar.KeyValue {
 	points := []*expvar.KeyValue{}
 
 	expvar.Do(func(point expvar.KeyValue) {
-		// Filter out known golang data series so only stackdriver-nozzle specific metrics are recorded.
-		// This may not be comprehensive in the long term but it is simple and fast.
-		if point.Key != "cmdline" && point.Key != "memstats" {
+		if strings.HasPrefix(point.Key, Prefix) {
 			points = append(points, &point)
 		}
 	})

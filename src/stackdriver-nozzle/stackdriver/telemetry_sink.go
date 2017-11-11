@@ -31,6 +31,8 @@ import (
 	monitoringpb "google.golang.org/genproto/googleapis/monitoring/v3"
 )
 
+const mapName = "kind"
+
 type telemetrySink struct {
 	projectPath string
 	labels      map[string]string
@@ -98,15 +100,19 @@ func (ts *telemetrySink) Init(registeredSeries []*expvar.KeyValue) {
 		registered[descriptor.Name] = true
 	}
 
-	labels := []*labelpb.LabelDescriptor{}
-	for name := range ts.labels {
-		labels = append(labels, &labelpb.LabelDescriptor{Key: name, ValueType: labelpb.LabelDescriptor_STRING})
-	}
-
 	for _, series := range registeredSeries {
 		name := ts.metricDescriptorName(series.Key)
 		if registered[name] {
 			continue
+		}
+
+		labels := []*labelpb.LabelDescriptor{}
+		for name := range ts.labels {
+			labels = append(labels, &labelpb.LabelDescriptor{Key: name, ValueType: labelpb.LabelDescriptor_STRING})
+		}
+
+		if _, ok := series.Value.(*expvar.Map); ok {
+			labels = append(labels, &labelpb.LabelDescriptor{Key: mapName, ValueType: labelpb.LabelDescriptor_INT64})
 		}
 
 		req := &monitoringpb.CreateMetricDescriptorRequest{
@@ -152,27 +158,13 @@ func (ts *telemetrySink) newRequest() *monitoringpb.CreateTimeSeriesRequest {
 func (ts *telemetrySink) Report(report []*expvar.KeyValue) {
 	req := ts.newRequest()
 
-	timeInterval := &monitoringpb.TimeInterval{
+	interval := &monitoringpb.TimeInterval{
 		EndTime:   now(),
 		StartTime: ts.startTime,
 	}
 
 	for _, data := range report {
-		if val, ok := data.Value.(*expvar.Int); ok {
-			req.TimeSeries = append(req.TimeSeries, &monitoringpb.TimeSeries{
-				Metric: &metricpb.Metric{
-					Type:   ts.metricDescriptorType(data.Key),
-					Labels: ts.labels,
-				},
-				Points: []*monitoringpb.Point{{
-					Interval: timeInterval,
-					Value: &monitoringpb.TypedValue{
-						Value: &monitoringpb.TypedValue_Int64Value{Int64Value: val.Value()},
-					},
-				}},
-				Resource: ts.resource,
-			})
-		}
+		req.TimeSeries = append(req.TimeSeries, ts.timeSeries(ts.metricDescriptorType(data.Key), interval, data)...)
 
 		if len(req.TimeSeries) == maxTimeSeries {
 			ts.client.Post(req)
@@ -182,5 +174,51 @@ func (ts *telemetrySink) Report(report []*expvar.KeyValue) {
 
 	if len(req.TimeSeries) != 0 {
 		ts.client.Post(req)
+	}
+}
+
+func (ts *telemetrySink) timeSeries(metricType string, interval *monitoringpb.TimeInterval, val *expvar.KeyValue) []*monitoringpb.TimeSeries {
+	switch data := val.Value.(type) {
+	case *expvar.Int:
+		return []*monitoringpb.TimeSeries{ts.timeSeriesInt(metricType, interval, ts.labels, data.Value())}
+	case *expvar.Map:
+		series := []*monitoringpb.TimeSeries{}
+		data.Do(func(value expvar.KeyValue) {
+			if intVal, ok := value.Value.(*expvar.Int); ok {
+				labels := duplicate(ts.labels)
+				labels[mapName] = value.Key
+				series = append(series, ts.timeSeriesInt(metricType, interval, labels, intVal.Value()))
+			}
+		})
+		return series
+	default:
+		ts.logger.Error("telemetrySink.timeSeries", fmt.Errorf("unknown value type: %T", val), lager.Data{"value": val})
+		return nil
+	}
+
+	return nil
+}
+
+func duplicate(src map[string]string) map[string]string {
+	dest := map[string]string{}
+	for k, v := range src {
+		dest[k] = v
+	}
+	return dest
+}
+
+func (ts *telemetrySink) timeSeriesInt(metricType string, interval *monitoringpb.TimeInterval, labels map[string]string, value int64) *monitoringpb.TimeSeries {
+	return &monitoringpb.TimeSeries{
+		Metric: &metricpb.Metric{
+			Type:   metricType,
+			Labels: labels,
+		},
+		Points: []*monitoringpb.Point{{
+			Interval: interval,
+			Value: &monitoringpb.TypedValue{
+				Value: &monitoringpb.TypedValue_Int64Value{Int64Value: value},
+			},
+		}},
+		Resource: ts.resource,
 	}
 }

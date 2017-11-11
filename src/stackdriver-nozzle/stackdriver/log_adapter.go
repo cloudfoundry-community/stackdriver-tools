@@ -38,7 +38,7 @@ var (
 )
 
 func init() {
-	logsCount = expvar.NewInt("logs.count")
+	logsCount = expvar.NewInt("nozzle.logs.count")
 }
 
 type LogAdapter interface {

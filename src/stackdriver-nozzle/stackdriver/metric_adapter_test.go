@@ -258,14 +258,14 @@ var _ = Describe("MetricAdapter", func() {
 			}}}
 
 		subject.PostMetricEvents(metricEvents)
-		Expect(telemetrytest.Value("metrics.events.count")).To(Equal(2))
-		Expect(telemetrytest.Value("metrics.timeseries.count")).To(Equal(3))
-		Expect(telemetrytest.Value("metrics.requests")).To(Equal(1))
+		Expect(telemetrytest.Value("nozzle.metrics.firehose_events.count")).To(Equal(2))
+		Expect(telemetrytest.Value("nozzle.metrics.timeseries.count")).To(Equal(3))
+		Expect(telemetrytest.Value("nozzle.metrics.timeseries.requests")).To(Equal(1))
 
 		subject.PostMetricEvents(metricEvents)
-		Expect(telemetrytest.Value("metrics.events.count")).To(Equal(4))
-		Expect(telemetrytest.Value("metrics.timeseries.count")).To(Equal(6))
-		Expect(telemetrytest.Value("metrics.requests")).To(Equal(2))
+		Expect(telemetrytest.Value("nozzle.metrics.firehose_events.count")).To(Equal(4))
+		Expect(telemetrytest.Value("nozzle.metrics.timeseries.count")).To(Equal(6))
+		Expect(telemetrytest.Value("nozzle.metrics.timeseries.requests")).To(Equal(2))
 	})
 
 	It("measures out of order errors", func() {
@@ -276,8 +276,8 @@ var _ = Describe("MetricAdapter", func() {
 		}
 
 		subject.PostMetricEvents(metricEvents)
-		Expect(telemetrytest.Value("metrics.post.errors.out_of_order")).To(Equal(1))
-		Expect(telemetrytest.Value("metrics.post.errors.unknown")).To(Equal(0))
+		Expect(telemetrytest.MapValue("nozzle.metrics.timeseries.errors", "out_of_order")).To(Equal(1))
+		Expect(telemetrytest.MapValue("nozzle.metrics.timeseries.errors", "unknown")).To(Equal(0))
 	})
 
 	It("measures unknown errors", func() {
@@ -287,7 +287,7 @@ var _ = Describe("MetricAdapter", func() {
 			return errors.New("tragedy strikes")
 		}
 		subject.PostMetricEvents(metricEvents)
-		Expect(telemetrytest.Value("metrics.post.errors.out_of_order")).To(Equal(0))
-		Expect(telemetrytest.Value("metrics.post.errors.unknown")).To(Equal(1))
+		Expect(telemetrytest.MapValue("nozzle.metrics.timeseries.errors", "out_of_order")).To(Equal(0))
+		Expect(telemetrytest.MapValue("nozzle.metrics.timeseries.errors", "unknown")).To(Equal(1))
 	})
 })

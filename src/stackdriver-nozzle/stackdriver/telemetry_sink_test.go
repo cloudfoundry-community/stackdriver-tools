@@ -123,4 +123,42 @@ var _ = Describe("TelemetrySink", func() {
 			Expect(client.MetricReqs[1].TimeSeries).To(HaveLen(100))
 		})
 	})
+
+	Context("with a Map", func() {
+		value := &expvar.Map{}
+		mapVar := &expvar.KeyValue{Key: "earth", Value: value}
+		BeforeEach(func() {
+			oceanValue := &expvar.Int{}
+			continentValue := &expvar.Int{}
+			oceanValue.Set(5)
+			continentValue.Set(7)
+			value.Set("oceans", oceanValue)
+			value.Set("continents", continentValue)
+		})
+		It("Init creates MetricDescriptors with label", func() {
+			sink.Init([]*expvar.KeyValue{mapVar})
+
+			Expect(client.DescriptorReqs).To(HaveLen(1))
+			req := client.DescriptorReqs[0]
+			labels := req.MetricDescriptor.Labels
+			Expect(labels).To(HaveLen(3))
+			Expect(labels).To(ContainElement(&labelpb.LabelDescriptor{Key: "kind", ValueType: labelpb.LabelDescriptor_INT64}))
+		})
+
+		It("Report posts TimeSeries with label", func() {
+			sink.Report([]*expvar.KeyValue{mapVar})
+
+			Expect(client.MetricReqs).To(HaveLen(1))
+			req := client.MetricReqs[0]
+			Expect(req.TimeSeries).To(HaveLen(2))
+			kinds := map[string]*monitoringpb.TimeSeries{}
+			for _, series := range req.TimeSeries {
+				kinds[series.Metric.Labels["kind"]] = series
+			}
+			Expect(kinds).To(HaveKey("oceans"))
+			Expect(kinds).To(HaveKey("continents"))
+			Expect(kinds["oceans"].Points[0].Value.Value.(*monitoringpb.TypedValue_Int64Value).Int64Value).To(Equal(int64(5)))
+			Expect(kinds["continents"].Points[0].Value.Value.(*monitoringpb.TypedValue_Int64Value).Int64Value).To(Equal(int64(7)))
+		})
+	})
 })
