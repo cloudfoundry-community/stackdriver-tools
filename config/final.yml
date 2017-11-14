@@ -1,6 +1,9 @@
 ---
 final_name: stackdriver-tools
 blobstore:
-  provider: gcs
+  provider: s3
   options:
     bucket_name: stackdriver-tools-blobs
+    host: storage.googleapis.com
+    use_ssl: true
+    endpoint: https://storage.googleapis.com
