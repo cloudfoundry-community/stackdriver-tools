@@ -46,78 +46,106 @@ var _ = Describe("autoCulledMetricsBuffer", func() {
 	It("culls duplicate metrics", func() {
 		subject := NewAutoCulledMetricsBuffer(context.TODO(), logger, 100*time.Millisecond, metricAdapter)
 
-		subject.PostMetricEvents([]*messages.MetricEvent{
+		subject.PostMetrics([]*messages.Metric{
 			{
-				Labels: map[string]string{"Name": "a"},
-				Metrics: []*messages.Metric{
-					{Name: "a", Value: 1, EventTime: time.Unix(1234567890, 0)},
-					{Name: "b", Value: 0, EventTime: time.Unix(1234567890, 0)},
-				},
+				Name:      "a",
+				Labels:    map[string]string{"Name": "a"},
+				Value:     1,
+				EventTime: time.Unix(1234567890, 0),
 			},
 			{
-				Labels: map[string]string{"Name": "a"},
-				Metrics: []*messages.Metric{
-					{Name: "a", Value: 2, EventTime: time.Unix(1234567891, 0)},
-					{Name: "b", Value: 2, EventTime: time.Unix(1234567891, 0)},
-				},
+				Name:      "b",
+				Labels:    map[string]string{"Name": "a"},
+				Value:     0,
+				EventTime: time.Unix(1234567890, 0),
+			},
+			{
+				Name:      "a",
+				Labels:    map[string]string{"Name": "a"},
+				Value:     2,
+				EventTime: time.Unix(1234567891, 0),
+			},
+			{
+				Name:      "b",
+				Labels:    map[string]string{"Name": "a"},
+				Value:     2,
+				EventTime: time.Unix(1234567891, 0),
 			},
 		})
-		Eventually(metricAdapter.GetPostedMetricEvents).Should(HaveLen(1))
+		Eventually(metricAdapter.GetPostedMetrics).Should(HaveLen(2))
 
-		expected := []*messages.MetricEvent{{
-			Labels: map[string]string{"Name": "a"},
-			Metrics: []*messages.Metric{
-				{Name: "a", Value: 2, EventTime: time.Unix(1234567891, 0)},
-				{Name: "b", Value: 2, EventTime: time.Unix(1234567891, 0)},
+		expected := sortableMetrics{
+			{
+				Name:      "a",
+				Labels:    map[string]string{"Name": "a"},
+				Value:     2,
+				EventTime: time.Unix(1234567891, 0),
 			},
-		}}
-		postedEvent := metricAdapter.GetPostedMetricEvents()[0]
-		Expect(postedEvent.Metrics).To(HaveLen(2))
-		Expect(postedEvent).To(BeEquivalentTo(expected[0]))
-		Expect(telemetrytest.Counter("metrics.firehose_events.sampled.count")).To(Equal(1))
+			{
+				Name:      "b",
+				Labels:    map[string]string{"Name": "a"},
+				Value:     2,
+				EventTime: time.Unix(1234567891, 0),
+			},
+		}
+		actual := sortableMetrics(metricAdapter.GetPostedMetrics())
+		sort.Sort(expected)
+		sort.Sort(actual)
+
+		Expect(actual).To(BeEquivalentTo(expected))
+
+		Expect(telemetrytest.Counter("metrics.firehose_events.sampled.count")).To(Equal(2))
 	})
 
 	It("culls multiple duplicates, keeping the latest", func() {
 		subject := NewAutoCulledMetricsBuffer(context.TODO(), logger, 100*time.Millisecond, metricAdapter)
-		subject.PostMetricEvents([]*messages.MetricEvent{
+		subject.PostMetrics([]*messages.Metric{
 			{
-				Labels:  map[string]string{"d1": "a"},
-				Metrics: []*messages.Metric{{Value: 1, EventTime: time.Unix(1234567891, 0)}},
+				Labels:    map[string]string{"d1": "a"},
+				Value:     1,
+				EventTime: time.Unix(1234567891, 0),
 			},
 			{
-				Labels:  map[string]string{"d2": "a"},
-				Metrics: []*messages.Metric{{Value: 2, EventTime: time.Unix(1234567892, 0)}},
+				Labels:    map[string]string{"d2": "a"},
+				Value:     2,
+				EventTime: time.Unix(1234567892, 0),
 			},
 			{
-				Labels:  map[string]string{"d3": "a"},
-				Metrics: []*messages.Metric{{Value: 3, EventTime: time.Unix(1234567893, 0)}},
+				Labels:    map[string]string{"d3": "a"},
+				Value:     3,
+				EventTime: time.Unix(1234567893, 0),
 			},
 			{
-				Labels:  map[string]string{"d3": "a"},
-				Metrics: []*messages.Metric{{Value: 4, EventTime: time.Unix(1234567895, 0)}},
+				Labels:    map[string]string{"d3": "a"},
+				Value:     4,
+				EventTime: time.Unix(1234567895, 0),
 			},
 			{
-				Labels:  map[string]string{"d3": "a"},
-				Metrics: []*messages.Metric{{Value: 5, EventTime: time.Unix(1234567894, 0)}},
+				Labels:    map[string]string{"d3": "a"},
+				Value:     5,
+				EventTime: time.Unix(1234567894, 0),
 			},
 		})
 
-		Eventually(metricAdapter.GetPostedMetricEvents).Should(HaveLen(3))
+		Eventually(metricAdapter.GetPostedMetrics).Should(HaveLen(3))
 		expected := sortableMetrics{
 			{
-				Labels:  map[string]string{"d1": "a"},
-				Metrics: []*messages.Metric{{Value: 1, EventTime: time.Unix(1234567891, 0)}},
+				Labels:    map[string]string{"d1": "a"},
+				Value:     1,
+				EventTime: time.Unix(1234567891, 0),
 			},
 			{
-				Labels:  map[string]string{"d2": "a"},
-				Metrics: []*messages.Metric{{Value: 2, EventTime: time.Unix(1234567892, 0)}},
+				Labels:    map[string]string{"d2": "a"},
+				Value:     2,
+				EventTime: time.Unix(1234567892, 0),
 			},
 			{
-				Labels:  map[string]string{"d3": "a"},
-				Metrics: []*messages.Metric{{Value: 4, EventTime: time.Unix(1234567895, 0)}},
+				Labels:    map[string]string{"d3": "a"},
+				Value:     4,
+				EventTime: time.Unix(1234567895, 0),
 			},
 		}
-		actual := sortableMetrics(metricAdapter.GetPostedMetricEvents())
+		actual := sortableMetrics(metricAdapter.GetPostedMetrics())
 
 		sort.Sort(expected)
 		sort.Sort(actual)
@@ -130,18 +158,20 @@ var _ = Describe("autoCulledMetricsBuffer", func() {
 		d := 500 * time.Millisecond
 		subject := NewAutoCulledMetricsBuffer(context.TODO(), logger, d, metricAdapter)
 
-		subject.PostMetricEvents([]*messages.MetricEvent{
+		subject.PostMetrics([]*messages.Metric{
 			{
-				Labels:  map[string]string{"Name": "a"},
-				Metrics: []*messages.Metric{{Value: 1, EventTime: time.Unix(1234567891, 0)}},
+				Labels:    map[string]string{"Name": "a"},
+				Value:     1,
+				EventTime: time.Unix(1234567891, 0),
 			},
 			{
-				Labels:  map[string]string{"Name": "b"},
-				Metrics: []*messages.Metric{{Value: 2, EventTime: time.Unix(1234567891, 0)}},
+				Labels:    map[string]string{"Name": "b"},
+				Value:     2,
+				EventTime: time.Unix(1234567891, 0),
 			},
 		})
-		Expect(metricAdapter.GetPostedMetricEvents()).Should(HaveLen(0))
-		Eventually(metricAdapter.GetPostedMetricEvents).Should(HaveLen(2))
+		Expect(metricAdapter.GetPostedMetrics()).Should(HaveLen(0))
+		Eventually(metricAdapter.GetPostedMetrics).Should(HaveLen(2))
 	})
 
 	It("it flushes metrics when the context is canceled", func() {
@@ -149,18 +179,20 @@ var _ = Describe("autoCulledMetricsBuffer", func() {
 		ctx, cancel := context.WithCancel(context.Background())
 		subject := NewAutoCulledMetricsBuffer(ctx, logger, d, metricAdapter)
 
-		subject.PostMetricEvents([]*messages.MetricEvent{
+		subject.PostMetrics([]*messages.Metric{
 			{
-				Labels:  map[string]string{"Name": "a"},
-				Metrics: []*messages.Metric{{Value: 1, EventTime: time.Unix(1234567891, 0)}},
+				Labels:    map[string]string{"Name": "a"},
+				Value:     1,
+				EventTime: time.Unix(1234567891, 0),
 			},
 			{
-				Labels:  map[string]string{"Name": "b"},
-				Metrics: []*messages.Metric{{Value: 2, EventTime: time.Unix(1234567891, 0)}},
+				Labels:    map[string]string{"Name": "b"},
+				Value:     2,
+				EventTime: time.Unix(1234567891, 0),
 			},
 		})
 		cancel()
-		Eventually(metricAdapter.GetPostedMetricEvents).Should(HaveLen(2))
+		Eventually(metricAdapter.GetPostedMetrics).Should(HaveLen(2))
 	})
 
 	Describe("with a slow MetricAdapter", func() {
@@ -171,7 +203,7 @@ var _ = Describe("autoCulledMetricsBuffer", func() {
 
 		BeforeEach(func() {
 			metricPosted = make(chan interface{})
-			metricAdapter.PostMetricEventsFn = func([]*messages.MetricEvent) error {
+			metricAdapter.PostMetricsFn = func([]*messages.Metric) error {
 				metricPosted <- struct{}{}
 				time.Sleep(30 * time.Second)
 				return nil
@@ -181,13 +213,13 @@ var _ = Describe("autoCulledMetricsBuffer", func() {
 		})
 
 		It("doesn't block new metrics during flush", func() {
-			metric := []*messages.MetricEvent{{}}
-			subject.PostMetricEvents(metric)
+			metric := []*messages.Metric{{}}
+			subject.PostMetrics(metric)
 
 			Eventually(metricPosted).Should(Receive())
 			unblocked := make(chan interface{})
 			go func() {
-				subject.PostMetricEvents(metric)
+				subject.PostMetrics(metric)
 				unblocked <- struct{}{}
 			}()
 			Eventually(unblocked).Should(Receive())
@@ -195,7 +227,7 @@ var _ = Describe("autoCulledMetricsBuffer", func() {
 	})
 })
 
-type sortableMetrics []*messages.MetricEvent
+type sortableMetrics []*messages.Metric
 
 func (b sortableMetrics) Len() int {
 	return len(b)

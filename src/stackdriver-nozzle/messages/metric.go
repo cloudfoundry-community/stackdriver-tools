@@ -8,31 +8,24 @@ import (
 	"github.com/cloudfoundry/sonde-go/events"
 )
 
+// Metric represents one of the metrics contained in an events.Envelope.
 type Metric struct {
 	Name      string
+	Labels    map[string]string `json:"-"`
 	Value     float64
 	EventTime time.Time
-	Unit      string // TODO Should this be "1" if it's empty?
+	Unit      string                    // TODO Should this be "1" if it's empty?
+	Type      events.Envelope_EventType `json:"-"`
 }
 
-// MetricEvent represents the translation of an events.Envelope into a set
-// of Metrics
-type MetricEvent struct {
-	Labels  map[string]string `json:"-"`
-	Metrics []*Metric
-	Type    events.Envelope_EventType `json:"-"`
-}
-
-func (m *MetricEvent) Hash() string {
+func (m *Metric) Hash() string {
 	var b bytes.Buffer
 
 	// Extract keys to a slice and sort it
-	numKeys := len(m.Metrics) + len(m.Labels)
+	numKeys := len(m.Labels) + 1
 	keys := make([]string, numKeys, numKeys)
-	for _, m := range m.Metrics {
-		keys = append(keys, m.Name)
-	}
-	for k, _ := range m.Labels {
+	keys = append(keys, m.Name)
+	for k := range m.Labels {
 		keys = append(keys, k)
 	}
 	sort.Strings(keys)

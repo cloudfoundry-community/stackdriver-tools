@@ -62,6 +62,7 @@ func (ms *metricSink) getPrefix(envelope *events.Envelope) string {
 func (ms *metricSink) Receive(envelope *events.Envelope) {
 	labels := ms.labelMaker.MetricLabels(envelope)
 	metricPrefix := ms.getPrefix(envelope)
+	eventType := envelope.GetEventType()
 
 	timestamp := time.Duration(envelope.GetTimestamp())
 	eventTime := time.Unix(
@@ -75,6 +76,8 @@ func (ms *metricSink) Receive(envelope *events.Envelope) {
 		valueMetric := envelope.GetValueMetric()
 		metrics = []*messages.Metric{{
 			Name:      metricPrefix + valueMetric.GetName(),
+			Labels:    labels,
+			Type:      eventType,
 			Value:     valueMetric.GetValue(),
 			EventTime: eventTime,
 			Unit:      ms.unitParser.Parse(valueMetric.GetUnit()),
@@ -82,22 +85,26 @@ func (ms *metricSink) Receive(envelope *events.Envelope) {
 	case events.Envelope_ContainerMetric:
 		containerMetric := envelope.GetContainerMetric()
 		metrics = []*messages.Metric{
-			{Name: metricPrefix + "diskBytesQuota", Value: float64(containerMetric.GetDiskBytesQuota()), EventTime: eventTime},
-			{Name: metricPrefix + "cpuPercentage", Value: float64(containerMetric.GetCpuPercentage()), EventTime: eventTime},
-			{Name: metricPrefix + "diskBytes", Value: float64(containerMetric.GetDiskBytes()), EventTime: eventTime},
-			{Name: metricPrefix + "memoryBytes", Value: float64(containerMetric.GetMemoryBytes()), EventTime: eventTime},
-			{Name: metricPrefix + "memoryBytesQuota", Value: float64(containerMetric.GetMemoryBytesQuota()), EventTime: eventTime},
+			{Name: metricPrefix + "diskBytesQuota", Labels: labels, Type: eventType, Value: float64(containerMetric.GetDiskBytesQuota()), EventTime: eventTime},
+			{Name: metricPrefix + "cpuPercentage", Labels: labels, Type: eventType, Value: float64(containerMetric.GetCpuPercentage()), EventTime: eventTime},
+			{Name: metricPrefix + "diskBytes", Labels: labels, Type: eventType, Value: float64(containerMetric.GetDiskBytes()), EventTime: eventTime},
+			{Name: metricPrefix + "memoryBytes", Labels: labels, Type: eventType, Value: float64(containerMetric.GetMemoryBytes()), EventTime: eventTime},
+			{Name: metricPrefix + "memoryBytesQuota", Labels: labels, Type: eventType, Value: float64(containerMetric.GetMemoryBytesQuota()), EventTime: eventTime},
 		}
 	case events.Envelope_CounterEvent:
 		counterEvent := envelope.GetCounterEvent()
 		metrics = []*messages.Metric{
 			{
 				Name:      fmt.Sprintf("%s%v.delta", metricPrefix, counterEvent.GetName()),
+				Labels:    labels,
+				Type:      eventType,
 				Value:     float64(counterEvent.GetDelta()),
 				EventTime: eventTime,
 			},
 			{
 				Name:      fmt.Sprintf("%s%v.total", metricPrefix, counterEvent.GetName()),
+				Labels:    labels,
+				Type:      eventType,
 				Value:     float64(counterEvent.GetTotal()),
 				EventTime: eventTime,
 			},
@@ -107,7 +114,5 @@ func (ms *metricSink) Receive(envelope *events.Envelope) {
 		return
 	}
 
-	ms.metricAdapter.PostMetricEvents([]*messages.MetricEvent{
-		{Metrics: metrics, Labels: labels, Type: envelope.GetEventType()},
-	})
+	ms.metricAdapter.PostMetrics(metrics)
 }
