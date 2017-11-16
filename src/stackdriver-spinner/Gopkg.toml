@@ -28,3 +28,7 @@
 [[constraint]]
   name = "github.com/onsi/gomega"
   version = "1.2.0"
+
+[[constraint]]
+  name = "cloud.google.com/go/logging/logadmin"
+  version = "0.16.0"
