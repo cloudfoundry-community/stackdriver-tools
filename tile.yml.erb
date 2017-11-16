@@ -6,7 +6,7 @@ end
 ---
 name: <%=ENV["TILE_NAME"] %>
 label: <%=ENV["TILE_LABEL"] %>
-description: Import your Cloud Foundry logs and metrics into Stackdriver Logging and Monitoring for diagnostics and alerting 
+description: Import your Cloud Foundry logs and metrics into Stackdriver Logging and Monitoring for diagnostics and alerting
 icon_file: gcp_logo.png
 packages:
 - name: stackdriver-tools
@@ -59,8 +59,8 @@ forms:
     default: HttpStartStop,LogMessage,Error
     label: Whitelist for Stackdriver Logging
     description: |
-      Comma separated list without spaces consisting of any or all of HttpStartStop,LogMessage,Error. 
-      The following events are in beta can also be used: ValueMetric,CounterEvent,ContainerMetric
+      Comma separated list without spaces consisting of any or all of HttpStartStop,LogMessage,Error.
+      ValueMetric,CounterEvent,ContainerMetric may also be used but they are in beta.
   - name: firehose_events_to_stackdriver_monitoring
     type: string
     default: CounterEvent,ValueMetric,ContainerMetric
@@ -120,4 +120,4 @@ forms:
     type: boolean
     default: false
     label: Nozzle Debugging
-    description: Enable Nozzle Debugging Features. With this enabled each Stackdriver Nozzle instance will host a web server on 0.0.0.0:6060 that exposes debug information such as a heap dump and running threads.
+    description: Enable Nozzle Debugging Features. With this enabled each Stackdriver Nozzle instance will host a web server on port 6060 that exposes debug information such as a heap dump and running threads.
