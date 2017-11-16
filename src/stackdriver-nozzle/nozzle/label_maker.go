@@ -32,16 +32,16 @@ type LabelMaker interface {
 	LogLabels(*events.Envelope) map[string]string
 }
 
-func NewLabelMaker(appInfoRepository cloudfoundry.AppInfoRepository, directorName string) LabelMaker {
+func NewLabelMaker(appInfoRepository cloudfoundry.AppInfoRepository, foundationName string) LabelMaker {
 	return &labelMaker{
 		appInfoRepository: appInfoRepository,
-		directorName:      directorName,
+		foundationName:    foundationName,
 	}
 }
 
 type labelMaker struct {
 	appInfoRepository cloudfoundry.AppInfoRepository
-	directorName      string
+	foundationName    string
 }
 
 type labelMap map[string]string
@@ -81,7 +81,7 @@ func (pm *pathMaker) String() string {
 func (lm *labelMaker) MetricLabels(envelope *events.Envelope) map[string]string {
 	labels := labelMap{}
 
-	labels.setIfNotEmpty("director", lm.directorName)
+	labels.setIfNotEmpty("foundation", lm.foundationName)
 	labels.setIfNotEmpty("job", envelope.GetJob())
 	labels.setIfNotEmpty("index", envelope.GetIndex())
 	labels.setIfNotEmpty("applicationPath", lm.getApplicationPath(envelope))

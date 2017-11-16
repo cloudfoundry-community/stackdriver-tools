@@ -28,7 +28,7 @@ import (
 	. "github.com/onsi/gomega"
 )
 
-const director = "bosh-director"
+const foundation = "bosh-foundation"
 
 var _ = Describe("LabelMaker", func() {
 	var (
@@ -37,7 +37,7 @@ var _ = Describe("LabelMaker", func() {
 	)
 
 	BeforeEach(func() {
-		subject = nozzle.NewLabelMaker(cloudfoundry.NullAppInfoRepository(), director)
+		subject = nozzle.NewLabelMaker(cloudfoundry.NullAppInfoRepository(), foundation)
 	})
 
 	It("makes labels from envelopes", func() {
@@ -68,18 +68,18 @@ var _ = Describe("LabelMaker", func() {
 		logLabels := subject.LogLabels(envelope)
 
 		Expect(metricLabels).To(Equal(map[string]string{
-			"director": director,
-			"job":      job,
-			"index":    index,
-			"tags":     "bar=foo,foo=bar",
+			"foundation": foundation,
+			"job":        job,
+			"index":      index,
+			"tags":       "bar=foo,foo=bar",
 		}))
 		Expect(logLabels).To(Equal(map[string]string{
-			"director":  director,
-			"job":       job,
-			"index":     index,
-			"tags":      "bar=foo,foo=bar",
-			"origin":    origin,
-			"eventType": "HttpStartStop",
+			"foundation": foundation,
+			"job":        job,
+			"index":      index,
+			"tags":       "bar=foo,foo=bar",
+			"origin":     origin,
+			"eventType":  "HttpStartStop",
 		}))
 	})
 
@@ -107,10 +107,10 @@ var _ = Describe("LabelMaker", func() {
 		labels := subject.MetricLabels(envelope)
 
 		Expect(labels).To(Equal(map[string]string{
-			"director": director,
-			"job":      job,
-			"index":    index,
-			"tags":     "foo=bar",
+			"foundation": foundation,
+			"job":        job,
+			"index":      index,
+			"tags":       "foo=bar",
 		}))
 	})
 
@@ -131,7 +131,7 @@ var _ = Describe("LabelMaker", func() {
 				appInfoRepository = &mocks.AppInfoRepository{
 					AppInfoMap: map[string]cloudfoundry.AppInfo{},
 				}
-				subject = nozzle.NewLabelMaker(appInfoRepository, director)
+				subject = nozzle.NewLabelMaker(appInfoRepository, foundation)
 			})
 
 			Context("for a LogMessage", func() {

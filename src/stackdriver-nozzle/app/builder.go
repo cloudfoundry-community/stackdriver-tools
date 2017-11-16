@@ -46,7 +46,7 @@ func New(c *config.Config, logger lager.Logger) *App {
 	} else {
 		appInfoRepository = cloudfoundry.NullAppInfoRepository()
 	}
-	labelMaker := nozzle.NewLabelMaker(appInfoRepository, c.BoshDirectorName)
+	labelMaker := nozzle.NewLabelMaker(appInfoRepository, c.FoundationName)
 
 	return &App{
 		logger:     logger,
@@ -136,6 +136,6 @@ func (a *App) newTelemetryReporter() telemetry.Reporter {
 	}
 
 	logSink := telemetry.NewLogSink(a.logger)
-	metricSink := stackdriver.NewTelemetrySink(a.logger, metricClient, a.c.ProjectID, a.c.SubscriptionID, a.c.BoshDirectorName)
+	metricSink := stackdriver.NewTelemetrySink(a.logger, metricClient, a.c.ProjectID, a.c.SubscriptionID, a.c.FoundationName)
 	return telemetry.NewReporter(time.Duration(a.c.HeartbeatRate)*time.Second, logSink, metricSink)
 }

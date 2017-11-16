@@ -64,6 +64,6 @@ properties:
     description: Prefix added to all metric names being sent to Stackdriver, e.g. 'custom/PREFIX/gorouter.total_requests'. May contain slashes.
     default: firehose
 
-  nozzle.bosh_director_name:
-    description: Name added as the 'director' label to all time series being sent to Stackdriver, useful for differentiating between multiple PCF instances in a project.
+  nozzle.foundation_name:
+    description: Name added as the 'foundation' label to all time series being sent to Stackdriver, useful for differentiating between multiple PCF instances in a project.
     default: cf
