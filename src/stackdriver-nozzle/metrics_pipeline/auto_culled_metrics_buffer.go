@@ -22,18 +22,25 @@ import (
 	"sync"
 	"time"
 
-	"github.com/cloudfoundry-community/stackdriver-tools/src/stackdriver-nozzle/heartbeat"
 	"github.com/cloudfoundry-community/stackdriver-tools/src/stackdriver-nozzle/messages"
 	"github.com/cloudfoundry-community/stackdriver-tools/src/stackdriver-nozzle/stackdriver"
+	"github.com/cloudfoundry-community/stackdriver-tools/src/stackdriver-nozzle/telemetry"
 	"github.com/cloudfoundry/lager"
 )
 
+var (
+	eventsSampledCount *telemetry.Counter
+)
+
+func init() {
+	eventsSampledCount = telemetry.NewCounter("metrics.firehose_events.sampled.count")
+}
+
 type autoCulledMetricsBuffer struct {
-	adapter     stackdriver.MetricAdapter
-	ticker      *time.Ticker
-	ctx         context.Context
-	logger      lager.Logger
-	heartbeater heartbeat.Heartbeater
+	adapter stackdriver.MetricAdapter
+	ticker  *time.Ticker
+	ctx     context.Context
+	logger  lager.Logger
 
 	metricsMu sync.Mutex // Guard metrics
 	metrics   map[string]*messages.MetricEvent
@@ -41,15 +48,13 @@ type autoCulledMetricsBuffer struct {
 
 // NewAutoCulledMetricsBuffer provides a MetricsBuffer that will cull like metrics over the defined frequency.
 // A like metric is defined as a metric with the same stackdriver.Metric.Hash()
-func NewAutoCulledMetricsBuffer(ctx context.Context, logger lager.Logger, frequency time.Duration,
-	adapter stackdriver.MetricAdapter, heartbeater heartbeat.Heartbeater) MetricsBuffer {
+func NewAutoCulledMetricsBuffer(ctx context.Context, logger lager.Logger, frequency time.Duration, adapter stackdriver.MetricAdapter) MetricsBuffer {
 	mb := &autoCulledMetricsBuffer{
-		adapter:     adapter,
-		metrics:     make(map[string]*messages.MetricEvent),
-		ctx:         ctx,
-		logger:      logger,
-		ticker:      time.NewTicker(frequency),
-		heartbeater: heartbeater,
+		adapter: adapter,
+		metrics: make(map[string]*messages.MetricEvent),
+		ctx:     ctx,
+		logger:  logger,
+		ticker:  time.NewTicker(frequency),
 	}
 	mb.start()
 	return mb
@@ -65,7 +70,7 @@ func (mb *autoCulledMetricsBuffer) PostMetricEvents(events []*messages.MetricEve
 		if !exists {
 			mb.metrics[hash] = event
 		} else {
-			mb.heartbeater.Increment("metrics.events.sampled")
+			eventsSampledCount.Increment()
 			if event.Metrics[0].EventTime.After(old.Metrics[0].EventTime) {
 				// Firehose messages are not guaranteed to be received in
 				// timestamp order, so only overwrite the sampled metric

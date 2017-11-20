@@ -14,16 +14,14 @@
  * limitations under the License.
  */
 
-package heartbeat_test
+package telemetry
 
-import (
-	"testing"
+import "expvar"
 
-	. "github.com/onsi/ginkgo"
-	. "github.com/onsi/gomega"
-)
-
-func TestHeartbeat(t *testing.T) {
-	RegisterFailHandler(Fail)
-	RunSpecs(t, "Heartbeat Suite")
+// Sink represents an endpoint that records telemetry to an external source
+type Sink interface {
+	// Init is called a single time when the Reporter is starting before any data is reported
+	Init([]*expvar.KeyValue)
+	// Report is a snapshot of the cumulative telemetry values at the current time
+	Report([]*expvar.KeyValue)
 }

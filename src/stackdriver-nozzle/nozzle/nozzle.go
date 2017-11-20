@@ -22,7 +22,7 @@ import (
 
 	"code.cloudfoundry.org/diodes"
 	"github.com/cloudfoundry-community/stackdriver-tools/src/stackdriver-nozzle/cloudfoundry"
-	"github.com/cloudfoundry-community/stackdriver-tools/src/stackdriver-nozzle/heartbeat"
+	"github.com/cloudfoundry-community/stackdriver-tools/src/stackdriver-nozzle/telemetry"
 	"github.com/cloudfoundry/lager"
 	"github.com/cloudfoundry/noaa/consumer"
 	"github.com/cloudfoundry/sonde-go/events"
@@ -36,12 +36,45 @@ type Nozzle interface {
 	Stop() error
 }
 
+var (
+	firehoseErrs *telemetry.CounterMap
+
+	firehoseErrEmpty                *telemetry.Counter
+	firehoseErrUnknown              *telemetry.Counter
+	firehoseErrCloseNormal          *telemetry.Counter
+	firehoseErrClosePolicyViolation *telemetry.Counter
+	firehoseErrCloseUnknown         *telemetry.Counter
+
+	firehoseEventsTotal    *telemetry.Counter
+	firehoseEventsDropped  *telemetry.Counter
+	firehoseEventsReceived *telemetry.Counter
+)
+
+func init() {
+	firehoseErrs = telemetry.NewCounterMap("firehose.errors", "error_type")
+
+	firehoseErrEmpty = &telemetry.Counter{}
+	firehoseErrUnknown = &telemetry.Counter{}
+	firehoseErrCloseNormal = &telemetry.Counter{}
+	firehoseErrClosePolicyViolation = &telemetry.Counter{}
+	firehoseErrCloseUnknown = &telemetry.Counter{}
+
+	firehoseErrs.Set("empty", firehoseErrEmpty)
+	firehoseErrs.Set("unknown", firehoseErrUnknown)
+	firehoseErrs.Set("close_normal_closure", firehoseErrCloseNormal)
+	firehoseErrs.Set("close_policy_violation", firehoseErrClosePolicyViolation)
+	firehoseErrs.Set("close_unknown", firehoseErrCloseUnknown)
+
+	firehoseEventsTotal = telemetry.NewCounter("firehose_events.total")
+	firehoseEventsDropped = telemetry.NewCounter("firehose_events.dropped")
+	firehoseEventsReceived = telemetry.NewCounter("firehose_events.received")
+}
+
 type nozzle struct {
 	logSink    Sink
 	metricSink Sink
 
-	heartbeater heartbeat.Heartbeater
-	logger      lager.Logger
+	logger lager.Logger
 
 	session state
 }
@@ -52,17 +85,15 @@ type state struct {
 	running bool
 }
 
-func NewNozzle(logger lager.Logger, logSink Sink, metricSink Sink, heartbeater heartbeat.Heartbeater) Nozzle {
+func NewNozzle(logger lager.Logger, logSink Sink, metricSink Sink) Nozzle {
 	return &nozzle{
-		logSink:     logSink,
-		metricSink:  metricSink,
-		heartbeater: heartbeater,
-		logger:      logger,
+		logSink:    logSink,
+		metricSink: metricSink,
+		logger:     logger,
 	}
 }
 
 func (n *nozzle) Start(firehose cloudfoundry.Firehose) {
-	n.heartbeater.Start()
 	n.session = state{done: make(chan struct{}), running: true}
 
 	messages, fhErrInternal := firehose.Connect()
@@ -72,7 +103,7 @@ func (n *nozzle) Start(firehose cloudfoundry.Firehose) {
 		for err := range fhErrInternal {
 			if err == nil {
 				// Ignore empty errors. Customers observe a flooding of empty errors from firehose.
-				go n.heartbeater.Increment("firehose.errors.empty")
+				firehoseErrEmpty.Increment()
 				continue
 			}
 
@@ -81,10 +112,8 @@ func (n *nozzle) Start(firehose cloudfoundry.Firehose) {
 	}()
 
 	buffer := diodes.NewPoller(diodes.NewOneToOne(bufferSize, diodes.AlertFunc(func(missed int) {
-		if missed < 0 {
-			panic("negative missed value received")
-		}
-		go n.heartbeater.IncrementBy("nozzle.events.dropped", uint(missed))
+		firehoseEventsDropped.Add(int64(missed))
+		firehoseEventsTotal.Add(int64(missed))
 	})))
 
 	// Drain messages from the firehose and place them into the ring buffer
@@ -118,7 +147,6 @@ func (n *nozzle) Stop() error {
 	if !n.session.running {
 		return errors.New("nozzle is not running")
 	}
-	n.heartbeater.Stop()
 	close(n.session.done)
 	n.session.running = false
 
@@ -126,7 +154,8 @@ func (n *nozzle) Stop() error {
 }
 
 func (n *nozzle) handleEvent(envelope *events.Envelope) {
-	n.heartbeater.Increment("nozzle.events")
+	firehoseEventsReceived.Increment()
+	firehoseEventsTotal.Increment()
 	if isMetric(envelope) {
 		n.metricSink.Receive(envelope)
 	} else {
@@ -143,17 +172,17 @@ func (n *nozzle) handleFirehoseError(err error) {
 
 	closeErr, ok := err.(*websocket.CloseError)
 	if !ok {
-		n.heartbeater.Increment("firehose.errors.unknwon")
+		firehoseErrUnknown.Increment()
 		return
 	}
 
 	switch closeErr.Code {
 	case websocket.CloseNormalClosure:
-		n.heartbeater.Increment("firehose.errors.close.normal_close")
+		firehoseErrCloseNormal.Increment()
 	case websocket.ClosePolicyViolation:
-		n.heartbeater.Increment("firehose.errors.close.policy_violation")
+		firehoseErrClosePolicyViolation.Increment()
 	default:
-		n.heartbeater.Increment("firehose.errors.close.unknown")
+		firehoseErrCloseUnknown.Increment()
 	}
 }
 

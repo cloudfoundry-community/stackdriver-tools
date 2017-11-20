@@ -14,33 +14,16 @@
  * limitations under the License.
  */
 
-package mocks
+package telemetry_test
 
 import (
-	"sync"
+	"testing"
 
-	"github.com/cloudfoundry/sonde-go/events"
+	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/gomega"
 )
 
-type Sink struct {
-	HandledEnvelopes []events.Envelope
-	mutex            sync.Mutex
-}
-
-func (s *Sink) Receive(envelope *events.Envelope) {
-	s.mutex.Lock()
-	defer s.mutex.Unlock()
-
-	s.HandledEnvelopes = append(s.HandledEnvelopes, *envelope)
-}
-
-func (s *Sink) LastEnvelope() *events.Envelope {
-	s.mutex.Lock()
-	defer s.mutex.Unlock()
-
-	if len(s.HandledEnvelopes) == 0 {
-		return nil
-	}
-
-	return &s.HandledEnvelopes[len(s.HandledEnvelopes)-1]
+func TestHeartbeat(t *testing.T) {
+	RegisterFailHandler(Fail)
+	RunSpecs(t, "Telemetry Suite")
 }

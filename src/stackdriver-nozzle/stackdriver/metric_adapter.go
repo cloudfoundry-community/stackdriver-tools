@@ -25,6 +25,7 @@ import (
 	"time"
 
 	"github.com/cloudfoundry-community/stackdriver-tools/src/stackdriver-nozzle/messages"
+	"github.com/cloudfoundry-community/stackdriver-tools/src/stackdriver-nozzle/telemetry"
 	"github.com/cloudfoundry/lager"
 	"github.com/golang/protobuf/ptypes/timestamp"
 	labelpb "google.golang.org/genproto/googleapis/api/label"
@@ -36,11 +37,35 @@ type MetricAdapter interface {
 	PostMetricEvents([]*messages.MetricEvent)
 }
 
-type Heartbeater interface {
-	Start()
-	Increment(string)
-	IncrementBy(string, uint)
-	Stop()
+var (
+	timeSeriesReqs  *telemetry.Counter
+	timeSeriesCount *telemetry.Counter
+	timeSeriesErrs  *telemetry.CounterMap
+
+	timeSeriesErrOutOfOrder *telemetry.Counter
+	timeSeriesErrUnknown    *telemetry.Counter
+
+	firehoseEventsCount *telemetry.Counter
+
+	descriptorReqs *telemetry.Counter
+	descriptorErrs *telemetry.Counter
+)
+
+func init() {
+	timeSeriesReqs = telemetry.NewCounter("metrics.timeseries.requests")
+	timeSeriesCount = telemetry.NewCounter("metrics.timeseries.count")
+	timeSeriesErrs = telemetry.NewCounterMap("metrics.timeseries.errors", "error_type")
+
+	timeSeriesErrOutOfOrder = &telemetry.Counter{}
+	timeSeriesErrUnknown = &telemetry.Counter{}
+
+	timeSeriesErrs.Set("out_of_order", timeSeriesErrOutOfOrder)
+	timeSeriesErrs.Set("unknown", timeSeriesErrUnknown)
+
+	firehoseEventsCount = telemetry.NewCounter("metrics.firehose_events.emitted.count")
+
+	descriptorReqs = telemetry.NewCounter("metrics.descriptor.requests")
+	descriptorErrs = telemetry.NewCounter("metrics.descriptor.errors")
 }
 
 type metricAdapter struct {
@@ -50,11 +75,10 @@ type metricAdapter struct {
 	createDescriptorMutex *sync.Mutex
 	batchSize             int
 	logger                lager.Logger
-	heartbeater           Heartbeater
 }
 
 // NewMetricAdapter returns a MetricAdapater that can write to Stackdriver Monitoring
-func NewMetricAdapter(projectID string, client MetricClient, batchSize int, heartbeater Heartbeater, logger lager.Logger) (MetricAdapter, error) {
+func NewMetricAdapter(projectID string, client MetricClient, batchSize int, logger lager.Logger) (MetricAdapter, error) {
 	ma := &metricAdapter{
 		projectID:             projectID,
 		client:                client,
@@ -62,7 +86,6 @@ func NewMetricAdapter(projectID string, client MetricClient, batchSize int, hear
 		descriptors:           map[string]struct{}{},
 		batchSize:             batchSize,
 		logger:                logger,
-		heartbeater:           heartbeater,
 	}
 
 	err := ma.fetchMetricDescriptorNames()
@@ -87,7 +110,7 @@ func (ma *metricAdapter) PostMetricEvents(events []*messages.MetricEvent) {
 			high = count
 		}
 
-		ma.heartbeater.Increment("metrics.requests")
+		timeSeriesReqs.Increment()
 		request := &monitoringpb.CreateTimeSeriesRequest{
 			Name:       projectName,
 			TimeSeries: series[low:high],
@@ -95,15 +118,13 @@ func (ma *metricAdapter) PostMetricEvents(events []*messages.MetricEvent) {
 		err := ma.client.Post(request)
 
 		if err != nil {
-			ma.heartbeater.Increment("metrics.post.errors")
-
 			// This is an expected error once there is more than a single nozzle writing to Stackdriver.
 			// If one nozzle writes a metric occurring at time T2 and this one tries to write at T1 (where T2 later than T1)
 			// we will receive this error.
 			if strings.Contains(err.Error(), `Points must be written in order`) {
-				ma.heartbeater.Increment("metrics.post.errors.out_of_order")
+				timeSeriesErrOutOfOrder.Increment()
 			} else {
-				ma.heartbeater.Increment("metrics.post.errors.unknown")
+				timeSeriesErrUnknown.Increment()
 				ma.logger.Error("metricAdapter.PostMetricEvents", err, lager.Data{"info": "Unexpected Error", "request": request})
 			}
 		}
@@ -120,13 +141,12 @@ func (ma *metricAdapter) buildTimeSeries(events []*messages.MetricEvent) []*moni
 			continue
 		}
 
-		ma.heartbeater.Increment("metrics.events.count")
+		firehoseEventsCount.Increment()
 		for _, metric := range event.Metrics {
-			ma.heartbeater.Increment("metrics.timeseries.count")
+			timeSeriesCount.Increment()
 			err := ma.ensureMetricDescriptor(metric, event.Labels)
 			if err != nil {
 				ma.logger.Error("metricAdapter.buildTimeSeries", err, lager.Data{"metric": metric, "labels": event.Labels})
-				ma.heartbeater.IncrementBy("metrics.metric_descriptor.errors", 1)
 				continue
 			}
 
@@ -172,13 +192,19 @@ func (ma *metricAdapter) CreateMetricDescriptor(metric *messages.Metric, labels 
 		},
 	}
 
-	return ma.client.CreateMetricDescriptor(req)
+	descriptorReqs.Increment()
+	if err := ma.client.CreateMetricDescriptor(req); err != nil {
+		descriptorErrs.Increment()
+		return err
+	}
+
+	return nil
 }
 
 func (ma *metricAdapter) fetchMetricDescriptorNames() error {
 	req := &monitoringpb.ListMetricDescriptorsRequest{
 		Name:   fmt.Sprintf("projects/%s", ma.projectID),
-		Filter: "metric.type = starts_with(\"custom.googleapis.com/\")",
+		Filter: `metric.type = starts_with("custom.googleapis.com/")`,
 	}
 
 	descriptors, err := ma.client.ListMetricDescriptors(req)

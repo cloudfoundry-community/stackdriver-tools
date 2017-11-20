@@ -25,6 +25,7 @@ import (
 	"github.com/cloudfoundry-community/stackdriver-tools/src/stackdriver-nozzle/messages"
 	. "github.com/cloudfoundry-community/stackdriver-tools/src/stackdriver-nozzle/metrics_pipeline"
 	"github.com/cloudfoundry-community/stackdriver-tools/src/stackdriver-nozzle/mocks"
+	"github.com/cloudfoundry-community/stackdriver-tools/src/stackdriver-nozzle/telemetry/telemetrytest"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 )
@@ -32,18 +33,18 @@ import (
 var _ = Describe("autoCulledMetricsBuffer", func() {
 	var (
 		metricAdapter *mocks.MetricAdapter
-		heartbeater   *mocks.Heartbeater
 		logger        *mocks.MockLogger
 	)
 
 	BeforeEach(func() {
 		metricAdapter = &mocks.MetricAdapter{}
-		heartbeater = mocks.NewHeartbeater()
 		logger = &mocks.MockLogger{}
+
+		telemetrytest.Reset()
 	})
 
 	It("culls duplicate metrics", func() {
-		subject := NewAutoCulledMetricsBuffer(context.TODO(), logger, 100*time.Millisecond, metricAdapter, heartbeater)
+		subject := NewAutoCulledMetricsBuffer(context.TODO(), logger, 100*time.Millisecond, metricAdapter)
 
 		subject.PostMetricEvents([]*messages.MetricEvent{
 			{
@@ -73,11 +74,11 @@ var _ = Describe("autoCulledMetricsBuffer", func() {
 		postedEvent := metricAdapter.GetPostedMetricEvents()[0]
 		Expect(postedEvent.Metrics).To(HaveLen(2))
 		Expect(postedEvent).To(BeEquivalentTo(expected[0]))
-		Expect(heartbeater.GetCount("metrics.events.sampled")).To(Equal(1))
+		Expect(telemetrytest.Counter("metrics.firehose_events.sampled.count")).To(Equal(1))
 	})
 
 	It("culls multiple duplicates, keeping the latest", func() {
-		subject := NewAutoCulledMetricsBuffer(context.TODO(), logger, 100*time.Millisecond, metricAdapter, heartbeater)
+		subject := NewAutoCulledMetricsBuffer(context.TODO(), logger, 100*time.Millisecond, metricAdapter)
 		subject.PostMetricEvents([]*messages.MetricEvent{
 			{
 				Labels:  map[string]string{"d1": "a"},
@@ -122,12 +123,12 @@ var _ = Describe("autoCulledMetricsBuffer", func() {
 		sort.Sort(actual)
 
 		Expect(actual).To(BeEquivalentTo(expected))
-		Expect(heartbeater.GetCount("metrics.events.sampled")).To(Equal(2))
+		Expect(telemetrytest.Counter("metrics.firehose_events.sampled.count")).To(Equal(2))
 	})
 
 	It("it buffers metrics for the expected duration before flushing", func() {
 		d := 500 * time.Millisecond
-		subject := NewAutoCulledMetricsBuffer(context.TODO(), logger, d, metricAdapter, heartbeater)
+		subject := NewAutoCulledMetricsBuffer(context.TODO(), logger, d, metricAdapter)
 
 		subject.PostMetricEvents([]*messages.MetricEvent{
 			{
@@ -146,7 +147,7 @@ var _ = Describe("autoCulledMetricsBuffer", func() {
 	It("it flushes metrics when the context is canceled", func() {
 		d := 500 * time.Second
 		ctx, cancel := context.WithCancel(context.Background())
-		subject := NewAutoCulledMetricsBuffer(ctx, logger, d, metricAdapter, heartbeater)
+		subject := NewAutoCulledMetricsBuffer(ctx, logger, d, metricAdapter)
 
 		subject.PostMetricEvents([]*messages.MetricEvent{
 			{
@@ -176,7 +177,7 @@ var _ = Describe("autoCulledMetricsBuffer", func() {
 				return nil
 			}
 
-			subject = NewAutoCulledMetricsBuffer(context.TODO(), logger, 1*time.Millisecond, metricAdapter, heartbeater)
+			subject = NewAutoCulledMetricsBuffer(context.TODO(), logger, 1*time.Millisecond, metricAdapter)
 		})
 
 		It("doesn't block new metrics during flush", func() {

@@ -21,6 +21,7 @@ import (
 
 	"github.com/cloudfoundry-community/stackdriver-tools/src/stackdriver-nozzle/mocks"
 	"github.com/cloudfoundry-community/stackdriver-tools/src/stackdriver-nozzle/nozzle"
+	"github.com/cloudfoundry-community/stackdriver-tools/src/stackdriver-nozzle/telemetry/telemetrytest"
 	"github.com/cloudfoundry/lager"
 	"github.com/cloudfoundry/noaa/consumer"
 	"github.com/cloudfoundry/sonde-go/events"
@@ -30,44 +31,37 @@ import (
 
 var _ = Describe("Nozzle", func() {
 	var (
-		subject     nozzle.Nozzle
-		firehose    *mocks.FirehoseClient
-		logSink     *mocks.Sink
-		metricSink  *mocks.Sink
-		heartbeater *mocks.Heartbeater
-		logger      *mocks.MockLogger
+		subject    nozzle.Nozzle
+		firehose   *mocks.FirehoseClient
+		logSink    *mocks.NozzleSink
+		metricSink *mocks.NozzleSink
+		logger     *mocks.MockLogger
 	)
 
 	BeforeEach(func() {
 		firehose = mocks.NewFirehoseClient()
-		logSink = &mocks.Sink{}
-		metricSink = &mocks.Sink{}
-		heartbeater = mocks.NewHeartbeater()
+		logSink = &mocks.NozzleSink{}
+		metricSink = &mocks.NozzleSink{}
 		logger = &mocks.MockLogger{}
 
-		subject = nozzle.NewNozzle(logger, logSink, metricSink, heartbeater)
+		subject = nozzle.NewNozzle(logger, logSink, metricSink)
 		subject.Start(firehose)
+
+		telemetrytest.Reset()
 	})
 
-	It("starts the heartbeater", func() {
-		Expect(heartbeater.IsRunning()).To(Equal(true))
-	})
-
-	It("updates the heartbeater", func() {
+	It("updates the counter", func() {
 		for _, value := range events.Envelope_EventType_value {
 			eventType := events.Envelope_EventType(value)
 			event := events.Envelope{EventType: &eventType}
 			firehose.Messages <- &event
 		}
 
+		count := len(events.Envelope_EventType_value)
 		Eventually(func() int {
-			return heartbeater.GetCount("nozzle.events")
-		}).Should(Equal(len(events.Envelope_EventType_value)))
-	})
-
-	It("stops the heartbeater", func() {
-		subject.Stop()
-		Expect(heartbeater.IsRunning()).To(Equal(false))
+			return telemetrytest.Counter("firehose_events.received")
+		}).Should(Equal(count))
+		Expect(telemetrytest.Counter("firehose_events.total")).To(Equal(count))
 	})
 
 	It("does not receive errors", func() {
@@ -158,7 +152,6 @@ var _ = Describe("Nozzle", func() {
 		Expect(subject.Stop()).To(HaveOccurred())
 		Expect(subject.Stop()).To(HaveOccurred())
 
-		Expect(heartbeater.IsRunning()).To(Equal(false))
 		close(done)
 	}, 0.2)
 })
