@@ -24,9 +24,8 @@ import (
 	"sync"
 	"time"
 
-	"expvar"
-
 	"github.com/cloudfoundry-community/stackdriver-tools/src/stackdriver-nozzle/messages"
+	"github.com/cloudfoundry-community/stackdriver-tools/src/stackdriver-nozzle/telemetry"
 	"github.com/cloudfoundry/lager"
 	"github.com/golang/protobuf/ptypes/timestamp"
 	labelpb "google.golang.org/genproto/googleapis/api/label"
@@ -39,34 +38,34 @@ type MetricAdapter interface {
 }
 
 var (
-	timeSeriesReqs  *expvar.Int
-	timeSeriesCount *expvar.Int
-	timeSeriesErrs  *expvar.Map
+	timeSeriesReqs  *telemetry.Counter
+	timeSeriesCount *telemetry.Counter
+	timeSeriesErrs  *telemetry.CounterMap
 
-	timeSeriesErrOutOfOrder *expvar.Int
-	timeSeriesErrUnknown    *expvar.Int
+	timeSeriesErrOutOfOrder *telemetry.Counter
+	timeSeriesErrUnknown    *telemetry.Counter
 
-	eventsCount *expvar.Int
+	firehoseEventsCount *telemetry.Counter
 
-	descriptorReqs *expvar.Int
-	descriptorErrs *expvar.Int
+	descriptorReqs *telemetry.Counter
+	descriptorErrs *telemetry.Counter
 )
 
 func init() {
-	timeSeriesReqs = expvar.NewInt("nozzle.metrics.timeseries.requests")
-	timeSeriesCount = expvar.NewInt("nozzle.metrics.timeseries.count")
-	timeSeriesErrs = expvar.NewMap("nozzle.metrics.timeseries.errors")
+	timeSeriesReqs = telemetry.NewCounter("metrics.timeseries.requests")
+	timeSeriesCount = telemetry.NewCounter("metrics.timeseries.count")
+	timeSeriesErrs = telemetry.NewCounterMap("metrics.timeseries.errors", "error_type")
 
-	timeSeriesErrOutOfOrder = &expvar.Int{}
-	timeSeriesErrUnknown = &expvar.Int{}
+	timeSeriesErrOutOfOrder = &telemetry.Counter{}
+	timeSeriesErrUnknown = &telemetry.Counter{}
 
 	timeSeriesErrs.Set("out_of_order", timeSeriesErrOutOfOrder)
 	timeSeriesErrs.Set("unknown", timeSeriesErrUnknown)
 
-	eventsCount = expvar.NewInt("nozzle.metrics.firehose_events.count")
+	firehoseEventsCount = telemetry.NewCounter("metrics.firehose_events.emitted.count")
 
-	descriptorReqs = expvar.NewInt("nozzle.metrics.descriptor.requests")
-	descriptorErrs = expvar.NewInt("nozzle.metrics.descriptor.errors")
+	descriptorReqs = telemetry.NewCounter("metrics.descriptor.requests")
+	descriptorErrs = telemetry.NewCounter("metrics.descriptor.errors")
 }
 
 type metricAdapter struct {
@@ -111,7 +110,7 @@ func (ma *metricAdapter) PostMetricEvents(events []*messages.MetricEvent) {
 			high = count
 		}
 
-		timeSeriesReqs.Add(1)
+		timeSeriesReqs.Increment()
 		request := &monitoringpb.CreateTimeSeriesRequest{
 			Name:       projectName,
 			TimeSeries: series[low:high],
@@ -123,9 +122,9 @@ func (ma *metricAdapter) PostMetricEvents(events []*messages.MetricEvent) {
 			// If one nozzle writes a metric occurring at time T2 and this one tries to write at T1 (where T2 later than T1)
 			// we will receive this error.
 			if strings.Contains(err.Error(), `Points must be written in order`) {
-				timeSeriesErrOutOfOrder.Add(1)
+				timeSeriesErrOutOfOrder.Increment()
 			} else {
-				timeSeriesErrUnknown.Add(1)
+				timeSeriesErrUnknown.Increment()
 				ma.logger.Error("metricAdapter.PostMetricEvents", err, lager.Data{"info": "Unexpected Error", "request": request})
 			}
 		}
@@ -142,9 +141,9 @@ func (ma *metricAdapter) buildTimeSeries(events []*messages.MetricEvent) []*moni
 			continue
 		}
 
-		eventsCount.Add(1)
+		firehoseEventsCount.Increment()
 		for _, metric := range event.Metrics {
-			timeSeriesCount.Add(1)
+			timeSeriesCount.Increment()
 			err := ma.ensureMetricDescriptor(metric, event.Labels)
 			if err != nil {
 				ma.logger.Error("metricAdapter.buildTimeSeries", err, lager.Data{"metric": metric, "labels": event.Labels})
@@ -193,9 +192,9 @@ func (ma *metricAdapter) CreateMetricDescriptor(metric *messages.Metric, labels 
 		},
 	}
 
-	descriptorReqs.Add(1)
+	descriptorReqs.Increment()
 	if err := ma.client.CreateMetricDescriptor(req); err != nil {
-		descriptorErrs.Add(1)
+		descriptorErrs.Increment()
 		return err
 	}
 

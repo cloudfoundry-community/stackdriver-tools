@@ -20,10 +20,9 @@ import (
 	"errors"
 	"sync"
 
-	"expvar"
-
 	"code.cloudfoundry.org/diodes"
 	"github.com/cloudfoundry-community/stackdriver-tools/src/stackdriver-nozzle/cloudfoundry"
+	"github.com/cloudfoundry-community/stackdriver-tools/src/stackdriver-nozzle/telemetry"
 	"github.com/cloudfoundry/lager"
 	"github.com/cloudfoundry/noaa/consumer"
 	"github.com/cloudfoundry/sonde-go/events"
@@ -38,27 +37,27 @@ type Nozzle interface {
 }
 
 var (
-	firehoseErrs *expvar.Map
+	firehoseErrs *telemetry.CounterMap
 
-	firehoseErrEmpty                *expvar.Int
-	firehoseErrUnknown              *expvar.Int
-	firehoseErrCloseNormal          *expvar.Int
-	firehoseErrClosePolicyViolation *expvar.Int
-	firehoseErrCloseUnknown         *expvar.Int
+	firehoseErrEmpty                *telemetry.Counter
+	firehoseErrUnknown              *telemetry.Counter
+	firehoseErrCloseNormal          *telemetry.Counter
+	firehoseErrClosePolicyViolation *telemetry.Counter
+	firehoseErrCloseUnknown         *telemetry.Counter
 
-	firehoseEventsTotal    *expvar.Int
-	firehoseEventsDropped  *expvar.Int
-	firehoseEventsReceived *expvar.Int
+	firehoseEventsTotal    *telemetry.Counter
+	firehoseEventsDropped  *telemetry.Counter
+	firehoseEventsReceived *telemetry.Counter
 )
 
 func init() {
-	firehoseErrs = expvar.NewMap("nozzle.firehose.errors")
+	firehoseErrs = telemetry.NewCounterMap("firehose.errors", "error_type")
 
-	firehoseErrEmpty = &expvar.Int{}
-	firehoseErrUnknown = &expvar.Int{}
-	firehoseErrCloseNormal = &expvar.Int{}
-	firehoseErrClosePolicyViolation = &expvar.Int{}
-	firehoseErrCloseUnknown = &expvar.Int{}
+	firehoseErrEmpty = &telemetry.Counter{}
+	firehoseErrUnknown = &telemetry.Counter{}
+	firehoseErrCloseNormal = &telemetry.Counter{}
+	firehoseErrClosePolicyViolation = &telemetry.Counter{}
+	firehoseErrCloseUnknown = &telemetry.Counter{}
 
 	firehoseErrs.Set("empty", firehoseErrEmpty)
 	firehoseErrs.Set("unknown", firehoseErrUnknown)
@@ -66,9 +65,9 @@ func init() {
 	firehoseErrs.Set("close_policy_violation", firehoseErrClosePolicyViolation)
 	firehoseErrs.Set("close_unknown", firehoseErrCloseUnknown)
 
-	firehoseEventsTotal = expvar.NewInt("nozzle.firehose_events.total")
-	firehoseEventsDropped = expvar.NewInt("nozzle.firehose_events.dropped")
-	firehoseEventsReceived = expvar.NewInt("nozzle.firehose_events.received")
+	firehoseEventsTotal = telemetry.NewCounter("firehose_events.total")
+	firehoseEventsDropped = telemetry.NewCounter("firehose_events.dropped")
+	firehoseEventsReceived = telemetry.NewCounter("firehose_events.received")
 }
 
 type nozzle struct {
@@ -104,7 +103,7 @@ func (n *nozzle) Start(firehose cloudfoundry.Firehose) {
 		for err := range fhErrInternal {
 			if err == nil {
 				// Ignore empty errors. Customers observe a flooding of empty errors from firehose.
-				firehoseErrEmpty.Add(1)
+				firehoseErrEmpty.Increment()
 				continue
 			}
 
@@ -155,8 +154,8 @@ func (n *nozzle) Stop() error {
 }
 
 func (n *nozzle) handleEvent(envelope *events.Envelope) {
-	firehoseEventsReceived.Add(1)
-	firehoseEventsTotal.Add(1)
+	firehoseEventsReceived.Increment()
+	firehoseEventsTotal.Increment()
 	if isMetric(envelope) {
 		n.metricSink.Receive(envelope)
 	} else {
@@ -173,17 +172,17 @@ func (n *nozzle) handleFirehoseError(err error) {
 
 	closeErr, ok := err.(*websocket.CloseError)
 	if !ok {
-		firehoseErrUnknown.Add(1)
+		firehoseErrUnknown.Increment()
 		return
 	}
 
 	switch closeErr.Code {
 	case websocket.CloseNormalClosure:
-		firehoseErrCloseNormal.Add(1)
+		firehoseErrCloseNormal.Increment()
 	case websocket.ClosePolicyViolation:
-		firehoseErrClosePolicyViolation.Add(1)
+		firehoseErrClosePolicyViolation.Increment()
 	default:
-		firehoseErrCloseUnknown.Add(1)
+		firehoseErrCloseUnknown.Increment()
 	}
 }
 

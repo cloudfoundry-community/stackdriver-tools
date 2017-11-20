@@ -42,7 +42,7 @@ func (ls *logSink) Report(values []*expvar.KeyValue) {
 	reportDelta := map[string]int64{}
 
 	for _, val := range values {
-		if intVal, ok := val.Value.(*expvar.Int); ok {
+		if intVal, ok := val.Value.(*Counter); ok {
 			key := val.Key
 			report[key] = intVal.Value()
 			reportDelta[key] = report[key] - ls.lastReport[key]

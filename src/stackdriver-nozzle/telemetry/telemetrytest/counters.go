@@ -16,33 +16,37 @@
 
 package telemetrytest
 
-import "expvar"
+import (
+	"expvar"
 
-// Value reads an Int counter by name
-func Value(name string) int {
-	val := expvar.Get(name)
-	intVal := val.(*expvar.Int)
+	"github.com/cloudfoundry-community/stackdriver-tools/src/stackdriver-nozzle/telemetry"
+)
+
+// Counter reads an Int counter by name
+func Counter(name string) int {
+	val := telemetry.Get(name)
+	intVal := val.(*telemetry.Counter)
 	return int(intVal.Value())
 }
 
-// MapValue reads a Map counter by name, key
-func MapValue(name, key string) int {
-	val := expvar.Get(name)
-	mapVal := val.(*expvar.Map)
-	return int(mapVal.Get(key).(*expvar.Int).Value())
+// MapCounter reads a Counter from a MapCounter by name, key
+func MapCounter(name, key string) int {
+	val := telemetry.Get(name)
+	mapVal := val.(*telemetry.CounterMap)
+	return int(mapVal.Get(key).(*telemetry.Counter).Value())
 }
 
 // Reset sets all registered Int counters to 0
 func Reset() {
-	expvar.Do(func(value expvar.KeyValue) {
+	telemetry.Do(func(value expvar.KeyValue) {
 		resetKey(&value)
 	})
 }
 
 func resetKey(value *expvar.KeyValue) {
-	if intVal, ok := value.Value.(*expvar.Int); ok {
+	if intVal, ok := value.Value.(*telemetry.Counter); ok {
 		intVal.Set(0)
-	} else if mapVal, ok := value.Value.(*expvar.Map); ok {
+	} else if mapVal, ok := value.Value.(*telemetry.CounterMap); ok {
 		mapVal.Do(func(value expvar.KeyValue) {
 			resetKey(&value)
 		})

@@ -27,11 +27,11 @@ import (
 )
 
 var (
-	intCount *expvar.Int
+	intCount *telemetry.Counter
 )
 
 func init() {
-	intCount = expvar.NewInt("nozzle.int")
+	intCount = telemetry.NewCounter("int")
 }
 
 var _ = Describe("Reporter", func() {
@@ -60,8 +60,7 @@ var _ = Describe("Reporter", func() {
 			Expect(sink.GetInit()).NotTo(BeNil())
 			init := sink.GetInit()
 			Expect(init).To(HaveLen(1))
-			initCountKeyVal := init[0]
-			Expect(initCountKeyVal.Key).To(Equal("nozzle.int"))
+			Expect(init).To(ContainElement(&expvar.KeyValue{Key: "int", Value: intCount}))
 		})
 
 		It("reports updates", func() {
@@ -70,7 +69,24 @@ var _ = Describe("Reporter", func() {
 			report := sink.GetLastReport()
 			Expect(report).To(HaveLen(1))
 			initCountKeyVal := report[0]
-			Expect(initCountKeyVal.Value.(*expvar.Int).Value()).To(Equal(int64(100)))
+			Expect(initCountKeyVal.Value.(*telemetry.Counter).Value()).To(Equal(int64(100)))
+		})
+	})
+	Context("with an exiting expvar metric", func() {
+		var ignored *expvar.Int
+		BeforeEach(func() {
+			ignored = expvar.NewInt("ignored")
+
+			ctx, cancel = context.WithCancel(context.Background())
+			reporter.Start(ctx)
+		})
+		AfterEach(func() {
+			cancel()
+		})
+		It("does not initialize the ignored value", func() {
+			Expect(sink.GetInit()).NotTo(BeNil())
+			init := sink.GetInit()
+			Expect(init).NotTo(ContainElement(&expvar.KeyValue{Key: "ignored", Value: ignored}))
 		})
 	})
 })

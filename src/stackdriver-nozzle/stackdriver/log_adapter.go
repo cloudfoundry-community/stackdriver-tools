@@ -19,10 +19,9 @@ package stackdriver
 import (
 	"time"
 
-	"expvar"
-
 	"cloud.google.com/go/logging"
 	"github.com/cloudfoundry-community/stackdriver-tools/src/stackdriver-nozzle/messages"
+	"github.com/cloudfoundry-community/stackdriver-tools/src/stackdriver-nozzle/telemetry"
 	"github.com/cloudfoundry-community/stackdriver-tools/src/stackdriver-nozzle/version"
 	"golang.org/x/net/context"
 	"google.golang.org/api/option"
@@ -34,11 +33,11 @@ const (
 )
 
 var (
-	logsCount *expvar.Int
+	logsCount *telemetry.Counter
 )
 
 func init() {
-	logsCount = expvar.NewInt("nozzle.logs.count")
+	logsCount = telemetry.NewCounter("logs.count")
 }
 
 type LogAdapter interface {
@@ -84,7 +83,7 @@ type logAdapter struct {
 
 // PostLog sends a single message to Stackdriver Logging
 func (s *logAdapter) PostLog(log *messages.Log) {
-	logsCount.Add(1)
+	logsCount.Increment()
 	entry := logging.Entry{
 		Payload:  log.Payload,
 		Labels:   log.Labels,

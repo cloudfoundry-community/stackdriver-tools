@@ -18,22 +18,22 @@ package metrics_pipeline
 
 import (
 	"context"
-	"expvar"
 	"fmt"
 	"sync"
 	"time"
 
 	"github.com/cloudfoundry-community/stackdriver-tools/src/stackdriver-nozzle/messages"
 	"github.com/cloudfoundry-community/stackdriver-tools/src/stackdriver-nozzle/stackdriver"
+	"github.com/cloudfoundry-community/stackdriver-tools/src/stackdriver-nozzle/telemetry"
 	"github.com/cloudfoundry/lager"
 )
 
 var (
-	eventsSampledCount *expvar.Int
+	eventsSampledCount *telemetry.Counter
 )
 
 func init() {
-	eventsSampledCount = expvar.NewInt("nozzle.metrics.firehose_events.sampled")
+	eventsSampledCount = telemetry.NewCounter("metrics.firehose_events.sampled.count")
 }
 
 type autoCulledMetricsBuffer struct {
@@ -70,7 +70,7 @@ func (mb *autoCulledMetricsBuffer) PostMetricEvents(events []*messages.MetricEve
 		if !exists {
 			mb.metrics[hash] = event
 		} else {
-			eventsSampledCount.Add(1)
+			eventsSampledCount.Increment()
 			if event.Metrics[0].EventTime.After(old.Metrics[0].EventTime) {
 				// Firehose messages are not guaranteed to be received in
 				// timestamp order, so only overwrite the sampled metric

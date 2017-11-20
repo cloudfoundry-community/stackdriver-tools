@@ -74,7 +74,7 @@ var _ = Describe("autoCulledMetricsBuffer", func() {
 		postedEvent := metricAdapter.GetPostedMetricEvents()[0]
 		Expect(postedEvent.Metrics).To(HaveLen(2))
 		Expect(postedEvent).To(BeEquivalentTo(expected[0]))
-		Expect(telemetrytest.Value("nozzle.metrics.firehose_events.sampled")).To(Equal(1))
+		Expect(telemetrytest.Counter("metrics.firehose_events.sampled.count")).To(Equal(1))
 	})
 
 	It("culls multiple duplicates, keeping the latest", func() {
@@ -123,7 +123,7 @@ var _ = Describe("autoCulledMetricsBuffer", func() {
 		sort.Sort(actual)
 
 		Expect(actual).To(BeEquivalentTo(expected))
-		Expect(telemetrytest.Value("nozzle.metrics.firehose_events.sampled")).To(Equal(2))
+		Expect(telemetrytest.Counter("metrics.firehose_events.sampled.count")).To(Equal(2))
 	})
 
 	It("it buffers metrics for the expected duration before flushing", func() {

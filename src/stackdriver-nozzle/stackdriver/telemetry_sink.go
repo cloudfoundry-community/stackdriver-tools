@@ -31,8 +31,6 @@ import (
 	monitoringpb "google.golang.org/genproto/googleapis/monitoring/v3"
 )
 
-const mapName = "kind"
-
 type telemetrySink struct {
 	projectPath string
 	labels      map[string]string
@@ -111,8 +109,8 @@ func (ts *telemetrySink) Init(registeredSeries []*expvar.KeyValue) {
 			labels = append(labels, &labelpb.LabelDescriptor{Key: name, ValueType: labelpb.LabelDescriptor_STRING})
 		}
 
-		if _, ok := series.Value.(*expvar.Map); ok {
-			labels = append(labels, &labelpb.LabelDescriptor{Key: mapName, ValueType: labelpb.LabelDescriptor_STRING})
+		if mapVal, ok := series.Value.(*telemetry.CounterMap); ok {
+			labels = append(labels, &labelpb.LabelDescriptor{Key: mapVal.Category(), ValueType: labelpb.LabelDescriptor_STRING})
 		}
 
 		req := &monitoringpb.CreateMetricDescriptorRequest{
@@ -179,14 +177,14 @@ func (ts *telemetrySink) Report(report []*expvar.KeyValue) {
 
 func (ts *telemetrySink) timeSeries(metricType string, interval *monitoringpb.TimeInterval, val *expvar.KeyValue) []*monitoringpb.TimeSeries {
 	switch data := val.Value.(type) {
-	case *expvar.Int:
+	case *telemetry.Counter:
 		return []*monitoringpb.TimeSeries{ts.timeSeriesInt(metricType, interval, ts.labels, data.Value())}
-	case *expvar.Map:
+	case *telemetry.CounterMap:
 		series := []*monitoringpb.TimeSeries{}
 		data.Do(func(value expvar.KeyValue) {
-			if intVal, ok := value.Value.(*expvar.Int); ok {
+			if intVal, ok := value.Value.(*telemetry.Counter); ok {
 				labels := duplicate(ts.labels)
-				labels[mapName] = value.Key
+				labels[data.Category()] = value.Key
 				series = append(series, ts.timeSeriesInt(metricType, interval, labels, intVal.Value()))
 			}
 		})

@@ -36,8 +36,8 @@ var _ = Describe("TelemetrySink", func() {
 	})
 
 	Context("Init with existing MetricDescriptors", func() {
-		oldData := &expvar.KeyValue{Key: "old", Value: &expvar.Int{}}
-		newData := &expvar.KeyValue{Key: "new", Value: &expvar.Int{}}
+		oldData := &expvar.KeyValue{Key: "old", Value: &telemetry.Counter{}}
+		newData := &expvar.KeyValue{Key: "new", Value: &telemetry.Counter{}}
 
 		BeforeEach(func() {
 			client.ListMetricDescriptorFn = func(request *monitoringpb.ListMetricDescriptorsRequest) ([]*metricpb.MetricDescriptor, error) {
@@ -74,7 +74,7 @@ var _ = Describe("TelemetrySink", func() {
 	})
 
 	Context("Report", func() {
-		value := &expvar.Int{}
+		value := &telemetry.Counter{}
 		keyValue := &expvar.KeyValue{Key: "foo", Value: value}
 		BeforeEach(func() {
 			value.Set(1234)
@@ -109,7 +109,7 @@ var _ = Describe("TelemetrySink", func() {
 		values := []*expvar.KeyValue{}
 		BeforeEach(func() {
 			for i := 0; i < 300; i++ {
-				value := &expvar.Int{}
+				value := &telemetry.Counter{}
 				value.Set(int64(i))
 				values = append(values, &expvar.KeyValue{Key: fmt.Sprintf("foo%d", i), Value: value})
 			}
@@ -125,11 +125,11 @@ var _ = Describe("TelemetrySink", func() {
 	})
 
 	Context("with a Map", func() {
-		value := &expvar.Map{}
+		value := &telemetry.CounterMap{}
 		mapVar := &expvar.KeyValue{Key: "earth", Value: value}
 		BeforeEach(func() {
-			oceanValue := &expvar.Int{}
-			continentValue := &expvar.Int{}
+			oceanValue := &telemetry.Counter{}
+			continentValue := &telemetry.Counter{}
 			oceanValue.Set(5)
 			continentValue.Set(7)
 			value.Set("oceans", oceanValue)
@@ -142,7 +142,7 @@ var _ = Describe("TelemetrySink", func() {
 			req := client.DescriptorReqs[0]
 			labels := req.MetricDescriptor.Labels
 			Expect(labels).To(HaveLen(3))
-			Expect(labels).To(ContainElement(&labelpb.LabelDescriptor{Key: "kind", ValueType: labelpb.LabelDescriptor_STRING}))
+			Expect(labels).To(ContainElement(&labelpb.LabelDescriptor{Key: value.Category(), ValueType: labelpb.LabelDescriptor_STRING}))
 		})
 
 		It("Report posts TimeSeries with label", func() {
@@ -153,7 +153,7 @@ var _ = Describe("TelemetrySink", func() {
 			Expect(req.TimeSeries).To(HaveLen(2))
 			kinds := map[string]*monitoringpb.TimeSeries{}
 			for _, series := range req.TimeSeries {
-				kinds[series.Metric.Labels["kind"]] = series
+				kinds[series.Metric.Labels[value.Category()]] = series
 			}
 			Expect(kinds).To(HaveKey("oceans"))
 			Expect(kinds).To(HaveKey("continents"))
