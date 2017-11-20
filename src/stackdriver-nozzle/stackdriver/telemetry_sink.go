@@ -112,7 +112,7 @@ func (ts *telemetrySink) Init(registeredSeries []*expvar.KeyValue) {
 		}
 
 		if _, ok := series.Value.(*expvar.Map); ok {
-			labels = append(labels, &labelpb.LabelDescriptor{Key: mapName, ValueType: labelpb.LabelDescriptor_INT64})
+			labels = append(labels, &labelpb.LabelDescriptor{Key: mapName, ValueType: labelpb.LabelDescriptor_STRING})
 		}
 
 		req := &monitoringpb.CreateMetricDescriptorRequest{
@@ -159,8 +159,8 @@ func (ts *telemetrySink) Report(report []*expvar.KeyValue) {
 	req := ts.newRequest()
 
 	interval := &monitoringpb.TimeInterval{
-		EndTime:   now(),
 		StartTime: ts.startTime,
+		EndTime:   now(),
 	}
 
 	for _, data := range report {

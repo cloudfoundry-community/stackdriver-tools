@@ -142,7 +142,7 @@ var _ = Describe("TelemetrySink", func() {
 			req := client.DescriptorReqs[0]
 			labels := req.MetricDescriptor.Labels
 			Expect(labels).To(HaveLen(3))
-			Expect(labels).To(ContainElement(&labelpb.LabelDescriptor{Key: "kind", ValueType: labelpb.LabelDescriptor_INT64}))
+			Expect(labels).To(ContainElement(&labelpb.LabelDescriptor{Key: "kind", ValueType: labelpb.LabelDescriptor_STRING}))
 		})
 
 		It("Report posts TimeSeries with label", func() {
