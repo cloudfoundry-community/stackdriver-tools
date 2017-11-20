@@ -19,6 +19,8 @@ package telemetry
 import (
 	"expvar"
 
+	"fmt"
+
 	"github.com/cloudfoundry/lager"
 )
 
@@ -41,11 +43,21 @@ func (ls *logSink) Report(values []*expvar.KeyValue) {
 	report := map[string]int64{}
 	reportDelta := map[string]int64{}
 
+	record := func(name string, val *Counter) {
+		report[name] = val.Value()
+		reportDelta[name] = report[name] - ls.lastReport[name]
+	}
+
 	for _, val := range values {
-		if intVal, ok := val.Value.(*Counter); ok {
-			key := val.Key
-			report[key] = intVal.Value()
-			reportDelta[key] = report[key] - ls.lastReport[key]
+		switch data := val.Value.(type) {
+		case *Counter:
+			record(val.Key, data)
+		case *CounterMap:
+			data.Do(func(mapVal expvar.KeyValue) {
+				if counterVal, ok := mapVal.Value.(*Counter); ok {
+					record(fmt.Sprintf("%s.%s", val.Key, mapVal.Key), counterVal)
+				}
+			})
 		}
 	}
 
