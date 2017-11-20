@@ -46,9 +46,9 @@ var (
 	firehoseErrClosePolicyViolation *expvar.Int
 	firehoseErrCloseUnknown         *expvar.Int
 
-	nozzleEventsTotal    *expvar.Int
-	nozzleEventsDropped  *expvar.Int
-	nozzleEventsReceived *expvar.Int
+	firehoseEventsTotal    *expvar.Int
+	firehoseEventsDropped  *expvar.Int
+	firehoseEventsReceived *expvar.Int
 )
 
 func init() {
@@ -66,9 +66,9 @@ func init() {
 	firehoseErrs.Set("close_policy_violation", firehoseErrClosePolicyViolation)
 	firehoseErrs.Set("close_unknown", firehoseErrCloseUnknown)
 
-	nozzleEventsTotal = expvar.NewInt("nozzle.events.total")
-	nozzleEventsDropped = expvar.NewInt("nozzle.events.dropped")
-	nozzleEventsReceived = expvar.NewInt("nozzle.events.received")
+	firehoseEventsTotal = expvar.NewInt("nozzle.firehose_events.total")
+	firehoseEventsDropped = expvar.NewInt("nozzle.firehose_events.dropped")
+	firehoseEventsReceived = expvar.NewInt("nozzle.firehose_events.received")
 }
 
 type nozzle struct {
@@ -113,8 +113,8 @@ func (n *nozzle) Start(firehose cloudfoundry.Firehose) {
 	}()
 
 	buffer := diodes.NewPoller(diodes.NewOneToOne(bufferSize, diodes.AlertFunc(func(missed int) {
-		nozzleEventsDropped.Add(int64(missed))
-		nozzleEventsTotal.Add(int64(missed))
+		firehoseEventsDropped.Add(int64(missed))
+		firehoseEventsTotal.Add(int64(missed))
 	})))
 
 	// Drain messages from the firehose and place them into the ring buffer
@@ -155,8 +155,8 @@ func (n *nozzle) Stop() error {
 }
 
 func (n *nozzle) handleEvent(envelope *events.Envelope) {
-	nozzleEventsReceived.Add(1)
-	nozzleEventsTotal.Add(1)
+	firehoseEventsReceived.Add(1)
+	firehoseEventsTotal.Add(1)
 	if isMetric(envelope) {
 		n.metricSink.Receive(envelope)
 	} else {

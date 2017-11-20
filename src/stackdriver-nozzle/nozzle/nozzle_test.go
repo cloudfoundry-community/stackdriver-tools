@@ -59,9 +59,9 @@ var _ = Describe("Nozzle", func() {
 
 		count := len(events.Envelope_EventType_value)
 		Eventually(func() int {
-			return telemetrytest.Value("nozzle.events.received")
+			return telemetrytest.Value("nozzle.firehose_events.received")
 		}).Should(Equal(count))
-		Expect(telemetrytest.Value("nozzle.events.total")).To(Equal(count))
+		Expect(telemetrytest.Value("nozzle.firehose_events.total")).To(Equal(count))
 	})
 
 	It("does not receive errors", func() {
