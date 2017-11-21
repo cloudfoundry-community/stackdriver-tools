@@ -39,7 +39,7 @@ go get github.com/cloudfoundry-community/stackdriver-tools/src/stackdriver-nozzl
 
 #### Nozzle
 
-- `BOSH_DIRECTOR_NAME` - sets the value of the "director" label added to every
+- `FOUNDATION_NAME` - sets the value of the "foundation" label added to every
   metric / log exported to Stackdriver; defaults to "cf". This is useful for
   differentiating between multiple cloud foundry / BOSH instances in the same
   GCP / Stackdriver project.

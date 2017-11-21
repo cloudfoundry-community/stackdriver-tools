@@ -66,7 +66,7 @@ type Config struct {
 	MetricsBufferDuration int    `envconfig:"metrics_buffer_duration" default:"30"`
 	MetricsBatchSize      int    `envconfig:"metrics_batch_size" default:"200"`
 	MetricPathPrefix      string `envconfig:"metric_path_prefix" default:"firehose"`
-	BoshDirectorName      string `envconfig:"bosh_director_name" default:"cf"`
+	FoundationName        string `envconfig:"foundation_name" default:"cf"`
 	ResolveAppMetadata    bool   `envconfig:"resolve_app_metadata"`
 	NozzleId              string `envconfig:"nozzle_id" default:"local-nozzle"`
 	NozzleName            string `envconfig:"nozzle_name" default:"local-nozzle"`
