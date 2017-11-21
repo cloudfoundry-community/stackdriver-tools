@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"time"
 
-	"cloud.google.com/go/logging/logadmin/logging"
+	"cloud.google.com/go/logging"
 	"cloud.google.com/go/logging/logadmin/logging/logadmin"
 	"google.golang.org/api/iterator"
 )
@@ -19,6 +19,7 @@ func (lp *LoggingProbe) Find(needle string, count int) (int, error) {
 	timeBytes, _ := timeFrom.MarshalText()
 
 	it := lp.client.Entries(context.Background(), logadmin.Filter(fmt.Sprintf("jsonPayload.eventType=\"LogMessage\" timestamp>=\"%s\"", timeBytes)))
+
 	var entries []*logging.Entry
 
 	for {
@@ -39,8 +40,7 @@ func (lp *LoggingProbe) Find(needle string, count int) (int, error) {
 func NewLoggingProbe(projectId string) (*LoggingProbe, error) {
 	client, err := logadmin.NewClient(context.Background(), projectId)
 	if err != nil {
-		fmt.Errorf("creating client: %v", err)
+		return nil, fmt.Errorf("creating client: %v", err)
 	}
-
 	return &LoggingProbe{client}, nil
 }
