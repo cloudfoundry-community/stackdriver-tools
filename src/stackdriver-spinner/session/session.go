@@ -1,10 +1,10 @@
 package session
 
 import (
-	"context"
 	"crypto/rand"
 	"fmt"
 	"io"
+	"time"
 )
 
 type Emitter interface {
@@ -28,20 +28,20 @@ func NewSession(emitter Emitter, probe Probe) Session {
 	return Session{emitter, probe}
 }
 
-func (s Session) Run(ctx context.Context) Result {
-	const count = 10
+func (s Session) Run(count int, waitTime time.Duration) (Result, error) {
 	needle := getNeedle()
-
-	s.emitter.Emit(needle, count)
-
-	doneChan := ctx.Done()
-	if doneChan == nil {
-		panic("context can not be cancelled")
+	err := s.emitter.Emit(needle, count)
+	if err != nil {
+		return Result{}, err
 	}
-	<-ctx.Done()
 
-	found, _ := s.probe.Find(needle, count)
-	return Result{float64(count-found) / count}
+	time.Sleep(waitTime)
+
+	found, err := s.probe.Find(needle, count)
+	if err != nil {
+		return Result{}, err
+	}
+	return Result{float64(count-found) / float64(count)}, nil
 }
 
 func getNeedle() string {

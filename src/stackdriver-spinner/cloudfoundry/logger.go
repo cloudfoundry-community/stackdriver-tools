@@ -5,18 +5,20 @@ import (
 	"io"
 )
 
-type StdoutWriter struct {
+type Logger struct {
 	writer io.Writer
 }
 
-func (w *StdoutWriter) Emit(needle string, count int) error {
+func (w *Logger) Emit(message string, count int) error {
 	for i := 0; i < count; i++ {
-		fmt.Fprintf(w.writer, needle)
+		_, err := fmt.Fprintf(w.writer, message)
+		if err != nil {
+			return err
+		}
 	}
-
 	return nil
 }
 
-func NewLogWriter(writer io.Writer) *StdoutWriter {
-	return &StdoutWriter{writer}
+func NewEmitter(writer io.Writer) *Logger {
+	return &Logger{writer}
 }

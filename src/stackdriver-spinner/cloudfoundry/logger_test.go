@@ -9,9 +9,9 @@ import (
 
 var _ = Describe("Logger", func() {
 	It("logs to stdout once", func() {
-		mockWriter := fakes.MockWriter{}
+		mockWriter := fakes.Writer{}
 
-		writer := cloudfoundry.NewLogWriter(&mockWriter)
+		writer := cloudfoundry.NewEmitter(&mockWriter)
 		writer.Emit("something", 1)
 
 		Expect(mockWriter.Writes).To(HaveLen(1))
@@ -19,9 +19,9 @@ var _ = Describe("Logger", func() {
 	})
 
 	It("logs to stdout x specified times", func() {
-		mockWriter := fakes.MockWriter{}
+		mockWriter := fakes.Writer{}
 
-		writer := cloudfoundry.NewLogWriter(&mockWriter)
+		writer := cloudfoundry.NewEmitter(&mockWriter)
 		writer.Emit("something", 10)
 
 		Expect(mockWriter.Writes).To(HaveLen(10))
