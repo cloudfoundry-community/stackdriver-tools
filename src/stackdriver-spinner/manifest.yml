@@ -1,0 +1,11 @@
+---
+applications:
+- name: spinner
+  buildpack: go_buildpack
+  memory: 64M
+  env:
+    GOPACKAGENAME: github.com/cloudfoundry-community/stackdriver-tools/src/stackdriver-spinner
+    GOVERSION: go1.8
+    GOOGLE_APPLICATION_CREDENTIALS: ./credentials.json
+    SPINNER_COUNT: 1000
+    SPINNER_WAIT: 300

@@ -3,11 +3,14 @@ package main
 import (
 	"os"
 
-	"time"
-
 	"log"
 
-	"flag"
+	"time"
+
+	"strconv"
+
+	"fmt"
+	"net/http"
 
 	"github.com/cloudfoundry-community/stackdriver-tools/src/stackdriver-spinner/cloudfoundry"
 	"github.com/cloudfoundry-community/stackdriver-tools/src/stackdriver-spinner/session"
@@ -16,9 +19,31 @@ import (
 
 func main() {
 
-	var count = flag.Int("count", 10, "Number of logs to emit for each generation")
-	var waitTime = flag.Duration("waitTime", time.Second, "Interval between log probes")
-	flag.Parse()
+	count, err := strconv.Atoi(os.Getenv("SPINNER_COUNT"))
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	wait, err := strconv.Atoi(os.Getenv("SPINNER_WAIT"))
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	go startSpinner(count, wait)
+
+	http.HandleFunc("/", func(res http.ResponseWriter, req *http.Request) {
+		fmt.Fprintf(res, "Hello")
+	})
+	fmt.Println("listening...")
+
+	err = http.ListenAndServe(":"+os.Getenv("PORT"), nil)
+	if err != nil {
+		log.Fatal(err)
+	}
+}
+
+func startSpinner(count, wait int) {
+	waitTime := time.Duration(wait) * time.Second
 
 	emitter := cloudfoundry.NewEmitter(os.Stdout)
 	probe, err := stackdriver.NewLoggingProbe("cf-cloudops-sandbox")
@@ -27,7 +52,7 @@ func main() {
 	}
 	s := session.NewSession(emitter, probe)
 	for {
-		_, err = s.Run(*count, *waitTime)
+		_, err = s.Run(count, waitTime)
 		if err != nil {
 			log.Println(err)
 		}

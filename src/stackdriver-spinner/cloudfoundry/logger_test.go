@@ -15,7 +15,7 @@ var _ = Describe("Logger", func() {
 		writer.Emit("something", 1)
 
 		Expect(mockWriter.Writes).To(HaveLen(1))
-		Expect(mockWriter.Writes[0]).To(Equal("something\n"))
+		Expect(mockWriter.Writes[0]).To(ContainSubstring("something"))
 	})
 
 	It("logs to stdout x specified times", func() {
