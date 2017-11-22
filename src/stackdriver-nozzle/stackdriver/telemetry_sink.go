@@ -191,7 +191,6 @@ func (ts *telemetrySink) timeSeries(metricType string, interval *monitoringpb.Ti
 		return series
 	default:
 		ts.logger.Error("telemetrySink.timeSeries", fmt.Errorf("unknown value type: %T", val), lager.Data{"value": val})
-		return nil
 	}
 
 	return nil

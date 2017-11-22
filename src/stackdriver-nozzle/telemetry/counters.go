@@ -74,7 +74,7 @@ func Do(f func(expvar.KeyValue)) {
 
 	for _, k := range counters {
 		val := Get(k)
-		f(expvar.KeyValue{k, val.(expvar.Var)})
+		f(expvar.KeyValue{Key: k, Value: val.(expvar.Var)})
 	}
 }
 
