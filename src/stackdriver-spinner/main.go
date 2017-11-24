@@ -29,10 +29,15 @@ func main() {
 		log.Fatal(err)
 	}
 
-	go startSpinner(count, wait)
+	gcpProj := os.Getenv("GCP_PROJECT")
+	if len(gcpProj) == 0 {
+		log.Fatal("A GCP project must be specified.")
+	}
+
+	go startSpinner(gcpProj, count, wait)
 
 	http.HandleFunc("/", func(res http.ResponseWriter, req *http.Request) {
-		fmt.Fprintf(res, "Hello")
+		fmt.Fprintf(res, "Johny 5 alive!")
 	})
 	fmt.Println("listening...")
 
@@ -42,20 +47,22 @@ func main() {
 	}
 }
 
-func startSpinner(count, wait int) {
+func startSpinner(proj string, count, wait int) {
 	waitTime := time.Duration(wait) * time.Second
 
 	emitter := cloudfoundry.NewEmitter(os.Stdout)
-	probe, err := stackdriver.NewLoggingProbe("cf-cloudops-sandbox")
+	probe, err := stackdriver.NewLoggingProbe(proj)
 	if err != nil {
 		log.Fatal(err)
 	}
 	s := session.NewSession(emitter, probe)
 	for {
-		_, err = s.Run(count, waitTime)
+		result, err := s.Run(count, waitTime)
 		if err != nil {
 			log.Println(err)
+			continue
 		}
 
+		fmt.Fprintf(os.Stdout, "GUID: %s - Found: %d - Loss: %.2f \n", result.GUID, result.Found, result.Loss)
 	}
 }

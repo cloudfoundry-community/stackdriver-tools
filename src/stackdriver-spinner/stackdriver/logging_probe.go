@@ -14,11 +14,10 @@ type LoggingProbe struct {
 	client *logadmin.Client
 }
 
-func (lp *LoggingProbe) Find(needle string, count int) (int, error) {
-	timeFrom := time.Now().Add(-time.Duration(5) * time.Minute)
-	timeBytes, _ := timeFrom.MarshalText()
+func (lp *LoggingProbe) Find(start time.Time, needle string, count int) (int, error) {
+	timeBytes, _ := start.MarshalText()
 
-	it := lp.client.Entries(context.Background(), logadmin.Filter(fmt.Sprintf("jsonPayload.eventType=\"LogMessage\" timestamp>=\"%s\"", timeBytes)))
+	it := lp.client.Entries(context.Background(), logadmin.Filter(fmt.Sprintf("jsonPayload.eventType=\"LogMessage\" timestamp>=\"%s\" jsonPayload.message:\"%s\"", timeBytes, needle)))
 
 	var entries []*logging.Entry
 
@@ -29,6 +28,7 @@ func (lp *LoggingProbe) Find(needle string, count int) (int, error) {
 		if err != nil {
 			return 0, fmt.Errorf("problem getting the next page: %v", err)
 		}
+
 		if pageToken == "" {
 			break
 		}

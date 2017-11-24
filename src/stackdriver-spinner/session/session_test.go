@@ -53,7 +53,7 @@ var _ = Describe("Session", func() {
 			writer := fakes.Writer{}
 			emitter := cloudfoundry.NewEmitter(&writer)
 			probe := &fakes.ConfigurableProbe{
-				FindFunc: func(_ string, _ int) (int, error) {
+				FindFunc: func(_ time.Time, _ string, _ int) (int, error) {
 					return 5, nil
 
 				}}
@@ -69,7 +69,7 @@ var _ = Describe("Session", func() {
 			emitter := cloudfoundry.NewEmitter(&writer)
 			err := errors.New("error while trying to find ")
 			probe := &fakes.ConfigurableProbe{
-				FindFunc: func(_ string, _ int) (int, error) {
+				FindFunc: func(_ time.Time, _ string, _ int) (int, error) {
 					return 5, err
 				}}
 			s := session.NewSession(emitter, probe)

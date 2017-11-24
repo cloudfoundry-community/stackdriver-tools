@@ -12,7 +12,7 @@ type Emitter interface {
 }
 
 type Probe interface {
-	Find(needle string, count int) (int, error)
+	Find(start time.Time, needle string, count int) (int, error)
 }
 
 type Session struct {
@@ -21,7 +21,9 @@ type Session struct {
 }
 
 type Result struct {
-	Loss float64
+	GUID  string
+	Found int
+	Loss  float64
 }
 
 func NewSession(emitter Emitter, probe Probe) Session {
@@ -35,13 +37,14 @@ func (s Session) Run(count int, waitTime time.Duration) (Result, error) {
 		return Result{}, err
 	}
 
+	queryTime := time.Now().Add(-waitTime - 10)
 	time.Sleep(waitTime)
 
-	found, err := s.probe.Find(needle, count)
+	found, err := s.probe.Find(queryTime, needle, count)
 	if err != nil {
 		return Result{}, err
 	}
-	return Result{float64(count-found) / float64(count)}, nil
+	return Result{needle, found, float64(count-found) / float64(count)}, nil
 }
 
 func getNeedle() string {
