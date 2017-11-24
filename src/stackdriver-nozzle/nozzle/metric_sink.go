@@ -19,6 +19,7 @@ package nozzle
 import (
 	"bytes"
 	"fmt"
+	"regexp"
 	"time"
 
 	"github.com/cloudfoundry-community/stackdriver-tools/src/stackdriver-nozzle/messages"
@@ -28,22 +29,37 @@ import (
 )
 
 // NewLogSink returns a Sink that can receive sonde Events, translate them and send them to a stackdriver.MetricAdapter
-func NewMetricSink(logger lager.Logger, pathPrefix string, labelMaker LabelMaker, metricAdapter stackdriver.MetricAdapter, unitParser UnitParser) Sink {
-	return &metricSink{
-		pathPrefix:    pathPrefix,
-		labelMaker:    labelMaker,
-		metricAdapter: metricAdapter,
-		unitParser:    unitParser,
-		logger:        logger,
+func NewMetricSink(logger lager.Logger, pathPrefix string, labelMaker LabelMaker, metricAdapter stackdriver.MetricAdapter, unitParser UnitParser, runtimeMetricRegex string) (Sink, error) {
+	r, err := regexp.Compile(runtimeMetricRegex)
+	if err != nil {
+		return nil, fmt.Errorf("cannot compile runtime metric regex: %v", err)
 	}
+	return &metricSink{
+		pathPrefix:      pathPrefix,
+		labelMaker:      labelMaker,
+		metricAdapter:   metricAdapter,
+		unitParser:      unitParser,
+		logger:          logger,
+		runtimeMetricRe: r,
+	}, nil
 }
 
 type metricSink struct {
-	pathPrefix    string
-	labelMaker    LabelMaker
-	metricAdapter stackdriver.MetricAdapter
-	unitParser    UnitParser
-	logger        lager.Logger
+	pathPrefix      string
+	labelMaker      LabelMaker
+	metricAdapter   stackdriver.MetricAdapter
+	unitParser      UnitParser
+	logger          lager.Logger
+	runtimeMetricRe *regexp.Regexp
+}
+
+// isRuntimeMetric determines whether a given metric is a runtime metric.
+// "Runtime metrics" are the ones that are exported by multiple processes (with different values of the 'origin' label).
+// By default 'origin' label value gets prepended to metric name, however for runtime metrics we instead add it as a metric label.
+// As the result, instead of creating a separate copy of each runtime metric per origin, we have a single metric with origin available as a label.
+// This allows aggregating values of these metrics across origins, and also helps us stay below the Stackdriver limit for the number of custom metrics.
+func (ms *metricSink) isRuntimeMetric(envelope *events.Envelope) bool {
+	return envelope.GetEventType() == events.Envelope_ValueMetric && ms.runtimeMetricRe.MatchString(envelope.GetValueMetric().GetName())
 }
 
 func (ms *metricSink) getPrefix(envelope *events.Envelope) string {
@@ -52,7 +68,8 @@ func (ms *metricSink) getPrefix(envelope *events.Envelope) string {
 		buf.WriteString(ms.pathPrefix)
 		buf.WriteString("/")
 	}
-	if envelope.GetOrigin() != "" {
+	// Non-runtime metrics get origin prepended to metric name.
+	if !ms.isRuntimeMetric(envelope) && envelope.GetOrigin() != "" {
 		buf.WriteString(envelope.GetOrigin())
 		buf.WriteString(".")
 	}
@@ -60,7 +77,7 @@ func (ms *metricSink) getPrefix(envelope *events.Envelope) string {
 }
 
 func (ms *metricSink) Receive(envelope *events.Envelope) {
-	labels := ms.labelMaker.MetricLabels(envelope)
+	labels := ms.labelMaker.MetricLabels(envelope, ms.isRuntimeMetric(envelope))
 	metricPrefix := ms.getPrefix(envelope)
 	eventType := envelope.GetEventType()
 

@@ -20,6 +20,7 @@ import (
 	"errors"
 	"time"
 
+	"github.com/cloudfoundry-community/stackdriver-tools/src/stackdriver-nozzle/cloudfoundry"
 	"github.com/cloudfoundry-community/stackdriver-tools/src/stackdriver-nozzle/messages"
 	"github.com/cloudfoundry-community/stackdriver-tools/src/stackdriver-nozzle/mocks"
 	"github.com/cloudfoundry/lager"
@@ -43,18 +44,19 @@ var _ = Describe("MetricSink", func() {
 		subject      Sink
 		metricBuffer *mocks.MetricsBuffer
 		unitParser   *mockUnitParser
-		labels       map[string]string
 		logger       *mocks.MockLogger
+		err          error
 	)
 
 	BeforeEach(func() {
-		labels = map[string]string{"foo": "bar"}
-		labelMaker := &mocks.LabelMaker{Labels: labels}
+		appInfoRepository := &mocks.AppInfoRepository{AppInfoMap: map[string]cloudfoundry.AppInfo{}}
+		labelMaker := NewLabelMaker(appInfoRepository, "foobar")
 		metricBuffer = &mocks.MetricsBuffer{}
 		unitParser = &mockUnitParser{}
 		logger = &mocks.MockLogger{}
 
-		subject = NewMetricSink(logger, "firehose", labelMaker, metricBuffer, unitParser)
+		subject, err = NewMetricSink(logger, "firehose", labelMaker, metricBuffer, unitParser, "^runtimeMetric\\..*")
+		Expect(err).To(BeNil())
 	})
 
 	It("creates metric for ValueMetric", func() {
@@ -85,7 +87,7 @@ var _ = Describe("MetricSink", func() {
 		Expect(metrics).To(HaveLen(1))
 		Expect(metrics[0]).To(MatchAllFields(Fields{
 			"Name":      Equal("firehose/origin.valueMetricName"),
-			"Labels":    Equal(labels),
+			"Labels":    Equal(map[string]string{"foundation": "foobar"}),
 			"Value":     Equal(123.456),
 			"EventTime": Ignore(),
 			"Unit":      Equal("{foo}"),
@@ -94,6 +96,41 @@ var _ = Describe("MetricSink", func() {
 		Expect(metrics[0].EventTime.UnixNano()).To(Equal(timeStamp))
 
 		Expect(unitParser.lastInput).To(Equal("barUnit"))
+	})
+
+	It("handles runtime ValueMetric", func() {
+		eventTime := time.Now()
+
+		origin := "myOrigin"
+		name := "runtimeMetric.foobar"
+		value := 123.456
+		event := events.ValueMetric{
+			Name:  &name,
+			Value: &value,
+		}
+
+		eventType := events.Envelope_ValueMetric
+		timeStamp := eventTime.UnixNano()
+		envelope := &events.Envelope{
+			Origin:      &origin,
+			EventType:   &eventType,
+			ValueMetric: &event,
+			Timestamp:   &timeStamp,
+		}
+
+		subject.Receive(envelope)
+
+		metrics := metricBuffer.PostedMetrics
+		Expect(metrics).To(HaveLen(1))
+		Expect(metrics[0]).To(MatchAllFields(Fields{
+			"Name":      Equal("firehose/runtimeMetric.foobar"),
+			"Labels":    Equal(map[string]string{"foundation": "foobar", "origin": "myOrigin"}),
+			"Value":     Equal(123.456),
+			"EventTime": Ignore(),
+			"Unit":      Ignore(),
+			"Type":      Ignore(),
+		}))
+		Expect(metrics[0].EventTime.UnixNano()).To(Equal(timeStamp))
 	})
 
 	It("creates the proper metrics for ContainerMetric", func() {
@@ -136,6 +173,7 @@ var _ = Describe("MetricSink", func() {
 			return element.(messages.Metric).Name
 		}
 
+		labels := map[string]string{"foundation": "foobar", "instanceIndex": "0"}
 		Expect(metrics).To(MatchAllElements(eventName, Elements{
 			"firehose/origin.diskBytesQuota":   MatchAllFields(Fields{"Name": Ignore(), "Labels": Equal(labels), "Type": Equal(metricType), "Value": Equal(float64(1073741824)), "EventTime": Ignore(), "Unit": Equal("")}),
 			"firehose/origin.cpuPercentage":    MatchAllFields(Fields{"Name": Ignore(), "Labels": Equal(labels), "Type": Equal(metricType), "Value": Equal(float64(0.061651273460637)), "EventTime": Ignore(), "Unit": Equal("")}),
@@ -177,7 +215,7 @@ var _ = Describe("MetricSink", func() {
 		Expect(metrics).To(MatchAllElements(eventName, Elements{
 			"firehose/origin.counterName.delta": MatchAllFields(Fields{
 				"Name":      Ignore(),
-				"Labels":    Equal(labels),
+				"Labels":    Equal(map[string]string{"foundation": "foobar"}),
 				"Value":     Equal(float64(654321)),
 				"EventTime": Ignore(),
 				"Unit":      Equal(""),
@@ -185,7 +223,7 @@ var _ = Describe("MetricSink", func() {
 			}),
 			"firehose/origin.counterName.total": MatchAllFields(Fields{
 				"Name":      Ignore(),
-				"Labels":    Equal(labels),
+				"Labels":    Equal(map[string]string{"foundation": "foobar"}),
 				"Value":     Equal(float64(123456)),
 				"EventTime": Ignore(),
 				"Unit":      Equal(""),

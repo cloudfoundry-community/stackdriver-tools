@@ -28,7 +28,7 @@ import (
 )
 
 type LabelMaker interface {
-	MetricLabels(*events.Envelope) map[string]string
+	MetricLabels(*events.Envelope, bool) map[string]string
 	LogLabels(*events.Envelope) map[string]string
 }
 
@@ -78,7 +78,7 @@ func (pm *pathMaker) String() string {
 // metadata into a "path" representing the serving application, space, and org.
 // We maintain vm and application instance indexes as separate labels so that
 // it is easy to aggregate across multiple instances.
-func (lm *labelMaker) MetricLabels(envelope *events.Envelope) map[string]string {
+func (lm *labelMaker) MetricLabels(envelope *events.Envelope, addOrigin bool) map[string]string {
 	labels := labelMap{}
 
 	labels.setIfNotEmpty("foundation", lm.foundationName)
@@ -87,6 +87,9 @@ func (lm *labelMaker) MetricLabels(envelope *events.Envelope) map[string]string 
 	labels.setIfNotEmpty("applicationPath", lm.getApplicationPath(envelope))
 	labels.setIfNotEmpty("instanceIndex", getInstanceIndex(envelope))
 	labels.setIfNotEmpty("tags", getTags(envelope))
+	if addOrigin {
+		labels.setIfNotEmpty("origin", envelope.GetOrigin())
+	}
 
 	return labels
 }
@@ -99,8 +102,7 @@ func (lm *labelMaker) MetricLabels(envelope *events.Envelope) map[string]string 
 // The limit of 10 custom labels does not (appear to) apply to SD logging,
 // so there's no risk to adding extra labels here.
 func (lm *labelMaker) LogLabels(envelope *events.Envelope) map[string]string {
-	labels := labelMap(lm.MetricLabels(envelope))
-	labels.setIfNotEmpty("origin", envelope.GetOrigin())
+	labels := labelMap(lm.MetricLabels(envelope, true))
 	labels.setIfNotEmpty("eventType", envelope.GetEventType().String())
 	return labels
 }
