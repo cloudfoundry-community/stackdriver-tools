@@ -33,7 +33,7 @@ var (
 )
 
 func init() {
-	eventsSampledCount = telemetry.NewCounter("metrics.firehose_events.sampled.count")
+	eventsSampledCount = telemetry.NewCounter(telemetry.Nozzle, "metrics.firehose_events.sampled.count")
 }
 
 type autoCulledMetricsBuffer struct {

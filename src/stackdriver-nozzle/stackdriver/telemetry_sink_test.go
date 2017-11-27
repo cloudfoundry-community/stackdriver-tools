@@ -1,10 +1,9 @@
-package stackdriver_test
+package stackdriver
 
 import (
 	"expvar"
 
 	"github.com/cloudfoundry-community/stackdriver-tools/src/stackdriver-nozzle/mocks"
-	"github.com/cloudfoundry-community/stackdriver-tools/src/stackdriver-nozzle/stackdriver"
 	"github.com/cloudfoundry-community/stackdriver-tools/src/stackdriver-nozzle/telemetry"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -32,7 +31,7 @@ var _ = Describe("TelemetrySink", func() {
 	BeforeEach(func() {
 		logger = &mocks.MockLogger{}
 		client = &mocks.MockClient{}
-		sink = stackdriver.NewTelemetrySink(logger, client, projectID, subscriptionID, director)
+		sink = NewTelemetrySink(logger, client, projectID, subscriptionID, director)
 	})
 
 	Context("Init with existing MetricDescriptors", func() {
@@ -56,7 +55,7 @@ var _ = Describe("TelemetrySink", func() {
 			Expect(req.Name).To(Equal(projectPath))
 			descriptor := req.MetricDescriptor
 
-			displayName := "stackdriver-nozzle/" + newData.Key
+			displayName := telemetry.Nozzle.Qualify(newData.Key)
 			metricType := "custom.googleapis.com/" + displayName
 			name := projectPath + "/metricDescriptors/" + metricType
 

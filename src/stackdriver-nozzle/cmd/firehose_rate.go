@@ -20,15 +20,23 @@ import (
 	"os"
 	"time"
 
-	"github.com/cloudfoundry-community/stackdriver-tools/src/stackdriver-nozzle/cloudfoundry"
-
 	"github.com/cloudfoundry-community/go-cfclient"
+	"github.com/cloudfoundry-community/stackdriver-tools/src/stackdriver-nozzle/cloudfoundry"
 	"github.com/cloudfoundry-community/stackdriver-tools/src/stackdriver-nozzle/telemetry"
 	"github.com/cloudfoundry/lager"
+	"golang.org/x/net/context"
 )
 
+const cmdName = "firehose-rate-script"
+
+var counter *telemetry.Counter
+
+func init() {
+	counter := telemetry.NewCounter(telemetry.MetricPrefix(cmdName), "message_count")
+}
+
 func main() {
-	logger := lager.NewLogger("firehose-rate-script")
+	logger := lager.NewLogger(cmdName)
 	logger.RegisterSink(lager.NewWriterSink(os.Stdout, lager.DEBUG))
 
 	apiEndpoint := os.Getenv("FIREHOSE_ENDPOINT")
@@ -46,15 +54,16 @@ func main() {
 	if err != nil {
 		logger.Fatal("NewClient", err)
 	}
-	client := cloudfoundry.NewFirehose(cfConfig, cfClient, "firehose-rate-script")
+	client := cloudfoundry.NewFirehose(cfConfig, cfClient, cmdName)
+
+	logSink := telemetry.NewLogSink(logger)
+	reporter := telemetry.NewReporter(5*time.Second, logSink)
+	reporter.Start(context.Background())
 
 	messages, _ := client.Connect()
 
 	period := time.Duration(1 * time.Second)
-	counter := telemetry.NewCounter(logger, period, nil)
-	counter.Start()
-	defer counter.Stop()
 	for _ = range messages {
-		counter.Increment("count")
+		counter.Increment()
 	}
 }

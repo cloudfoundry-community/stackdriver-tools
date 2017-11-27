@@ -31,7 +31,7 @@ var (
 )
 
 func init() {
-	intCount = telemetry.NewCounter("int")
+	intCount = telemetry.NewCounter(telemetry.Nozzle, "int")
 }
 
 var _ = Describe("Reporter", func() {
@@ -72,7 +72,7 @@ var _ = Describe("Reporter", func() {
 			Expect(initCountKeyVal.Value.(*telemetry.Counter).Value()).To(Equal(int64(100)))
 		})
 	})
-	Context("with an exiting expvar metric", func() {
+	Context("with an existing expvar metric", func() {
 		var ignored *expvar.Int
 		BeforeEach(func() {
 			ignored = expvar.NewInt("ignored")

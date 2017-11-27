@@ -14,14 +14,13 @@
  * limitations under the License.
  */
 
-package nozzle_test
+package nozzle
 
 import (
 	"time"
 
 	"github.com/cloudfoundry-community/stackdriver-tools/src/stackdriver-nozzle/cloudfoundry"
 	"github.com/cloudfoundry-community/stackdriver-tools/src/stackdriver-nozzle/mocks"
-	"github.com/cloudfoundry-community/stackdriver-tools/src/stackdriver-nozzle/nozzle"
 
 	"github.com/cloudfoundry/sonde-go/events"
 	. "github.com/onsi/ginkgo"
@@ -32,12 +31,12 @@ const foundation = "bosh-foundation"
 
 var _ = Describe("LabelMaker", func() {
 	var (
-		subject  nozzle.LabelMaker
+		subject  LabelMaker
 		envelope *events.Envelope
 	)
 
 	BeforeEach(func() {
-		subject = nozzle.NewLabelMaker(cloudfoundry.NullAppInfoRepository(), foundation)
+		subject = NewLabelMaker(cloudfoundry.NullAppInfoRepository(), foundation)
 	})
 
 	It("makes labels from envelopes", func() {
@@ -131,7 +130,7 @@ var _ = Describe("LabelMaker", func() {
 				appInfoRepository = &mocks.AppInfoRepository{
 					AppInfoMap: map[string]cloudfoundry.AppInfo{},
 				}
-				subject = nozzle.NewLabelMaker(appInfoRepository, foundation)
+				subject = NewLabelMaker(appInfoRepository, foundation)
 			})
 
 			Context("for a LogMessage", func() {

@@ -51,7 +51,7 @@ var (
 )
 
 func init() {
-	firehoseErrs = telemetry.NewCounterMap("firehose.errors", "error_type")
+	firehoseErrs = telemetry.NewCounterMap(telemetry.Nozzle, "firehose.errors", "error_type")
 
 	firehoseErrEmpty = &telemetry.Counter{}
 	firehoseErrUnknown = &telemetry.Counter{}
@@ -65,9 +65,9 @@ func init() {
 	firehoseErrs.Set("close_policy_violation", firehoseErrClosePolicyViolation)
 	firehoseErrs.Set("close_unknown", firehoseErrCloseUnknown)
 
-	firehoseEventsTotal = telemetry.NewCounter("firehose_events.total")
-	firehoseEventsDropped = telemetry.NewCounter("firehose_events.dropped")
-	firehoseEventsReceived = telemetry.NewCounter("firehose_events.received")
+	firehoseEventsTotal = telemetry.NewCounter(telemetry.Nozzle, "firehose_events.total")
+	firehoseEventsDropped = telemetry.NewCounter(telemetry.Nozzle, "firehose_events.dropped")
+	firehoseEventsReceived = telemetry.NewCounter(telemetry.Nozzle, "firehose_events.received")
 }
 
 type nozzle struct {

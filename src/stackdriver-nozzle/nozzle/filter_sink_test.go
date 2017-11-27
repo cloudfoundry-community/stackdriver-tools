@@ -1,8 +1,7 @@
-package nozzle_test
+package nozzle
 
 import (
 	"github.com/cloudfoundry-community/stackdriver-tools/src/stackdriver-nozzle/mocks"
-	"github.com/cloudfoundry-community/stackdriver-tools/src/stackdriver-nozzle/nozzle"
 
 	"github.com/cloudfoundry/sonde-go/events"
 	. "github.com/onsi/ginkgo"
@@ -26,7 +25,7 @@ var _ = Describe("SinkFilter", func() {
 		sink = &mocks.NozzleSink{}
 	})
 	It("can accept an empty filter and blocks all events", func() {
-		f, err := nozzle.NewFilterSink([]events.Envelope_EventType{}, sink)
+		f, err := NewFilterSink([]events.Envelope_EventType{}, sink)
 		Expect(err).To(BeNil())
 		Expect(f).NotTo(BeNil())
 
@@ -38,7 +37,7 @@ var _ = Describe("SinkFilter", func() {
 	})
 
 	It("can accept a single event", func() {
-		f, err := nozzle.NewFilterSink([]events.Envelope_EventType{events.Envelope_LogMessage}, sink)
+		f, err := NewFilterSink([]events.Envelope_EventType{events.Envelope_LogMessage}, sink)
 		Expect(err).To(BeNil())
 		Expect(f).NotTo(BeNil())
 
@@ -51,7 +50,7 @@ var _ = Describe("SinkFilter", func() {
 	})
 
 	It("can accept multiple events to filter", func() {
-		f, err := nozzle.NewFilterSink([]events.Envelope_EventType{events.Envelope_ValueMetric, events.Envelope_LogMessage}, sink)
+		f, err := NewFilterSink([]events.Envelope_EventType{events.Envelope_ValueMetric, events.Envelope_LogMessage}, sink)
 		Expect(err).To(BeNil())
 		Expect(f).NotTo(BeNil())
 
@@ -63,7 +62,7 @@ var _ = Describe("SinkFilter", func() {
 	})
 
 	It("requires a sink", func() {
-		f, err := nozzle.NewFilterSink([]events.Envelope_EventType{}, nil)
+		f, err := NewFilterSink([]events.Envelope_EventType{}, nil)
 		Expect(err).NotTo(BeNil())
 		Expect(f).To(BeNil())
 	})

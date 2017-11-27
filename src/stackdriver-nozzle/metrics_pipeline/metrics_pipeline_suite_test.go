@@ -1,4 +1,4 @@
-package metrics_pipeline_test
+package metrics_pipeline
 
 import (
 	. "github.com/onsi/ginkgo"
