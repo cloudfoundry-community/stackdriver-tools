@@ -22,11 +22,9 @@ type MetricsBuffer struct {
 	PostedMetrics []messages.Metric
 }
 
-func (m *MetricsBuffer) PostMetricEvents(events []*messages.MetricEvent) {
-	for _, event := range events {
-		for _, metric := range event.Metrics {
-			m.PostedMetrics = append(m.PostedMetrics, *metric)
-		}
+func (m *MetricsBuffer) PostMetrics(metrics []*messages.Metric) {
+	for _, metric := range metrics {
+		m.PostedMetrics = append(m.PostedMetrics, *metric)
 	}
 }
 

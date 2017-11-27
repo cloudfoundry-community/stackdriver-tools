@@ -25,16 +25,16 @@ var _ = Describe("Router", func() {
 		logEvent := events.Envelope_ValueMetric
 
 		router := NewRouter(metricAdapter, []events.Envelope_EventType{metricEvent}, logAdapter, []events.Envelope_EventType{logEvent})
-		router.PostMetricEvents([]*messages.MetricEvent{
+		router.PostMetrics([]*messages.Metric{
 			{Type: metricEvent},
 			{Type: logEvent},
 		})
 
-		Expect(metricAdapter.PostedMetricEvents).To(HaveLen(1))
-		Expect(metricAdapter.PostMetricEventsCount).To(Equal(1))
-		Expect(metricAdapter.PostedMetricEvents[0].Type).To(Equal(metricEvent))
+		Expect(metricAdapter.PostedMetrics).To(HaveLen(1))
+		Expect(metricAdapter.PostMetricsCount).To(Equal(1))
+		Expect(metricAdapter.PostedMetrics[0].Type).To(Equal(metricEvent))
 		Expect(logAdapter.PostedLogs).To(HaveLen(1))
-		Expect(logAdapter.PostedLogs[0].Payload.(*messages.MetricEvent).Type).To(Equal(logEvent))
+		Expect(logAdapter.PostedLogs[0].Payload.(*messages.Metric).Type).To(Equal(logEvent))
 	})
 
 	It("can route an event to two locations", func() {
@@ -43,18 +43,18 @@ var _ = Describe("Router", func() {
 		events := []events.Envelope_EventType{metricEvent, logEvent}
 
 		router := NewRouter(metricAdapter, events, logAdapter, events)
-		router.PostMetricEvents([]*messages.MetricEvent{
+		router.PostMetrics([]*messages.Metric{
 			{Type: metricEvent},
 			{Type: logEvent},
 		})
 
-		Expect(metricAdapter.PostedMetricEvents).To(HaveLen(2))
-		Expect(metricAdapter.PostMetricEventsCount).To(Equal(1))
-		Expect(metricAdapter.PostedMetricEvents[0].Type).To(Equal(metricEvent))
-		Expect(metricAdapter.PostedMetricEvents[1].Type).To(Equal(logEvent))
+		Expect(metricAdapter.PostedMetrics).To(HaveLen(2))
+		Expect(metricAdapter.PostMetricsCount).To(Equal(1))
+		Expect(metricAdapter.PostedMetrics[0].Type).To(Equal(metricEvent))
+		Expect(metricAdapter.PostedMetrics[1].Type).To(Equal(logEvent))
 		Expect(logAdapter.PostedLogs).To(HaveLen(2))
-		Expect(logAdapter.PostedLogs[0].Payload.(*messages.MetricEvent).Type).To(Equal(metricEvent))
-		Expect(logAdapter.PostedLogs[1].Payload.(*messages.MetricEvent).Type).To(Equal(logEvent))
+		Expect(logAdapter.PostedLogs[0].Payload.(*messages.Metric).Type).To(Equal(metricEvent))
+		Expect(logAdapter.PostedLogs[1].Payload.(*messages.Metric).Type).To(Equal(logEvent))
 	})
 
 	It("can translate Metric statements to Logs", func() {
@@ -62,19 +62,20 @@ var _ = Describe("Router", func() {
 		labels := map[string]string{"foo": "bar"}
 		metric := &messages.Metric{
 			Name:      "valueMetric",
+			Labels:    labels,
 			Value:     float64(123),
 			EventTime: time.Now(),
 			Unit:      "f",
+			Type:      logEvent,
 		}
-		metricEvent := &messages.MetricEvent{Type: logEvent, Labels: labels, Metrics: []*messages.Metric{metric}}
 		router := NewRouter(nil, nil, logAdapter, []events.Envelope_EventType{logEvent})
-		router.PostMetricEvents([]*messages.MetricEvent{metricEvent})
+		router.PostMetrics([]*messages.Metric{metric})
 		Expect(logAdapter.PostedLogs).To(HaveLen(1))
 		log := logAdapter.PostedLogs[0]
 		Expect(log.Labels).To(Equal(labels))
-		Expect(log.Payload).To(BeAssignableToTypeOf(&messages.MetricEvent{}))
-		payload := log.Payload.(*messages.MetricEvent)
-		Expect(payload.Metrics).To(Equal([]*messages.Metric{metric}))
+		Expect(log.Payload).To(BeAssignableToTypeOf(&messages.Metric{}))
+		payload := log.Payload.(*messages.Metric)
+		Expect(payload).To(Equal(metric))
 		Expect(payload.Type).To(Equal(logEvent))
 		Expect(payload.Labels).To(Equal(labels))
 	})

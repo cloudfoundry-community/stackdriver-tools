@@ -31,23 +31,23 @@ func NewRouter(metricAdapter stackdriver.MetricAdapter, metricEvents []events.En
 	return r
 }
 
-func (r *router) PostMetricEvents(events []*messages.MetricEvent) {
-	metricEvents := []*messages.MetricEvent{}
-	for i := range events {
-		if r.metricEvents[events[i].Type] {
-			metricEvents = append(metricEvents, events[i])
+func (r *router) PostMetrics(metrics []*messages.Metric) {
+	metricEvents := []*messages.Metric{}
+	for i := range metrics {
+		if r.metricEvents[metrics[i].Type] {
+			metricEvents = append(metricEvents, metrics[i])
 		}
 
-		if r.logEvents[events[i].Type] {
+		if r.logEvents[metrics[i].Type] {
 			log := &messages.Log{
-				Labels:  events[i].Labels,
-				Payload: events[i],
+				Labels:  metrics[i].Labels,
+				Payload: metrics[i],
 			}
 			r.logAdapter.PostLog(log)
 		}
 	}
 
 	if len(metricEvents) > 0 {
-		r.metricAdapter.PostMetricEvents(metricEvents)
+		r.metricAdapter.PostMetrics(metricEvents)
 	}
 }

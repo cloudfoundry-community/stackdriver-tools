@@ -56,25 +56,25 @@ var _ = Describe("MetricAdapter", func() {
 	It("takes metrics and posts a time series", func() {
 		eventTime := time.Now()
 
+		labels := map[string]string{
+			"key": "name",
+		}
 		metrics := []*messages.Metric{
 			{
 				Name:      "metricName",
+				Labels:    labels,
 				Value:     123.45,
 				EventTime: eventTime,
 			},
 			{
 				Name:      "secondMetricName",
+				Labels:    labels,
 				Value:     54.321,
 				EventTime: eventTime,
 			},
 		}
-		labels := map[string]string{
-			"key": "name",
-		}
 
-		metricEvents := []*messages.MetricEvent{{Labels: labels, Metrics: metrics}}
-
-		subject.PostMetricEvents(metricEvents)
+		subject.PostMetrics(metrics)
 
 		Expect(client.MetricReqs).To(HaveLen(1))
 
@@ -107,53 +107,46 @@ var _ = Describe("MetricAdapter", func() {
 		Expect(value.DoubleValue).To(Equal(54.321))
 	})
 
-	type postEvent struct {
-		events          int
-		metricsPerEvent int
-		postCount       int
+	type postMetrics struct {
+		metricCount int
+		postCount   int
 	}
 
 	DescribeTable("correct batch size",
-		func(t postEvent) {
-			events := []*messages.MetricEvent{}
-
+		func(t postMetrics) {
 			metrics := []*messages.Metric{}
-			for i := 0; i < t.metricsPerEvent; i++ {
-				metrics = append(metrics, &messages.Metric{Value: float64(i)})
-			}
-
-			for i := 0; i < t.events; i++ {
-				events = append(events, &messages.MetricEvent{
-					Labels:  map[string]string{"Name": strconv.Itoa(i)},
-					Metrics: metrics,
+			for i := 0; i < t.metricCount; i++ {
+				metrics = append(metrics, &messages.Metric{
+					Labels: map[string]string{"Name": strconv.Itoa(i)},
+					Value:  float64(i),
 				})
 			}
-
-			subject.PostMetricEvents(events)
+			subject.PostMetrics(metrics)
 
 			Expect(client.MetricReqs).To(HaveLen(t.postCount))
-			Expect(client.TimeSeries).To(HaveLen(t.events * t.metricsPerEvent))
+			Expect(client.TimeSeries).To(HaveLen(t.metricCount))
 		},
-		Entry("less than the batch size", postEvent{1, 1, 1}),
-		Entry("exactly the batch size", postEvent{100, 2, 1}),
-		Entry("one over the batch size", postEvent{201, 1, 2}),
-		Entry("a large batch size", postEvent{2001, 2, 21}))
+		Entry("less than the batch size", postMetrics{1, 1}),
+		Entry("exactly the batch size", postMetrics{200, 1}),
+		Entry("one over the batch size", postMetrics{201, 2}),
+		Entry("a large batch size", postMetrics{4001, 21}))
 
 	It("creates metric descriptors", func() {
 		labels := map[string]string{"key": "value"}
 
 		metrics := []*messages.Metric{
 			{
-				Name: "metricWithUnit",
-				Unit: "{foobar}",
+				Name:   "metricWithUnit",
+				Labels: labels,
+				Unit:   "{foobar}",
 			},
 			{
-				Name: "metricWithoutUnit",
+				Name:   "metricWithoutUnit",
+				Labels: labels,
 			},
 		}
-		metricEvents := []*messages.MetricEvent{{Labels: labels, Metrics: metrics}}
 
-		subject.PostMetricEvents(metricEvents)
+		subject.PostMetrics(metrics)
 
 		Expect(client.DescriptorReqs).To(HaveLen(1))
 		req := client.DescriptorReqs[0]
@@ -189,21 +182,19 @@ var _ = Describe("MetricAdapter", func() {
 				Unit: "{lalala}",
 			},
 		}
-		metricEvents := []*messages.MetricEvent{{Metrics: metrics}}
-
-		subject.PostMetricEvents(metricEvents)
+		subject.PostMetrics(metrics)
 
 		Expect(client.DescriptorReqs).To(HaveLen(2))
 	})
 
 	It("handles concurrent metric descriptor creation", func() {
-		metricEventFromName := func(name string) []*messages.MetricEvent {
-			return []*messages.MetricEvent{{Metrics: []*messages.Metric{
+		metricEventFromName := func(name string) []*messages.Metric {
+			return []*messages.Metric{
 				{
 					Name: name,
 					Unit: "{foobar}",
 				},
-			}}}
+			}
 		}
 
 		var mutex sync.Mutex
@@ -217,11 +208,11 @@ var _ = Describe("MetricAdapter", func() {
 			return nil
 		}
 
-		go subject.PostMetricEvents(metricEventFromName("a"))
-		go subject.PostMetricEvents(metricEventFromName("b"))
-		go subject.PostMetricEvents(metricEventFromName("a"))
-		go subject.PostMetricEvents(metricEventFromName("c"))
-		go subject.PostMetricEvents(metricEventFromName("b"))
+		go subject.PostMetrics(metricEventFromName("a"))
+		go subject.PostMetrics(metricEventFromName("b"))
+		go subject.PostMetrics(metricEventFromName("a"))
+		go subject.PostMetrics(metricEventFromName("c"))
+		go subject.PostMetrics(metricEventFromName("b"))
 
 		Eventually(func() int {
 			mutex.Lock()
@@ -240,53 +231,51 @@ var _ = Describe("MetricAdapter", func() {
 	})
 
 	It("increments metrics counters", func() {
-		metricEvents := []*messages.MetricEvent{
-			{Metrics: []*messages.Metric{
-				{
-					Name: "metricWithUnit",
-					Unit: "{foobar}",
-				},
-				{
-					Name: "metricWithUnitToo",
-					Unit: "{barfoo}",
-				}}},
-			{Metrics: []*messages.Metric{
-				{
-					Name: "anExistingMetric",
-					Unit: "{lalala}",
-				},
-			}}}
+		metrics := []*messages.Metric{
+			{
+				Name: "metricWithUnit",
+				Unit: "{foobar}",
+			},
+			{
+				Name: "metricWithUnitToo",
+				Unit: "{barfoo}",
+			},
+			{
+				Name: "anExistingMetric",
+				Unit: "{lalala}",
+			},
+		}
 
-		subject.PostMetricEvents(metricEvents)
-		Expect(telemetrytest.Counter("metrics.firehose_events.emitted.count")).To(Equal(2))
+		subject.PostMetrics(metrics)
+		Expect(telemetrytest.Counter("metrics.firehose_events.emitted.count")).To(Equal(3))
 		Expect(telemetrytest.Counter("metrics.timeseries.count")).To(Equal(3))
 		Expect(telemetrytest.Counter("metrics.timeseries.requests")).To(Equal(1))
 
-		subject.PostMetricEvents(metricEvents)
-		Expect(telemetrytest.Counter("metrics.firehose_events.emitted.count")).To(Equal(4))
+		subject.PostMetrics(metrics)
+		Expect(telemetrytest.Counter("metrics.firehose_events.emitted.count")).To(Equal(6))
 		Expect(telemetrytest.Counter("metrics.timeseries.count")).To(Equal(6))
 		Expect(telemetrytest.Counter("metrics.timeseries.requests")).To(Equal(2))
 	})
 
 	It("measures out of order errors", func() {
-		metricEvents := []*messages.MetricEvent{{Metrics: []*messages.Metric{{}}}}
+		metrics := []*messages.Metric{{}}
 
 		client.PostFn = func(req *monitoringpb.CreateTimeSeriesRequest) error {
 			return errors.New("GRPC Stuff. Points must be written in order. Other stuff")
 		}
 
-		subject.PostMetricEvents(metricEvents)
+		subject.PostMetrics(metrics)
 		Expect(telemetrytest.MapCounter("metrics.timeseries.errors", "out_of_order")).To(Equal(1))
 		Expect(telemetrytest.MapCounter("metrics.timeseries.errors", "unknown")).To(Equal(0))
 	})
 
 	It("measures unknown errors", func() {
-		metricEvents := []*messages.MetricEvent{{Metrics: []*messages.Metric{{}}}}
+		metrics := []*messages.Metric{{}}
 
 		client.PostFn = func(req *monitoringpb.CreateTimeSeriesRequest) error {
 			return errors.New("tragedy strikes")
 		}
-		subject.PostMetricEvents(metricEvents)
+		subject.PostMetrics(metrics)
 		Expect(telemetrytest.MapCounter("metrics.timeseries.errors", "out_of_order")).To(Equal(0))
 		Expect(telemetrytest.MapCounter("metrics.timeseries.errors", "unknown")).To(Equal(1))
 	})
