@@ -37,7 +37,7 @@ var (
 )
 
 func init() {
-	logsCount = telemetry.NewCounter("logs.count")
+	logsCount = telemetry.NewCounter(telemetry.Nozzle, "logs.count")
 }
 
 type LogAdapter interface {

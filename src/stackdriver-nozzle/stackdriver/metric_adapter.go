@@ -52,9 +52,9 @@ var (
 )
 
 func init() {
-	timeSeriesReqs = telemetry.NewCounter("metrics.timeseries.requests")
-	timeSeriesCount = telemetry.NewCounter("metrics.timeseries.count")
-	timeSeriesErrs = telemetry.NewCounterMap("metrics.timeseries.errors", "error_type")
+	timeSeriesReqs = telemetry.NewCounter(telemetry.Nozzle, "metrics.timeseries.requests")
+	timeSeriesCount = telemetry.NewCounter(telemetry.Nozzle, "metrics.timeseries.count")
+	timeSeriesErrs = telemetry.NewCounterMap(telemetry.Nozzle, "metrics.timeseries.errors", "error_type")
 
 	timeSeriesErrOutOfOrder = &telemetry.Counter{}
 	timeSeriesErrUnknown = &telemetry.Counter{}
@@ -62,10 +62,10 @@ func init() {
 	timeSeriesErrs.Set("out_of_order", timeSeriesErrOutOfOrder)
 	timeSeriesErrs.Set("unknown", timeSeriesErrUnknown)
 
-	firehoseEventsCount = telemetry.NewCounter("metrics.firehose_events.emitted.count")
+	firehoseEventsCount = telemetry.NewCounter(telemetry.Nozzle, "metrics.firehose_events.emitted.count")
 
-	descriptorReqs = telemetry.NewCounter("metrics.descriptor.requests")
-	descriptorErrs = telemetry.NewCounter("metrics.descriptor.errors")
+	descriptorReqs = telemetry.NewCounter(telemetry.Nozzle, "metrics.descriptor.requests")
+	descriptorErrs = telemetry.NewCounter(telemetry.Nozzle, "metrics.descriptor.errors")
 }
 
 type metricAdapter struct {

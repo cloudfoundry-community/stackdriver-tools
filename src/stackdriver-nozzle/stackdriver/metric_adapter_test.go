@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package stackdriver_test
+package stackdriver
 
 import (
 	"errors"
@@ -26,8 +26,6 @@ import (
 
 	"github.com/cloudfoundry-community/stackdriver-tools/src/stackdriver-nozzle/messages"
 	"github.com/cloudfoundry-community/stackdriver-tools/src/stackdriver-nozzle/mocks"
-	"github.com/cloudfoundry-community/stackdriver-tools/src/stackdriver-nozzle/stackdriver"
-	"github.com/cloudfoundry-community/stackdriver-tools/src/stackdriver-nozzle/telemetry/telemetrytest"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/ginkgo/extensions/table"
 	. "github.com/onsi/gomega"
@@ -40,17 +38,21 @@ const batchSize = 200
 
 var _ = Describe("MetricAdapter", func() {
 	var (
-		subject stackdriver.MetricAdapter
+		subject MetricAdapter
 		client  *mocks.MockClient
 		logger  *mocks.MockLogger
 	)
 
 	BeforeEach(func() {
+		firehoseEventsCount.Set(0)
+		timeSeriesCount.Set(0)
+		timeSeriesReqs.Set(0)
+		timeSeriesErrOutOfOrder.Set(0)
+		timeSeriesErrUnknown.Set(0)
+
 		client = &mocks.MockClient{}
 		logger = &mocks.MockLogger{}
-		subject, _ = stackdriver.NewMetricAdapter("my-awesome-project", client, batchSize, logger)
-
-		telemetrytest.Reset()
+		subject, _ = NewMetricAdapter("my-awesome-project", client, batchSize, logger)
 	})
 
 	It("takes metrics and posts a time series", func() {
@@ -225,7 +227,7 @@ var _ = Describe("MetricAdapter", func() {
 	It("returns the adapter even if we fail to list the metric descriptors", func() {
 		expectedErr := errors.New("fail")
 		client.ListErr = expectedErr
-		subject, err := stackdriver.NewMetricAdapter("my-awesome-project", client, 1, logger)
+		subject, err := NewMetricAdapter("my-awesome-project", client, 1, logger)
 		Expect(subject).To(Not(BeNil()))
 		Expect(err).To(Equal(expectedErr))
 	})
@@ -247,26 +249,25 @@ var _ = Describe("MetricAdapter", func() {
 		}
 
 		subject.PostMetrics(metrics)
-		Expect(telemetrytest.Counter("metrics.firehose_events.emitted.count")).To(Equal(3))
-		Expect(telemetrytest.Counter("metrics.timeseries.count")).To(Equal(3))
-		Expect(telemetrytest.Counter("metrics.timeseries.requests")).To(Equal(1))
+		Expect(firehoseEventsCount.IntValue()).To(Equal(3))
+		Expect(timeSeriesCount.IntValue()).To(Equal(3))
+		Expect(timeSeriesReqs.IntValue()).To(Equal(1))
 
 		subject.PostMetrics(metrics)
-		Expect(telemetrytest.Counter("metrics.firehose_events.emitted.count")).To(Equal(6))
-		Expect(telemetrytest.Counter("metrics.timeseries.count")).To(Equal(6))
-		Expect(telemetrytest.Counter("metrics.timeseries.requests")).To(Equal(2))
+		Expect(firehoseEventsCount.IntValue()).To(Equal(6))
+		Expect(timeSeriesCount.IntValue()).To(Equal(6))
+		Expect(timeSeriesReqs.IntValue()).To(Equal(2))
 	})
 
 	It("measures out of order errors", func() {
 		metrics := []*messages.Metric{{}}
-
 		client.PostFn = func(req *monitoringpb.CreateTimeSeriesRequest) error {
 			return errors.New("GRPC Stuff. Points must be written in order. Other stuff")
 		}
 
 		subject.PostMetrics(metrics)
-		Expect(telemetrytest.MapCounter("metrics.timeseries.errors", "out_of_order")).To(Equal(1))
-		Expect(telemetrytest.MapCounter("metrics.timeseries.errors", "unknown")).To(Equal(0))
+		Expect(timeSeriesErrOutOfOrder.IntValue()).To(Equal(1))
+		Expect(timeSeriesErrUnknown.IntValue()).To(Equal(0))
 	})
 
 	It("measures unknown errors", func() {
@@ -276,7 +277,7 @@ var _ = Describe("MetricAdapter", func() {
 			return errors.New("tragedy strikes")
 		}
 		subject.PostMetrics(metrics)
-		Expect(telemetrytest.MapCounter("metrics.timeseries.errors", "out_of_order")).To(Equal(0))
-		Expect(telemetrytest.MapCounter("metrics.timeseries.errors", "unknown")).To(Equal(1))
+		Expect(timeSeriesErrOutOfOrder.IntValue()).To(Equal(0))
+		Expect(timeSeriesErrUnknown.IntValue()).To(Equal(1))
 	})
 })

@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package nozzle_test
+package nozzle
 
 import (
 	"errors"
@@ -22,7 +22,6 @@ import (
 
 	"github.com/cloudfoundry-community/stackdriver-tools/src/stackdriver-nozzle/messages"
 	"github.com/cloudfoundry-community/stackdriver-tools/src/stackdriver-nozzle/mocks"
-	"github.com/cloudfoundry-community/stackdriver-tools/src/stackdriver-nozzle/nozzle"
 	"github.com/cloudfoundry/lager"
 	"github.com/cloudfoundry/sonde-go/events"
 	. "github.com/onsi/ginkgo"
@@ -41,7 +40,7 @@ func (m *mockUnitParser) Parse(unit string) string {
 
 var _ = Describe("MetricSink", func() {
 	var (
-		subject      nozzle.Sink
+		subject      Sink
 		metricBuffer *mocks.MetricsBuffer
 		unitParser   *mockUnitParser
 		labels       map[string]string
@@ -55,7 +54,7 @@ var _ = Describe("MetricSink", func() {
 		unitParser = &mockUnitParser{}
 		logger = &mocks.MockLogger{}
 
-		subject = nozzle.NewMetricSink(logger, "firehose", labelMaker, metricBuffer, unitParser)
+		subject = NewMetricSink(logger, "firehose", labelMaker, metricBuffer, unitParser)
 	})
 
 	It("creates metric for ValueMetric", func() {

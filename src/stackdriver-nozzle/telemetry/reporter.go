@@ -69,7 +69,7 @@ func (r *reporter) report() {
 func (r *reporter) data() []*expvar.KeyValue {
 	points := []*expvar.KeyValue{}
 
-	Do(func(point expvar.KeyValue) {
+	forEachMetric(func(point expvar.KeyValue) {
 		points = append(points, &point)
 	})
 

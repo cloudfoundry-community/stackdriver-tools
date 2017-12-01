@@ -14,14 +14,12 @@
  * limitations under the License.
  */
 
-package nozzle_test
+package nozzle
 
 import (
 	"errors"
 
 	"github.com/cloudfoundry-community/stackdriver-tools/src/stackdriver-nozzle/mocks"
-	"github.com/cloudfoundry-community/stackdriver-tools/src/stackdriver-nozzle/nozzle"
-	"github.com/cloudfoundry-community/stackdriver-tools/src/stackdriver-nozzle/telemetry/telemetrytest"
 	"github.com/cloudfoundry/lager"
 	"github.com/cloudfoundry/noaa/consumer"
 	"github.com/cloudfoundry/sonde-go/events"
@@ -31,7 +29,7 @@ import (
 
 var _ = Describe("Nozzle", func() {
 	var (
-		subject    nozzle.Nozzle
+		subject    Nozzle
 		firehose   *mocks.FirehoseClient
 		logSink    *mocks.NozzleSink
 		metricSink *mocks.NozzleSink
@@ -44,10 +42,11 @@ var _ = Describe("Nozzle", func() {
 		metricSink = &mocks.NozzleSink{}
 		logger = &mocks.MockLogger{}
 
-		subject = nozzle.NewNozzle(logger, logSink, metricSink)
-		subject.Start(firehose)
+		firehoseEventsTotal.Set(0)
+		firehoseEventsReceived.Set(0)
 
-		telemetrytest.Reset()
+		subject = NewNozzle(logger, logSink, metricSink)
+		subject.Start(firehose)
 	})
 
 	It("updates the counter", func() {
@@ -59,9 +58,9 @@ var _ = Describe("Nozzle", func() {
 
 		count := len(events.Envelope_EventType_value)
 		Eventually(func() int {
-			return telemetrytest.Counter("firehose_events.received")
+			return firehoseEventsReceived.IntValue()
 		}).Should(Equal(count))
-		Expect(telemetrytest.Counter("firehose_events.total")).To(Equal(count))
+		Expect(firehoseEventsTotal.IntValue()).To(Equal(count))
 	})
 
 	It("does not receive errors", func() {

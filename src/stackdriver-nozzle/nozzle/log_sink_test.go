@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package nozzle_test
+package nozzle
 
 import (
 	"time"
@@ -22,7 +22,6 @@ import (
 	"cloud.google.com/go/logging"
 
 	"github.com/cloudfoundry-community/stackdriver-tools/src/stackdriver-nozzle/mocks"
-	"github.com/cloudfoundry-community/stackdriver-tools/src/stackdriver-nozzle/nozzle"
 	"github.com/cloudfoundry/sonde-go/events"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -30,7 +29,7 @@ import (
 
 var _ = Describe("LogSink", func() {
 	var (
-		subject    nozzle.Sink
+		subject    Sink
 		labelMaker *mocks.LabelMaker
 		logAdapter *mocks.LogAdapter
 		labels     map[string]string
@@ -42,7 +41,7 @@ var _ = Describe("LogSink", func() {
 		logAdapter = &mocks.LogAdapter{}
 
 		newlineToken := ""
-		subject = nozzle.NewLogSink(labelMaker, logAdapter, newlineToken)
+		subject = NewLogSink(labelMaker, logAdapter, newlineToken)
 	})
 
 	It("passes fields through to the adapter", func() {
@@ -311,7 +310,7 @@ var _ = Describe("LogSink", func() {
 		})
 
 		It("translates newline tokens when one is passed in", func() {
-			subject = nozzle.NewLogSink(labelMaker, logAdapter, "∴")
+			subject = NewLogSink(labelMaker, logAdapter, "∴")
 
 			eventType := events.Envelope_LogMessage
 			messageType := events.LogMessage_OUT
