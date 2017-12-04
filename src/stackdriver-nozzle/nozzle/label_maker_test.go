@@ -63,7 +63,7 @@ var _ = Describe("LabelMaker", func() {
 			Tags:       tags,
 		}
 
-		metricLabels := subject.MetricLabels(envelope)
+		metricLabels := subject.MetricLabels(envelope, false)
 		logLabels := subject.LogLabels(envelope)
 
 		Expect(metricLabels).To(Equal(map[string]string{
@@ -103,7 +103,7 @@ var _ = Describe("LabelMaker", func() {
 			Tags:       tags,
 		}
 
-		labels := subject.MetricLabels(envelope)
+		labels := subject.MetricLabels(envelope, false)
 
 		Expect(labels).To(Equal(map[string]string{
 			"foundation": foundation,
@@ -165,7 +165,7 @@ var _ = Describe("LabelMaker", func() {
 
 					appInfoRepository.AppInfoMap[appGuid] = app
 
-					labels := subject.MetricLabels(envelope)
+					labels := subject.MetricLabels(envelope, false)
 
 					Expect(labels).To(HaveKeyWithValue("applicationPath",
 						"/MyOrg/MySpace/MyApp"))
@@ -174,7 +174,7 @@ var _ = Describe("LabelMaker", func() {
 				})
 
 				It("doesn't add fields for an unresolved app", func() {
-					labels := subject.MetricLabels(envelope)
+					labels := subject.MetricLabels(envelope, false)
 
 					Expect(labels).NotTo(HaveKey("applicationPath"))
 				})
@@ -213,7 +213,7 @@ var _ = Describe("LabelMaker", func() {
 
 					appInfoRepository.AppInfoMap[appGuid] = app
 
-					labels := subject.MetricLabels(envelope)
+					labels := subject.MetricLabels(envelope, false)
 
 					Expect(labels).To(HaveKeyWithValue("applicationPath",
 						"/MyOrg/MySpace/MyApp"))
@@ -232,7 +232,7 @@ var _ = Describe("LabelMaker", func() {
 					appInfoRepository.AppInfoMap[appGuid] = app
 
 					envelope.HttpStartStop.InstanceIndex = nil
-					labels := subject.MetricLabels(envelope)
+					labels := subject.MetricLabels(envelope, false)
 
 					Expect(labels).To(HaveKeyWithValue("applicationPath",
 						"/MyOrg/MySpace/MyApp"))
@@ -240,7 +240,7 @@ var _ = Describe("LabelMaker", func() {
 				})
 
 				It("doesn't add fields for an unresolved app", func() {
-					labels := subject.MetricLabels(envelope)
+					labels := subject.MetricLabels(envelope, false)
 
 					Expect(labels).NotTo(HaveKey("applicationPath"))
 				})

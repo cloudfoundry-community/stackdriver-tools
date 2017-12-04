@@ -83,7 +83,10 @@ func (a *App) newConsumer(ctx context.Context) (nozzle.Nozzle, error) {
 	// Routes metrics to Stackdriver Logging/Stackdriver Monitoring
 	metricRouter := metrics_pipeline.NewRouter(metricAdapter, metricEvents, logAdapter, logEvents)
 	// Handles and translates Firehose events. Performs buffering/culling.
-	metricSink := a.newMetricSink(ctx, metricRouter)
+	metricSink, err := a.newMetricSink(ctx, metricRouter)
+	if err != nil {
+		return nil, err
+	}
 	// Filter Firehose events to what the user selects
 	metricRouterEvents := append(logEvents, metricEvents...)
 	filteredMetricSink, err := nozzle.NewFilterSink(metricRouterEvents, metricSink)
@@ -122,11 +125,11 @@ func (a *App) newMetricAdapter() stackdriver.MetricAdapter {
 	return metricAdapter
 }
 
-func (a *App) newMetricSink(ctx context.Context, metricAdapter stackdriver.MetricAdapter) nozzle.Sink {
+func (a *App) newMetricSink(ctx context.Context, metricAdapter stackdriver.MetricAdapter) (nozzle.Sink, error) {
 	metricBuffer := metrics_pipeline.NewAutoCulledMetricsBuffer(ctx, a.logger, time.Duration(a.c.MetricsBufferDuration)*time.Second, metricAdapter)
 	a.bufferEmpty = metricBuffer.IsEmpty
 
-	return nozzle.NewMetricSink(a.logger, a.c.MetricPathPrefix, a.labelMaker, metricBuffer, nozzle.NewUnitParser())
+	return nozzle.NewMetricSink(a.logger, a.c.MetricPathPrefix, a.labelMaker, metricBuffer, nozzle.NewUnitParser(), a.c.RuntimeMetricRegex)
 }
 
 func (a *App) newTelemetryReporter() telemetry.Reporter {

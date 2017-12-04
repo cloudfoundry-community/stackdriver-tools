@@ -72,6 +72,8 @@ type Config struct {
 	NozzleName            string `envconfig:"nozzle_name" default:"local-nozzle"`
 	NozzleZone            string `envconfig:"nozzle_zone" default:"local-nozzle"`
 	DebugNozzle           bool   `envconfig:"debug_nozzle"`
+	// By default 'origin' label is prepended to metric name, however for runtime metrics (defined here) we add it as a metric label instead.
+	RuntimeMetricRegex string `envconfig:"runtime_metric_regex" default:"^(numCPUS|numGoRoutines|memoryStats\\..*)$"`
 }
 
 func (c *Config) validate() error {

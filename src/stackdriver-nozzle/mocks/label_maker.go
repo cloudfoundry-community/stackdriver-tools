@@ -22,7 +22,7 @@ type LabelMaker struct {
 	Labels map[string]string
 }
 
-func (lm *LabelMaker) MetricLabels(*events.Envelope) map[string]string {
+func (lm *LabelMaker) MetricLabels(*events.Envelope, bool) map[string]string {
 	return lm.Labels
 }
 
