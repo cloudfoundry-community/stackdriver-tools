@@ -25,6 +25,11 @@ func (lp *LoggingProbe) Find(start time.Time, needle string, count int) (int, er
 		var err error
 		pageToken := ""
 		pageToken, err = iterator.NewPager(it, 1000, pageToken).NextPage(&entries)
+
+		if err == iterator.Done {
+			break
+		}
+
 		if err != nil {
 			return 0, fmt.Errorf("problem getting the next page: %v", err)
 		}
