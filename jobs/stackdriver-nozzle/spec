@@ -67,3 +67,7 @@ properties:
   nozzle.foundation_name:
     description: Name added as the 'foundation' label to all time series being sent to Stackdriver, useful for differentiating between multiple PCF instances in a project.
     default: cf
+
+  nozzle.enable_cumulative_counters:
+    description: Enable reporting counter events as cumulative Stackdriver metrics. This requires all CounterEvent messages for a given metric to be routed to the same nozzle process (which is the case if you run a single copy of the nozzle).
+    default: false

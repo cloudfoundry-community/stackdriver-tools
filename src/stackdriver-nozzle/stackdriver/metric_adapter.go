@@ -22,14 +22,10 @@ import (
 	"path"
 	"strings"
 	"sync"
-	"time"
 
 	"github.com/cloudfoundry-community/stackdriver-tools/src/stackdriver-nozzle/messages"
 	"github.com/cloudfoundry-community/stackdriver-tools/src/stackdriver-nozzle/telemetry"
 	"github.com/cloudfoundry/lager"
-	"github.com/golang/protobuf/ptypes/timestamp"
-	labelpb "google.golang.org/genproto/googleapis/api/label"
-	metricpb "google.golang.org/genproto/googleapis/api/metric"
 	monitoringpb "google.golang.org/genproto/googleapis/monitoring/v3"
 )
 
@@ -145,15 +141,7 @@ func (ma *metricAdapter) buildTimeSeries(metrics []*messages.Metric) []*monitori
 
 		firehoseEventsCount.Increment()
 		timeSeriesCount.Increment()
-		metricType := path.Join("custom.googleapis.com", metric.Name)
-		timeSeries := monitoringpb.TimeSeries{
-			Metric: &metricpb.Metric{
-				Type:   metricType,
-				Labels: metric.Labels,
-			},
-			Points: points(metric.Value, metric.EventTime),
-		}
-		timeSerieses = append(timeSerieses, &timeSeries)
+		timeSerieses = append(timeSerieses, metric.TimeSeries())
 	}
 
 	return timeSerieses
@@ -161,29 +149,10 @@ func (ma *metricAdapter) buildTimeSeries(metrics []*messages.Metric) []*monitori
 
 func (ma *metricAdapter) CreateMetricDescriptor(metric *messages.Metric) error {
 	projectName := path.Join("projects", ma.projectID)
-	metricType := path.Join("custom.googleapis.com", metric.Name)
-	metricName := path.Join(projectName, "metricDescriptors", metricType)
-
-	var labelDescriptors []*labelpb.LabelDescriptor
-	for key := range metric.Labels {
-		labelDescriptors = append(labelDescriptors, &labelpb.LabelDescriptor{
-			Key:       key,
-			ValueType: labelpb.LabelDescriptor_STRING,
-		})
-	}
 
 	req := &monitoringpb.CreateMetricDescriptorRequest{
-		Name: projectName,
-		MetricDescriptor: &metricpb.MetricDescriptor{
-			Name:        metricName,
-			Type:        metricType,
-			Labels:      labelDescriptors,
-			MetricKind:  metricpb.MetricDescriptor_GAUGE,
-			ValueType:   metricpb.MetricDescriptor_DOUBLE,
-			Unit:        metric.Unit,
-			Description: "stackdriver-nozzle created custom metric.",
-			DisplayName: metric.Name, // TODO
-		},
+		Name:             projectName,
+		MetricDescriptor: metric.MetricDescriptor(projectName),
 	}
 
 	descriptorReqs.Increment()
@@ -213,7 +182,7 @@ func (ma *metricAdapter) fetchMetricDescriptorNames() error {
 }
 
 func (ma *metricAdapter) ensureMetricDescriptor(metric *messages.Metric) error {
-	if metric.Unit == "" {
+	if !metric.NeedsMetricDescriptor() {
 		return nil
 	}
 
@@ -230,23 +199,4 @@ func (ma *metricAdapter) ensureMetricDescriptor(metric *messages.Metric) error {
 	}
 	ma.descriptors[metric.Name] = struct{}{}
 	return nil
-}
-
-func points(value float64, eventTime time.Time) []*monitoringpb.Point {
-	timeStamp := timestamp.Timestamp{
-		Seconds: eventTime.Unix(),
-		Nanos:   int32(eventTime.Nanosecond()),
-	}
-	point := &monitoringpb.Point{
-		Interval: &monitoringpb.TimeInterval{
-			EndTime:   &timeStamp,
-			StartTime: &timeStamp,
-		},
-		Value: &monitoringpb.TypedValue{
-			Value: &monitoringpb.TypedValue_DoubleValue{
-				DoubleValue: value,
-			},
-		},
-	}
-	return []*monitoringpb.Point{point}
 }

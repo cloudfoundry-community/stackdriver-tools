@@ -74,6 +74,13 @@ type Config struct {
 	DebugNozzle           bool   `envconfig:"debug_nozzle"`
 	// By default 'origin' label is prepended to metric name, however for runtime metrics (defined here) we add it as a metric label instead.
 	RuntimeMetricRegex string `envconfig:"runtime_metric_regex" default:"^(numCPUS|numGoRoutines|memoryStats\\..*)$"`
+	// If enabled, CounterEvents will be reported as cumulative Stackdriver metrics instead of two gauges (<metric>.delta
+	// and <metric>.total). Reporting cumulative metrics involves nozzle keeping track of internal counter state, and
+	// requires deterministic routing of CounterEvents to nozzles (i.e. CounterEvent messages for a particular metric MUST
+	// always be routed to the same nozzle process); the easiest way to achieve that is to run a single copy of the nozzle.
+	EnableCumulativeCounters bool `envconfig:"enable_cumulative_counters"`
+	// Expire internal counter state if a given counter has not been seen for this many seconds.
+	CounterTrackerTTL int `envconfig:"counter_tracker_ttl" default:"130"`
 }
 
 func (c *Config) validate() error {
