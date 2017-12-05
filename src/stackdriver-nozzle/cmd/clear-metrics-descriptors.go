@@ -14,13 +14,30 @@
  * limitations under the License.
  */
 
+/*
+ClearMetricsDescriptors - delete _all_ custom MetricDescriptors from a Google Cloud Project
+
+Setup:
+- Export environment variable GCP_PROJECT_ID=<GCP Project for Stackdriver Monitoring>
+- Setup application default credentials to a user with 'roles/monitoring.admin'
+  `gcloud auth application-default login`
+- Ensure your GOPATH is correct relative to the source repo.
+  For example if you set your GOPATH to $HOME/GO
+    export GOPATH=$HOME/go
+  This file should be located at:
+    $HOME/go/src/github.com/cloudfoundry-community/stackdriver-tools/src/stackdriver-nozzle/cmd/clear-metric-descriptors.go
+
+Usage (from this directory):
+go run ./clear-metric-descriptors.go
+*/
 package main
 
 import (
 	"fmt"
 	"os"
 
-	"cloud.google.com/go/monitoring/apiv3"
+	monitoring "cloud.google.com/go/monitoring/apiv3"
+
 	"golang.org/x/net/context"
 	"google.golang.org/api/iterator"
 	"google.golang.org/api/option"
