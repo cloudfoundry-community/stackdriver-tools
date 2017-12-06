@@ -62,7 +62,9 @@ func startSpinner(proj string, count, wait int) {
 			log.Println(err)
 			continue
 		}
+	logger, err := stackdriver.NewLogger(proj)
 
-		fmt.Fprintf(os.Stdout, "GUID: %s - Found: %d - Loss: %.2f \n", result.GUID, result.Found, result.Loss)
+	logger.Publish(fmt.Sprintf("GUID: %s - Found: %d - Loss: %.2f \n", result.GUID, result.Found, result.Loss))
+
 	}
 }
