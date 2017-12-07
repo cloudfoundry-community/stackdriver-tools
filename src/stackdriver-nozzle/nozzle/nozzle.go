@@ -156,11 +156,8 @@ func (n *nozzle) Stop() error {
 func (n *nozzle) handleEvent(envelope *events.Envelope) {
 	firehoseEventsReceived.Increment()
 	firehoseEventsTotal.Increment()
-	if isMetric(envelope) {
-		n.metricSink.Receive(envelope)
-	} else {
-		n.logSink.Receive(envelope)
-	}
+	n.metricSink.Receive(envelope)
+	n.logSink.Receive(envelope)
 }
 
 func (n *nozzle) handleFirehoseError(err error) {
@@ -183,14 +180,5 @@ func (n *nozzle) handleFirehoseError(err error) {
 		firehoseErrClosePolicyViolation.Increment()
 	default:
 		firehoseErrCloseUnknown.Increment()
-	}
-}
-
-func isMetric(envelope *events.Envelope) bool {
-	switch envelope.GetEventType() {
-	case events.Envelope_ValueMetric, events.Envelope_ContainerMetric, events.Envelope_CounterEvent:
-		return true
-	default:
-		return false
 	}
 }
