@@ -41,7 +41,7 @@ var _ = Describe("autoCulledMetricsBuffer", func() {
 	})
 
 	It("culls duplicate metrics", func() {
-		subject := NewAutoCulledMetricsBuffer(context.TODO(), logger, 100*time.Millisecond, metricAdapter)
+		subject := NewAutoCulledMetricsBuffer(context.Background(), logger, 100*time.Millisecond, metricAdapter)
 
 		subject.PostMetrics([]*messages.Metric{
 			{
@@ -94,7 +94,7 @@ var _ = Describe("autoCulledMetricsBuffer", func() {
 	})
 
 	It("culls multiple duplicates, keeping the latest", func() {
-		subject := NewAutoCulledMetricsBuffer(context.TODO(), logger, 100*time.Millisecond, metricAdapter)
+		subject := NewAutoCulledMetricsBuffer(context.Background(), logger, 100*time.Millisecond, metricAdapter)
 		subject.PostMetrics([]*messages.Metric{
 			{
 				Labels:    map[string]string{"d1": "a"},
@@ -152,7 +152,7 @@ var _ = Describe("autoCulledMetricsBuffer", func() {
 
 	It("it buffers metrics for the expected duration before flushing", func() {
 		d := 500 * time.Millisecond
-		subject := NewAutoCulledMetricsBuffer(context.TODO(), logger, d, metricAdapter)
+		subject := NewAutoCulledMetricsBuffer(context.Background(), logger, d, metricAdapter)
 
 		subject.PostMetrics([]*messages.Metric{
 			{
@@ -205,7 +205,7 @@ var _ = Describe("autoCulledMetricsBuffer", func() {
 				return nil
 			}
 
-			subject = NewAutoCulledMetricsBuffer(context.TODO(), logger, 1*time.Millisecond, metricAdapter)
+			subject = NewAutoCulledMetricsBuffer(context.Background(), logger, 1*time.Millisecond, metricAdapter)
 		})
 
 		It("doesn't block new metrics during flush", func() {
