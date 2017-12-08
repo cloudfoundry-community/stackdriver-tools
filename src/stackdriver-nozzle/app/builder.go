@@ -73,7 +73,8 @@ func (a *App) newConsumer(ctx context.Context) (nozzle.Nozzle, error) {
 	}
 
 	logAdapter := a.newLogAdapter()
-	filteredLogSink, err := nozzle.NewFilterSink(logEvents, nozzle.NewLogSink(a.labelMaker, logAdapter, a.c.NewlineToken))
+	filteredLogSink, err := nozzle.NewFilterSink(logEvents, nil, nil,
+		nozzle.NewLogSink(a.labelMaker, logAdapter, a.c.NewlineToken))
 	if err != nil {
 		return nil, err
 	}
@@ -88,7 +89,7 @@ func (a *App) newConsumer(ctx context.Context) (nozzle.Nozzle, error) {
 		return nil, err
 	}
 	// Filter Firehose events to what the user selects
-	filteredMetricSink, err := nozzle.NewFilterSink(metricEvents, metricSink)
+	filteredMetricSink, err := nozzle.NewFilterSink(metricEvents, nil, nil, metricSink)
 	if err != nil {
 		return nil, err
 	}
