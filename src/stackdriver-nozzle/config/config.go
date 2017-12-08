@@ -17,6 +17,12 @@
 package config
 
 import (
+	"encoding/json"
+	"fmt"
+	"io"
+	"io/ioutil"
+	"os"
+
 	"cloud.google.com/go/compute/metadata"
 	"github.com/cloudfoundry/lager"
 	"github.com/kelseyhightower/envconfig"
@@ -36,6 +42,11 @@ func NewConfig() (*Config, error) {
 	}
 
 	err = c.ensureProjectID()
+	if err != nil {
+		return nil, err
+	}
+
+	err = c.maybeLoadFilterFile()
 	if err != nil {
 		return nil, err
 	}
@@ -81,6 +92,12 @@ type Config struct {
 	EnableCumulativeCounters bool `envconfig:"enable_cumulative_counters"`
 	// Expire internal counter state if a given counter has not been seen for this many seconds.
 	CounterTrackerTTL int `envconfig:"counter_tracker_ttl" default:"130"`
+
+	// Event blacklists / whitelists are too complex to stuff into environment
+	// vars, so instead they are templated from the manifest YAML into a JSON
+	// file which is loaded by the nozzle. Nil pointers are empty blacklists.
+	EventFilterFile string `envconfig:"event_filter_file" default:""`
+	EventFilterJSON *EventFilterJSON
 }
 
 func (c *Config) validate() error {
@@ -110,6 +127,53 @@ func (c *Config) ensureProjectID() error {
 	}
 
 	c.ProjectID = projectID
+	return nil
+}
+
+// An EventFilterRule specifies a filtering rule for firehose event.
+type EventFilterRule struct {
+	// Must be one of the types from nozzle/event_filter.go.
+	Type string `json:"type"`
+	// Must be either "monitoring", "logging", or "all".
+	Sink string `json:"sink"`
+	// Must be a valid regular expression.
+	Regexp string `json:"regexp"`
+}
+
+func (r EventFilterRule) String() string {
+	return fmt.Sprintf("%s.%s matches %q", r.Sink, r.Type, r.Regexp)
+}
+
+type EventFilterJSON struct {
+	Blacklist []EventFilterRule `json:"blacklist,omitempty"`
+	Whitelist []EventFilterRule `json:"whitelist,omitempty"`
+}
+
+func (c *Config) maybeLoadFilterFile() error {
+	if c.EventFilterFile == "" {
+		return nil
+	}
+	fh, err := os.Open(c.EventFilterFile)
+	if err != nil {
+		return err
+	}
+	defer fh.Close()
+	return c.parseEventFilterJSON(fh)
+}
+
+func (c *Config) parseEventFilterJSON(r io.Reader) error {
+	data, err := ioutil.ReadAll(r)
+	if err != nil {
+		return err
+	}
+	if len(data) == 0 {
+		// Unmarshal expects there to be at least some JSON ;-)
+		return nil
+	}
+	c.EventFilterJSON = &EventFilterJSON{}
+	if err := json.Unmarshal(data, c.EventFilterJSON); err != nil {
+		return err
+	}
 	return nil
 }
 

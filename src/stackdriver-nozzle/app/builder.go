@@ -1,7 +1,10 @@
 package app
 
 import (
+	"bytes"
 	"context"
+	"errors"
+	"fmt"
 	_ "net/http/pprof"
 	"strings"
 	"time"
@@ -72,8 +75,13 @@ func (a *App) newConsumer(ctx context.Context) (nozzle.Nozzle, error) {
 		return nil, err
 	}
 
+	lbl, lwl, mbl, mwl, err := a.buildEventFilters()
+	if err != nil {
+		return nil, err
+	}
+
 	logAdapter := a.newLogAdapter()
-	filteredLogSink, err := nozzle.NewFilterSink(logEvents, nil, nil,
+	filteredLogSink, err := nozzle.NewFilterSink(logEvents, lbl, lwl,
 		nozzle.NewLogSink(a.labelMaker, logAdapter, a.c.NewlineToken))
 	if err != nil {
 		return nil, err
@@ -89,7 +97,7 @@ func (a *App) newConsumer(ctx context.Context) (nozzle.Nozzle, error) {
 		return nil, err
 	}
 	// Filter Firehose events to what the user selects
-	filteredMetricSink, err := nozzle.NewFilterSink(metricEvents, nil, nil, metricSink)
+	filteredMetricSink, err := nozzle.NewFilterSink(metricEvents, mbl, mwl, metricSink)
 	if err != nil {
 		return nil, err
 	}
@@ -147,4 +155,62 @@ func (a *App) newTelemetryReporter() telemetry.Reporter {
 	logSink := telemetry.NewLogSink(a.logger)
 	metricSink := stackdriver.NewTelemetrySink(a.logger, metricClient, a.c.ProjectID, a.c.SubscriptionID, a.c.FoundationName)
 	return telemetry.NewReporter(time.Duration(a.c.HeartbeatRate)*time.Second, logSink, metricSink)
+}
+
+var validSinks = map[string]bool{"monitoring": true, "logging": true, "all": true}
+
+func (a *App) buildEventFilters() (
+	loggingBlacklist *nozzle.EventFilter,
+	loggingWhitelist *nozzle.EventFilter,
+	monitoringBlacklist *nozzle.EventFilter,
+	monitoringWhitelist *nozzle.EventFilter,
+	err error,
+) {
+	errs := []error{}
+	if len(a.c.EventFilterJSON.Blacklist) > 0 {
+		loggingBlacklist = &nozzle.EventFilter{}
+		monitoringBlacklist = &nozzle.EventFilter{}
+		errs = append(errs, loadFilterRules(a.c.EventFilterJSON.Blacklist, loggingBlacklist, monitoringBlacklist)...)
+	}
+	if len(a.c.EventFilterJSON.Whitelist) > 0 {
+		loggingWhitelist = &nozzle.EventFilter{}
+		monitoringWhitelist = &nozzle.EventFilter{}
+		errs = append(errs, loadFilterRules(a.c.EventFilterJSON.Whitelist, loggingWhitelist, monitoringWhitelist)...)
+	}
+	if len(errs) == 0 {
+		return loggingBlacklist, loggingWhitelist, monitoringBlacklist, monitoringWhitelist, nil
+	}
+
+	b := bytes.NewBufferString("encountered the following errors while building event filters:")
+	for _, err := range errs {
+		b.WriteString("\n\t- ")
+		b.WriteString(err.Error())
+	}
+	b.WriteByte('\n')
+	return nil, nil, nil, nil, errors.New(b.String())
+}
+
+func loadFilterRules(list []config.EventFilterRule, loggingFilter, monitoringFilter *nozzle.EventFilter) []error {
+	errs := []error{}
+	for _, rule := range list {
+		if !validSinks[rule.Sink] {
+			errs = append(errs, fmt.Errorf("rule %s has invalid sink %q", rule, rule.Sink))
+			continue
+		}
+		if rule.Regexp == "" {
+			errs = append(errs, fmt.Errorf("rule %s has empty regexp", rule))
+			continue
+		}
+		if rule.Sink == "monitoring" || rule.Sink == "all" {
+			if err := monitoringFilter.Add(rule.Type, rule.Regexp); err != nil {
+				errs = append(errs, fmt.Errorf("adding rule %s to monitoring filter failed: %v", rule, err))
+			}
+		}
+		if rule.Sink == "logging" || rule.Sink == "all" {
+			if err := loggingFilter.Add(rule.Type, rule.Regexp); err != nil {
+				errs = append(errs, fmt.Errorf("adding rule %s to logging filter failed: %v", rule, err))
+			}
+		}
+	}
+	return errs
 }
