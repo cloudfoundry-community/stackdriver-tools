@@ -3,6 +3,7 @@ name: stackdriver-nozzle
 templates:
   stackdriver-nozzle-ctl.erb: bin/stackdriver-nozzle-ctl
   application_default_credentials.json.erb: config/application_default_credentials.json
+  event_filters.json.erb: config/event_filters.json
 
 packages:
   - stackdriver-nozzle
@@ -71,3 +72,17 @@ properties:
   nozzle.enable_cumulative_counters:
     description: Enable reporting counter events as cumulative Stackdriver metrics. This requires all CounterEvent messages for a given metric to be routed to the same nozzle process (which is the case if you run a single copy of the nozzle).
     default: false
+
+  nozzle.event_filters.blacklist:
+    description: |
+      Should contain an array of maps with three keys 'sink' (valid values:
+      'logging', 'monitoring', or 'all'), 'type' (valid values: 'name' or 'job')
+      and 'regexp' (must be a valid regexp). Events matching these filters will
+      not be processed by the Nozzle.
+
+  nozzle.event_filters.whitelist:
+    description: |
+      Should contain an array of maps with three keys 'sink' (valid values:
+      'logging', 'monitoring', or 'all'), 'type' (valid values: 'name' or 'job')
+      and 'regexp' (must be a valid regexp). Events matching these filters will
+      be processed by the Nozzle even if they also match a blacklist filter.

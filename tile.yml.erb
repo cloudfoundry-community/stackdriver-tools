@@ -44,6 +44,9 @@ packages:
         logging_batch_count: (( .properties.logging_batch_count.value ))
         logging_batch_duration: (( .properties.logging_batch_duration.value ))
         debug: (( .properties.debug.value ))
+        event_filters:
+          blacklist: (( .properties.blacklist.value ))
+          whitelist: (( .properties.whitelist.value ))
 
 
 forms:
@@ -120,6 +123,110 @@ forms:
     default: false
     label: Nozzle Debugging
     description: Enable Nozzle Debugging Features. With this enabled each Stackdriver Nozzle instance will host a web server on port 6060 that exposes debug information such as a heap dump and running threads.
+- name: event_filters
+  label: Event Filters
+  description: Configure regexp-based blacklists / whitelists for firehose events here.
+  markdown: |
+    ## Event Filters
+
+    Event filters allow users to selectively enable or disable the processing of
+    firehose events by the Stackdriver Nozzle. The default behaviour is to process
+    all events. Events that match a blacklist filter will not be processed unless
+    they also match a whitelist filter.
+
+    A filter rule has three elements.
+
+    *   A *regexp*, which must be a valid regular expression.
+    *   A *type*, which may be either "name" or "job".
+        *   *name* matches against a concatenation of event _origin_ and metric _name_
+            with "." (e.g. `gorouter.total_requests`), and is only applicable for
+            CounterEvent and ValueMetric event types.
+        *   *job* matches against the event _job_.
+    *   A *sink*, which may be either "monitoring", "logging", or "all". The latter
+        applies the rule to all firehose events, while the other two restrict the
+        filter rule to events destined for Stackdriver Monitoring or Logging
+        respectively.
+
+    An optional *description* field is provided for a human-readable name for each filter,
+    to aid in identifying filters when the list elements are collapsed. This is ignored
+    by the Stackdriver Nozzle.
+  properties:
+  - name: blacklist
+    type: collection
+    label: Event Blacklist
+    description: Events matching these blacklist filters will not be propagated to Stackdriver.
+    configurable: true
+    optional: true
+    property_blueprints:
+    - name: description
+      type: string
+      label: Description
+      optional: true
+      configurable: true
+    - name: regexp
+      type: string
+      label: Regexp
+      configurable: true
+    - name: type
+      type: dropdown_select
+      label: Type
+      configurable: true
+      options:
+      - name: job
+        label: Job
+        default: true
+      - name: name
+        label: Name
+    - name: sink
+      type: dropdown_select
+      label: Sink
+      configurable: true
+      options:
+      - name: all
+        label: All
+        default: true
+      - name: logging
+        label: Stackdriver Logging
+      - name: monitoring
+        label: Stackdriver Monitoring
+  - name: whitelist
+    type: collection
+    label: Event Whitelist
+    description: Events matching these whitelist filters will be propagated to Stackdriver even if they match a blacklist filter above.
+    configurable: true
+    optional: true
+    property_blueprints:
+    - name: description
+      type: string
+      label: Description
+      optional: true
+      configurable: true
+    - name: regexp
+      type: string
+      label: Regexp
+      configurable: true
+    - name: type
+      type: dropdown_select
+      label: Type
+      configurable: true
+      options:
+      - name: job
+        label: Job
+        default: true
+      - name: name
+        label: Name
+    - name: sink
+      type: dropdown_select
+      label: Sink
+      configurable: true
+      options:
+      - name: all
+        label: All
+        default: true
+      - name: logging
+        label: Stackdriver Logging
+      - name: monitoring
+        label: Stackdriver Monitoring
 
 requires_product_versions:
  - name: cf

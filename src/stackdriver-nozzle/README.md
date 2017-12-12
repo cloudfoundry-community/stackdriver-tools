@@ -62,6 +62,45 @@ go get github.com/cloudfoundry-community/stackdriver-tools/src/stackdriver-nozzl
 - `SUBSCRIPTION_ID` - what subscription ID to use for connecting to the
   firehose; defaults to `stackdriver-nozzle`
 
+#### Event Filters
+
+Event filters allow users to selectively enable or disable the processing of
+firehose events by the Stackdriver Nozzle. The default behaviour is to process
+all events. Events that match a blacklist filter will not be processed unless
+they also match a whitelist filter.
+
+A filter rule has three elements:
+
+*   A *regexp*, which must be a valid regular expression.
+*   A *type*, which may be either "name" or "job".
+    *   *name* matches against a concatenation of event _origin_ and metric
+        _name_ with "." (e.g. `gorouter.total_requests`), and is only applicable
+        for CounterEvent and ValueMetric event types.
+        *   *job* matches against the event _job_.
+*   A *sink*, which may be either "monitoring", "logging", or "all". The
+    latter applies the rule to all firehose events, while the other two
+    restrict the filter rule to events destined for Stackdriver Monitoring
+    or Logging respectively.
+
+These filter rules are expressed as a JSON object with two keys "blacklist" and
+"whitelist". They are loaded from the file named in `EVENT_FILTER_FILE`. It is
+valid to omit either or both keys. Please take special care when escaping
+regexp metacharacters with backslashes, because JSON!
+
+An example filter file:
+
+```json
+{
+    "blacklist": [
+        {"sink": "all", "type": "job", "regexp": "^router$"}
+    ],
+    "whitelist": [
+        {"sink": "monitoring", "type": "name", "regexp": "^gorouter\\..*requests"},
+        ...
+    ]
+}
+```
+
 ### Usage
 
 ```sh

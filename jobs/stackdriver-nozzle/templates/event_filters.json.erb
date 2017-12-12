@@ -1,0 +1,7 @@
+<%
+  require 'json'
+  config = {}
+  config["blacklist"] = p('nozzle.event_filters.blacklist') if p('nozzle.event_filters.blacklist')
+  config["whitelist"] = p('nozzle.event_filters.whitelist') if p('nozzle.event_filters.whitelist')
+%>
+<%=config.to_json %>
