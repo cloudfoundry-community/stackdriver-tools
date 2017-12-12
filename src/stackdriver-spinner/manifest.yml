@@ -9,4 +9,4 @@ applications:
     GOOGLE_APPLICATION_CREDENTIALS: ./credentials.json
     SPINNER_COUNT: 999
     SPINNER_WAIT: 300
-    GCP_PROJECT: cf-cloudops-sandbox
+    GCP_PROJECT: <projet-name>
