@@ -29,7 +29,7 @@ import (
 )
 
 // NewLogSink returns a Sink that can receive sonde Events, translate them and send them to a stackdriver.MetricAdapter
-func NewMetricSink(logger lager.Logger, pathPrefix string, labelMaker LabelMaker, metricAdapter stackdriver.MetricAdapter, unitParser UnitParser, runtimeMetricRegex string) (Sink, error) {
+func NewMetricSink(logger lager.Logger, pathPrefix string, labelMaker LabelMaker, metricAdapter stackdriver.MetricAdapter, ct *CounterTracker, unitParser UnitParser, runtimeMetricRegex string) (Sink, error) {
 	r, err := regexp.Compile(runtimeMetricRegex)
 	if err != nil {
 		return nil, fmt.Errorf("cannot compile runtime metric regex: %v", err)
@@ -39,6 +39,7 @@ func NewMetricSink(logger lager.Logger, pathPrefix string, labelMaker LabelMaker
 		labelMaker:      labelMaker,
 		metricAdapter:   metricAdapter,
 		unitParser:      unitParser,
+		counterTracker:  ct,
 		logger:          logger,
 		runtimeMetricRe: r,
 	}, nil
@@ -49,6 +50,7 @@ type metricSink struct {
 	labelMaker      LabelMaker
 	metricAdapter   stackdriver.MetricAdapter
 	unitParser      UnitParser
+	counterTracker  *CounterTracker
 	logger          lager.Logger
 	runtimeMetricRe *regexp.Regexp
 }
@@ -97,34 +99,62 @@ func (ms *metricSink) Receive(envelope *events.Envelope) {
 			Type:      eventType,
 			Value:     valueMetric.GetValue(),
 			EventTime: eventTime,
+			StartTime: eventTime,
 			Unit:      ms.unitParser.Parse(valueMetric.GetUnit()),
 		}}
 	case events.Envelope_ContainerMetric:
 		containerMetric := envelope.GetContainerMetric()
 		metrics = []*messages.Metric{
-			{Name: metricPrefix + "diskBytesQuota", Labels: labels, Type: eventType, Value: float64(containerMetric.GetDiskBytesQuota()), EventTime: eventTime},
-			{Name: metricPrefix + "cpuPercentage", Labels: labels, Type: eventType, Value: float64(containerMetric.GetCpuPercentage()), EventTime: eventTime},
-			{Name: metricPrefix + "diskBytes", Labels: labels, Type: eventType, Value: float64(containerMetric.GetDiskBytes()), EventTime: eventTime},
-			{Name: metricPrefix + "memoryBytes", Labels: labels, Type: eventType, Value: float64(containerMetric.GetMemoryBytes()), EventTime: eventTime},
-			{Name: metricPrefix + "memoryBytesQuota", Labels: labels, Type: eventType, Value: float64(containerMetric.GetMemoryBytesQuota()), EventTime: eventTime},
+			{Name: metricPrefix + "diskBytesQuota", Value: float64(containerMetric.GetDiskBytesQuota())},
+			{Name: metricPrefix + "cpuPercentage", Value: float64(containerMetric.GetCpuPercentage())},
+			{Name: metricPrefix + "diskBytes", Value: float64(containerMetric.GetDiskBytes())},
+			{Name: metricPrefix + "memoryBytes", Value: float64(containerMetric.GetMemoryBytes())},
+			{Name: metricPrefix + "memoryBytesQuota", Value: float64(containerMetric.GetMemoryBytesQuota())},
+		}
+		for _, metric := range metrics {
+			metric.Labels = labels
+			metric.Type = eventType
+			metric.EventTime = eventTime
+			metric.StartTime = eventTime
 		}
 	case events.Envelope_CounterEvent:
 		counterEvent := envelope.GetCounterEvent()
-		metrics = []*messages.Metric{
-			{
-				Name:      fmt.Sprintf("%s%v.delta", metricPrefix, counterEvent.GetName()),
+		if ms.counterTracker == nil {
+			// When there is no counter tracker, report CounterEvent metrics as two gauges: 'delta' and 'total'.
+			metrics = []*messages.Metric{
+				{
+					Name:      fmt.Sprintf("%s%v.delta", metricPrefix, counterEvent.GetName()),
+					Labels:    labels,
+					Type:      events.Envelope_ValueMetric,
+					Value:     float64(counterEvent.GetDelta()),
+					EventTime: eventTime,
+					StartTime: eventTime,
+				},
+				{
+					Name:      fmt.Sprintf("%s%v.total", metricPrefix, counterEvent.GetName()),
+					Labels:    labels,
+					Type:      events.Envelope_ValueMetric,
+					Value:     float64(counterEvent.GetTotal()),
+					EventTime: eventTime,
+					StartTime: eventTime,
+				},
+			}
+		} else {
+			// Create a partial metric struct (lacking IntValue and StartTime) to allow determining metric.Hash (used as
+			// the counter name) based on metric name and labels.
+			metric := &messages.Metric{
+				Name:      metricPrefix + counterEvent.GetName(),
 				Labels:    labels,
 				Type:      eventType,
-				Value:     float64(counterEvent.GetDelta()),
 				EventTime: eventTime,
-			},
-			{
-				Name:      fmt.Sprintf("%s%v.total", metricPrefix, counterEvent.GetName()),
-				Labels:    labels,
-				Type:      eventType,
-				Value:     float64(counterEvent.GetTotal()),
-				EventTime: eventTime,
-			},
+			}
+			total, st := ms.counterTracker.Update(metric.Hash(), counterEvent.GetTotal(), eventTime)
+			// Stackdriver expects non-zero time intervals, so only add a metric if event time is older than start time.
+			if eventTime.After(st) {
+				metric.StartTime = st
+				metric.IntValue = total
+				metrics = append(metrics, metric)
+			}
 		}
 	default:
 		ms.logger.Error("metricSink.Receive", fmt.Errorf("unknown event type: %v", envelope.EventType))

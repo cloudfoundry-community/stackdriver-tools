@@ -26,6 +26,7 @@ import (
 
 	"github.com/cloudfoundry-community/stackdriver-tools/src/stackdriver-nozzle/messages"
 	"github.com/cloudfoundry-community/stackdriver-tools/src/stackdriver-nozzle/mocks"
+	"github.com/cloudfoundry/sonde-go/events"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/ginkgo/extensions/table"
 	. "github.com/onsi/gomega"
@@ -146,11 +147,16 @@ var _ = Describe("MetricAdapter", func() {
 				Name:   "metricWithoutUnit",
 				Labels: labels,
 			},
+			{
+				Name:   "someCounter",
+				Labels: labels,
+				Type:   events.Envelope_CounterEvent,
+			},
 		}
 
 		subject.PostMetrics(metrics)
 
-		Expect(client.DescriptorReqs).To(HaveLen(1))
+		Expect(client.DescriptorReqs).To(HaveLen(2))
 		req := client.DescriptorReqs[0]
 		Expect(req.Name).To(Equal("projects/my-awesome-project"))
 		Expect(req.MetricDescriptor).To(Equal(&metricpb.MetricDescriptor{
@@ -163,6 +169,8 @@ var _ = Describe("MetricAdapter", func() {
 			Description: "stackdriver-nozzle created custom metric.",
 			DisplayName: "metricWithUnit",
 		}))
+		Expect(client.DescriptorReqs[1].MetricDescriptor.MetricKind).To(Equal(metricpb.MetricDescriptor_CUMULATIVE))
+		Expect(client.DescriptorReqs[1].MetricDescriptor.ValueType).To(Equal(metricpb.MetricDescriptor_INT64))
 	})
 
 	It("only creates the same descriptor once", func() {
