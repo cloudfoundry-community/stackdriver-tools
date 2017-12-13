@@ -1,16 +1,12 @@
 package main
 
 import (
-	"os"
-
-	"log"
-
-	"time"
-
-	"strconv"
-
 	"fmt"
+	"log"
 	"net/http"
+	"os"
+	"strconv"
+	"time"
 
 	"github.com/cloudfoundry-community/stackdriver-tools/src/stackdriver-spinner/cloudfoundry"
 	"github.com/cloudfoundry-community/stackdriver-tools/src/stackdriver-spinner/session"
@@ -62,9 +58,9 @@ func startSpinner(proj string, count, wait int) {
 			log.Println(err)
 			continue
 		}
-	logger, err := stackdriver.NewLogger(proj)
+		logger, err := stackdriver.NewLogger(proj)
 
-	logger.Publish(fmt.Sprintf("GUID: %s - Found: %d - Loss: %.2f \n", result.GUID, result.Found, result.Loss))
+		logger.Publish(fmt.Sprintf("GUID: %s - Found: %d - Loss: %.2f \n", result.GUID, result.Found, result.Loss))
 
 	}
 }
