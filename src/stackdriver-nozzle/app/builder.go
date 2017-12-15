@@ -88,8 +88,7 @@ func (a *App) newConsumer(ctx context.Context) (nozzle.Nozzle, error) {
 		return nil, err
 	}
 	// Filter Firehose events to what the user selects
-	metricRouterEvents := append(logEvents, metricEvents...)
-	filteredMetricSink, err := nozzle.NewFilterSink(metricRouterEvents, metricSink)
+	filteredMetricSink, err := nozzle.NewFilterSink(metricEvents, metricSink)
 	if err != nil {
 		return nil, err
 	}
