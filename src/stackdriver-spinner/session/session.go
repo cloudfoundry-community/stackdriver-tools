@@ -8,7 +8,7 @@ import (
 )
 
 type Emitter interface {
-	Emit(needle string, count int) error
+	Emit(needle string, count int, wait time.Duration) error
 }
 
 type Probe interface {
@@ -30,15 +30,15 @@ func NewSession(emitter Emitter, probe Probe) Session {
 	return Session{emitter, probe}
 }
 
-func (s Session) Run(count int, waitTime time.Duration) (Result, error) {
+func (s Session) Run(count int, burstInterval time.Duration, sleepTime time.Duration) (Result, error) {
 	needle := getNeedle()
-	err := s.emitter.Emit(needle, count)
+	err := s.emitter.Emit(needle, count, sleepTime)
 	if err != nil {
 		return Result{}, err
 	}
 
-	queryTime := time.Now().Add(-waitTime - 10)
-	time.Sleep(waitTime)
+	queryTime := time.Now().Add(-burstInterval - 10)
+	time.Sleep(burstInterval)
 
 	found, err := s.probe.Find(queryTime, needle, count)
 	if err != nil {

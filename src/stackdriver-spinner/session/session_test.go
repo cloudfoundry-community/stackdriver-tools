@@ -20,7 +20,7 @@ var _ = Describe("Session", func() {
 			emitter := cloudfoundry.NewEmitter(&writer)
 			probe := &fakes.LosslessProbe{}
 			s := session.NewSession(emitter, probe)
-			_, err := s.Run(1, 0*time.Second)
+			_, err := s.Run(1, 0,0)
 			Expect(err).ToNot(HaveOccurred())
 			Expect(len(writer.Writes)).To(Equal(1))
 		})
@@ -33,7 +33,7 @@ var _ = Describe("Session", func() {
 			emitter := cloudfoundry.NewEmitter(&writer)
 			probe := &fakes.LosslessProbe{}
 			s := session.NewSession(emitter, probe)
-			_, retErr := s.Run(1, 0*time.Second)
+			_, retErr := s.Run(1, 0, 0)
 			Expect(retErr).To(HaveOccurred())
 			Expect(retErr).To(Equal(err))
 		})
@@ -43,7 +43,7 @@ var _ = Describe("Session", func() {
 			emitter := cloudfoundry.NewEmitter(&writer)
 			probe := &fakes.LosslessProbe{}
 			s := session.NewSession(emitter, probe)
-			r, err := s.Run(10, 0*time.Second)
+			r, err := s.Run(10, 0, 0)
 			Expect(err).ToNot(HaveOccurred())
 			Expect(r.Loss).To(Equal(0.0))
 
@@ -58,7 +58,7 @@ var _ = Describe("Session", func() {
 
 				}}
 			s := session.NewSession(emitter, probe)
-			r, err := s.Run(10, 0*time.Second)
+			r, err := s.Run(10, 0, 0)
 			Expect(err).ToNot(HaveOccurred())
 			Expect(r.Loss).To(Equal(0.5))
 
@@ -73,7 +73,7 @@ var _ = Describe("Session", func() {
 					return 5, err
 				}}
 			s := session.NewSession(emitter, probe)
-			_, returnErr := s.Run(10, 0*time.Second)
+			_, returnErr := s.Run(10, 0, 0)
 			Expect(returnErr).To(HaveOccurred())
 			Expect(returnErr).To(Equal(err))
 		})
@@ -83,9 +83,9 @@ var _ = Describe("Session", func() {
 			emitter := cloudfoundry.NewEmitter(&writer)
 			probe := &fakes.LosslessProbe{}
 			s := session.NewSession(emitter, probe)
-			_, err := s.Run(1, 0*time.Second)
+			_, err := s.Run(1, 0, 0)
 			Expect(err).ToNot(HaveOccurred())
-			_, err = s.Run(1, 0*time.Second)
+			_, err = s.Run(1, 0, 0)
 			Expect(err).ToNot(HaveOccurred())
 			Expect(writer.Writes[0]).ToNot(Equal(writer.Writes[1]))
 		})

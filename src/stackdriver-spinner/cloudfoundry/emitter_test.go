@@ -7,12 +7,12 @@ import (
 	. "github.com/onsi/gomega"
 )
 
-var _ = Describe("Logger", func() {
+var _ = Describe("Emitter", func() {
 	It("logs to stdout once", func() {
 		mockWriter := fakes.Writer{}
 
 		writer := cloudfoundry.NewEmitter(&mockWriter)
-		writer.Emit("something", 1)
+		writer.Emit("something", 1, 0)
 
 		Expect(mockWriter.Writes).To(HaveLen(1))
 		Expect(mockWriter.Writes[0]).To(ContainSubstring("something"))
@@ -22,7 +22,7 @@ var _ = Describe("Logger", func() {
 		mockWriter := fakes.Writer{}
 
 		writer := cloudfoundry.NewEmitter(&mockWriter)
-		writer.Emit("something", 10)
+		writer.Emit("something", 10, 0)
 
 		Expect(mockWriter.Writes).To(HaveLen(10))
 	})
