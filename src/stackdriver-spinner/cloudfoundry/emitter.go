@@ -4,15 +4,32 @@ import (
 	"fmt"
 	"io"
 	"time"
+	"encoding/json"
 )
 
 type Emitter struct {
 	writer io.Writer
 }
 
-func (w *Emitter) Emit(message string, count int, wait time.Duration) error {
-	for i := 0; i < count; i++ {
-		_, err := fmt.Fprintf(w.writer, message+" count: %d \n", i)
+type Payload struct {
+	Timestamp string `json:"timestamp"`
+	GUID      string `json:"guid"`
+	Count     int    `json:"count"`
+}
+
+func (w *Emitter) Emit(guid string, count int, wait time.Duration) error {
+	for i := 1; i <= count; i++ {
+		pl := Payload{
+			Timestamp: time.Now().UTC().Format("2006-01-02T15:04:05.000-07:00"),
+			GUID:      guid,
+			Count:     i,
+		}
+
+		msg, err := json.Marshal(pl)
+		if err != nil {
+			return err
+		}
+		_, err = fmt.Fprintf(w.writer, string(msg)+"\n")
 		time.Sleep(wait)
 		if err != nil {
 			return err
