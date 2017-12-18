@@ -11,7 +11,15 @@ type Logger struct {
 	client *logging.Client
 }
 
-func (lg *Logger) Publish(message string) {
+type Message struct {
+	GUID             string  `json:"guid"`
+	NumberSent       int     `json:"number_sent"`
+	NumberFound      int     `json:"number_found"`
+	BurstIntervalSec int     `json:"burst_interval_sec"`
+	LossPercentage   float64 `json:"loss_percentage"`
+}
+
+func (lg *Logger) Publish(message Message) {
 	lg.client.Logger("stackdriver-spinner-logs").Log(logging.Entry{Payload: message})
 
 
