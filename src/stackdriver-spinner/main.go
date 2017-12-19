@@ -60,7 +60,15 @@ func startSpinner(proj string, count, wait int) {
 		}
 		logger, err := stackdriver.NewLogger(proj)
 
-		logger.Publish(fmt.Sprintf("GUID: %s - Found: %d - Loss: %.2f \n", result.GUID, result.Found, result.Loss))
+		msg := stackdriver.Message{
+			GUID:             result.GUID,
+			NumberSent:       count,
+			NumberFound:      result.Found,
+			BurstIntervalSec: wait,
+			LossPercentage:   result.Loss,
+		}
+
+		logger.Publish(msg)
 
 	}
 }
