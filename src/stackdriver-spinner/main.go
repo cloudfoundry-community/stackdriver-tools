@@ -46,14 +46,14 @@ func main() {
 func startSpinner(proj string, count, wait int) {
 	burstInterval := time.Duration(wait) * time.Second
 
-	emitter := cloudfoundry.NewEmitter(os.Stdout)
+	emitter := cloudfoundry.NewEmitter(os.Stdout, count, 10*time.Millisecond)
 	probe, err := stackdriver.NewLoggingProbe(proj)
 	if err != nil {
 		log.Fatal(err)
 	}
 	s := session.NewSession(emitter, probe)
 	for {
-		result, err := s.Run(count, burstInterval, 10*time.Millisecond)
+		result, err := s.Run(burstInterval)
 		if err != nil {
 			log.Println(err)
 			continue
