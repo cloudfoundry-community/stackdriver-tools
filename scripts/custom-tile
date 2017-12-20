@@ -1,0 +1,87 @@
+#! /bin/bash
+#
+# This script can be used to build the current working tree into a custom tile
+# using the cfplatformeng/tile-generator image from Docker Hub.
+#
+# Before using it to build the tile, you must create a local customization of
+# the tile generator image that contains all the build dependencies with
+# `scripts/custom-tile setup`.
+#
+# Then, running `scripts/custom-tile build` will copy the current working tree
+# into a container based on this customized image and run the build script.
+# This will create the tile in the root directory of the repo. Note that it
+# will be owned by root:root, because Docker.
+#
+# When you are done building, running `scripts/custom-tile clean` will delete
+# the custom image from your local Docker repo.
+
+# Change to the root of the repo.
+if ! git rev-parse; then
+  echo "You need to run this script from within the stackdriver-tools git repo."
+  exit 1
+fi
+cd "$(git rev-parse --show-toplevel)"
+
+export VERSION="0.0.1-custom.$(git rev-parse --short HEAD)"
+export TMP_GOPATH="/tmp/gopath"
+
+usage() {
+  echo "Usage: build-custom-tile setup|build|clean"
+}
+
+setup() {
+  cat > Dockerfile <<__DOCKERFILE__
+FROM cfplatformeng/tile-generator:latest
+
+WORKDIR /tmp
+ENV GOPATH="${TMP_GOPATH}" PATH="${PATH}:${TMP_GOPATH}/bin"
+COPY scripts/build-docker-env.sh .
+RUN ./build-docker-env.sh
+__DOCKERFILE__
+  docker build -t tile-generator . && rm Dockerfile
+}
+
+build() {
+  cat > Dockerfile <<__DOCKERFILE__
+FROM tile-generator:latest
+
+WORKDIR /tmp/stackdriver-tools
+ENV VERSION="${VERSION}" GOPATH="${TMP_GOPATH}" PATH="${PATH}:${TMP_GOPATH}/bin"
+COPY . .
+RUN scripts/build-custom-tile-docker.sh
+__DOCKERFILE__
+  docker build -t tile . && rm Dockerfile
+  docker run --rm -v "${PWD}:/mnt" tile cp "/tmp/stackdriver-tools/product/stackdriver-nozzle-custom-${VERSION}.pivotal" /mnt
+  docker rmi tile
+}
+
+clean() {
+  docker rmi tile-generator:latest
+}
+
+case "$1" in
+"setup")
+  # custom-tile setup creates a local customization of the
+  # cloud foundry tile generator docker image with all the
+  # dependencies needed to build the Stackdriver Nozzle.
+  setup
+  ;;
+"build")
+  # custom-tile build uses the customized tile-generator image
+  # to build the stackdriver-tools BOSH release and the custom tile.
+  IMAGE="$(docker images -q tile-generator:latest)"
+  if test -z "$IMAGE"; then
+    echo "Custom tile generator image not found, running setup."
+    setup
+  fi
+  build
+  ;;
+"clean")
+  # custom-tile clean deletes the customized tile-generator image.
+  clean
+  ;;
+*)
+  usage
+  exit 1
+  ;;
+esac
