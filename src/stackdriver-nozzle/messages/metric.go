@@ -109,15 +109,26 @@ func (m *Metric) Hash() string {
 	var b bytes.Buffer
 
 	b.Write([]byte(m.Name))
+	if len(m.Labels) > 0 {
+		b.WriteByte(',')
+		b.WriteString(Flatten(m.Labels))
+	}
+	return b.String()
+}
 
-	// Extract label keys to a slice and sort it
-	keys := make([]string, 0, len(m.Labels))
-	for k := range m.Labels {
+// Flatten serializes a set of label keys and values.
+func Flatten(labels map[string]string) string {
+	keys := make([]string, 0, len(labels))
+	for k := range labels {
 		keys = append(keys, k)
 	}
 	sort.Strings(keys)
-	for _, k := range keys {
-		b.Write([]byte(fmt.Sprintf(",%s='%s'", k, m.Labels[k])))
+	buf := &bytes.Buffer{}
+	for i, k := range keys {
+		buf.WriteString(fmt.Sprintf("%q=%q", k, labels[k]))
+		if i+1 < len(keys) {
+			buf.WriteByte(',')
+		}
 	}
-	return b.String()
+	return buf.String()
 }

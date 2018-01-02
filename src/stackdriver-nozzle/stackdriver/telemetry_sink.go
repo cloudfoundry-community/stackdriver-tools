@@ -110,7 +110,9 @@ func (ts *telemetrySink) Init(registeredSeries []*expvar.KeyValue) {
 		}
 
 		if mapVal, ok := series.Value.(*telemetry.CounterMap); ok {
-			labels = append(labels, &labelpb.LabelDescriptor{Key: mapVal.Category(), ValueType: labelpb.LabelDescriptor_STRING})
+			for _, l := range mapVal.LabelKeys {
+				labels = append(labels, &labelpb.LabelDescriptor{Key: l, ValueType: labelpb.LabelDescriptor_STRING})
+			}
 		}
 
 		req := &monitoringpb.CreateMetricDescriptorRequest{
@@ -181,8 +183,7 @@ func (ts *telemetrySink) timeSeries(metricType string, interval *monitoringpb.Ti
 		series := []*monitoringpb.TimeSeries{}
 		data.Do(func(value expvar.KeyValue) {
 			if intVal, ok := value.Value.(*telemetry.Counter); ok {
-				labels := duplicate(ts.labels)
-				labels[data.Category()] = value.Key
+				labels := merge(ts.labels, intVal.Labels)
 				series = append(series, ts.timeSeriesInt(metricType, interval, labels, intVal.Value()))
 			}
 		})
@@ -194,9 +195,12 @@ func (ts *telemetrySink) timeSeries(metricType string, interval *monitoringpb.Ti
 	return nil
 }
 
-func duplicate(src map[string]string) map[string]string {
+func merge(a, b map[string]string) map[string]string {
 	dest := map[string]string{}
-	for k, v := range src {
+	for k, v := range b {
+		dest[k] = v
+	}
+	for k, v := range a {
 		dest[k] = v
 	}
 	return dest

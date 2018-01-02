@@ -53,17 +53,11 @@ var (
 func init() {
 	firehoseErrs = telemetry.NewCounterMap(telemetry.Nozzle, "firehose.errors", "error_type")
 
-	firehoseErrEmpty = &telemetry.Counter{}
-	firehoseErrUnknown = &telemetry.Counter{}
-	firehoseErrCloseNormal = &telemetry.Counter{}
-	firehoseErrClosePolicyViolation = &telemetry.Counter{}
-	firehoseErrCloseUnknown = &telemetry.Counter{}
-
-	firehoseErrs.Set("empty", firehoseErrEmpty)
-	firehoseErrs.Set("unknown", firehoseErrUnknown)
-	firehoseErrs.Set("close_normal_closure", firehoseErrCloseNormal)
-	firehoseErrs.Set("close_policy_violation", firehoseErrClosePolicyViolation)
-	firehoseErrs.Set("close_unknown", firehoseErrCloseUnknown)
+	firehoseErrEmpty = firehoseErrs.MustCounter("empty")
+	firehoseErrUnknown = firehoseErrs.MustCounter("unknown")
+	firehoseErrCloseNormal = firehoseErrs.MustCounter("close_normal_closure")
+	firehoseErrClosePolicyViolation = firehoseErrs.MustCounter("close_policy_violation")
+	firehoseErrCloseUnknown = firehoseErrs.MustCounter("close_unknown")
 
 	firehoseEventsTotal = telemetry.NewCounter(telemetry.Nozzle, "firehose_events.total")
 	firehoseEventsDropped = telemetry.NewCounter(telemetry.Nozzle, "firehose_events.dropped")

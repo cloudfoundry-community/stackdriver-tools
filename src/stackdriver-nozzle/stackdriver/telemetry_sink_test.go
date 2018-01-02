@@ -123,15 +123,18 @@ var _ = Describe("TelemetrySink", func() {
 	})
 
 	Context("with a Map", func() {
-		value := &telemetry.CounterMap{}
-		mapVar := &expvar.KeyValue{Key: "earth", Value: value}
+		value := &telemetry.CounterMap{LabelKeys: []string{"uuid", "code"}}
+		mapVar := &expvar.KeyValue{Key: "response_code", Value: value}
 		BeforeEach(func() {
-			oceanValue := &telemetry.Counter{}
-			continentValue := &telemetry.Counter{}
-			oceanValue.Set(5)
-			continentValue.Set(7)
-			value.Set("oceans", oceanValue)
-			value.Set("continents", continentValue)
+			value.Init()
+			firstOK := value.MustCounter("abcdef", "200")
+			firstOK.Set(5)
+			firstErr := value.MustCounter("abcdef", "500")
+			firstErr.Set(4)
+			secondOK := value.MustCounter("ghijkl", "200")
+			secondOK.Set(3)
+			secondErr := value.MustCounter("ghijkl", "500")
+			secondErr.Set(2)
 		})
 		It("Init creates MetricDescriptors with label", func() {
 			sink.Init([]*expvar.KeyValue{mapVar})
@@ -139,8 +142,9 @@ var _ = Describe("TelemetrySink", func() {
 			Expect(client.DescriptorReqs).To(HaveLen(1))
 			req := client.DescriptorReqs[0]
 			labels := req.MetricDescriptor.Labels
-			Expect(labels).To(HaveLen(3))
-			Expect(labels).To(ContainElement(&labelpb.LabelDescriptor{Key: value.Category(), ValueType: labelpb.LabelDescriptor_STRING}))
+			Expect(labels).To(HaveLen(4))
+			Expect(labels).To(ContainElement(&labelpb.LabelDescriptor{Key: "uuid", ValueType: labelpb.LabelDescriptor_STRING}))
+			Expect(labels).To(ContainElement(&labelpb.LabelDescriptor{Key: "code", ValueType: labelpb.LabelDescriptor_STRING}))
 		})
 
 		It("Report posts TimeSeries with label", func() {
@@ -148,15 +152,19 @@ var _ = Describe("TelemetrySink", func() {
 
 			Expect(client.MetricReqs).To(HaveLen(1))
 			req := client.MetricReqs[0]
-			Expect(req.TimeSeries).To(HaveLen(2))
-			kinds := map[string]*monitoringpb.TimeSeries{}
+			Expect(req.TimeSeries).To(HaveLen(4))
+			data := map[string]int64{}
 			for _, series := range req.TimeSeries {
-				kinds[series.Metric.Labels[value.Category()]] = series
+				key := fmt.Sprintf("%s.%s", series.Metric.Labels["uuid"], series.Metric.Labels["code"])
+				value := series.Points[0].Value.Value.(*monitoringpb.TypedValue_Int64Value).Int64Value
+				data[key] = value
 			}
-			Expect(kinds).To(HaveKey("oceans"))
-			Expect(kinds).To(HaveKey("continents"))
-			Expect(kinds["oceans"].Points[0].Value.Value.(*monitoringpb.TypedValue_Int64Value).Int64Value).To(Equal(int64(5)))
-			Expect(kinds["continents"].Points[0].Value.Value.(*monitoringpb.TypedValue_Int64Value).Int64Value).To(Equal(int64(7)))
+			Expect(data).To(Equal(map[string]int64{
+				"abcdef.200": 5,
+				"abcdef.500": 4,
+				"ghijkl.200": 3,
+				"ghijkl.500": 2,
+			}))
 		})
 	})
 })
