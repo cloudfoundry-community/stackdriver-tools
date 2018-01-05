@@ -19,7 +19,7 @@ const (
 	projectID      = "myproject"
 	projectPath    = "projects/" + projectID
 	subscriptionID = "sdnozzle"
-	director       = "bosh"
+	foundation     = "bosh"
 )
 
 var _ = Describe("TelemetrySink", func() {
@@ -31,7 +31,7 @@ var _ = Describe("TelemetrySink", func() {
 	BeforeEach(func() {
 		logger = &mocks.MockLogger{}
 		client = &mocks.MockClient{}
-		sink = NewTelemetrySink(logger, client, projectID, subscriptionID, director)
+		sink = NewTelemetrySink(logger, client, projectID, subscriptionID, foundation)
 	})
 
 	Context("Init with existing MetricDescriptors", func() {
@@ -67,7 +67,7 @@ var _ = Describe("TelemetrySink", func() {
 
 			labels := descriptor.Labels
 			Expect(labels).To(HaveLen(2))
-			Expect(labels).To(ContainElement(&labelpb.LabelDescriptor{Key: "director", ValueType: labelpb.LabelDescriptor_STRING}))
+			Expect(labels).To(ContainElement(&labelpb.LabelDescriptor{Key: "foundation", ValueType: labelpb.LabelDescriptor_STRING}))
 			Expect(labels).To(ContainElement(&labelpb.LabelDescriptor{Key: "subscription_id", ValueType: labelpb.LabelDescriptor_STRING}))
 		})
 	})
@@ -95,7 +95,7 @@ var _ = Describe("TelemetrySink", func() {
 
 			labels := metric.Labels
 			Expect(labels).To(HaveLen(2))
-			Expect(labels).To(HaveKeyWithValue("director", director))
+			Expect(labels).To(HaveKeyWithValue("foundation", foundation))
 			Expect(labels).To(HaveKeyWithValue("subscription_id", subscriptionID))
 
 			Expect(series.Points).To(HaveLen(1))

@@ -72,12 +72,12 @@ func detectMonitoredResource() (res *monitoredres.MonitoredResource) {
 }
 
 // NewTelemetrySink provides a telemetry.Sink that writes metrics to Stackdriver Monitoring
-func NewTelemetrySink(logger lager.Logger, client MetricClient, projectID, subscriptionId, director string) telemetry.Sink {
+func NewTelemetrySink(logger lager.Logger, client MetricClient, projectID, subscriptionId, foundation string) telemetry.Sink {
 	return &telemetrySink{
 		logger:      logger,
 		client:      client,
 		projectPath: fmt.Sprintf("projects/%s", projectID),
-		labels:      map[string]string{"subscription_id": subscriptionId, "director": director},
+		labels:      map[string]string{"subscription_id": subscriptionId, "foundation": foundation},
 		startTime:   now(),
 		resource:    detectMonitoredResource()}
 }
