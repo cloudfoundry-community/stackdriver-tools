@@ -90,6 +90,9 @@ type Config struct {
 	// requires deterministic routing of CounterEvents to nozzles (i.e. CounterEvent messages for a particular metric MUST
 	// always be routed to the same nozzle process); the easiest way to achieve that is to run a single copy of the nozzle.
 	EnableCumulativeCounters bool `envconfig:"enable_cumulative_counters"`
+	// If enabled, the Nozzle will derive per-application HTTP metrics from
+	// HttpStartStop events and export them as counters to Stackdriver.
+	EnableAppHttpMetrics bool `envconfig:"enable_app_http_metrics"`
 	// Expire internal counter state if a given counter has not been seen for this many seconds.
 	CounterTrackerTTL int `envconfig:"counter_tracker_ttl" default:"130"`
 

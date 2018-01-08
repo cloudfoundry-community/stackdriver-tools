@@ -65,11 +65,8 @@ func init() {
 }
 
 type nozzle struct {
-	logSink    Sink
-	metricSink Sink
-
-	logger lager.Logger
-
+	sinks   []Sink
+	logger  lager.Logger
 	session state
 }
 
@@ -79,11 +76,10 @@ type state struct {
 	running bool
 }
 
-func NewNozzle(logger lager.Logger, logSink Sink, metricSink Sink) Nozzle {
+func NewNozzle(logger lager.Logger, sinks ...Sink) Nozzle {
 	return &nozzle{
-		logSink:    logSink,
-		metricSink: metricSink,
-		logger:     logger,
+		sinks:  sinks,
+		logger: logger,
 	}
 }
 
@@ -150,8 +146,9 @@ func (n *nozzle) Stop() error {
 func (n *nozzle) handleEvent(envelope *events.Envelope) {
 	firehoseEventsReceived.Increment()
 	firehoseEventsTotal.Increment()
-	n.metricSink.Receive(envelope)
-	n.logSink.Receive(envelope)
+	for _, sink := range n.sinks {
+		sink.Receive(envelope)
+	}
 }
 
 func (n *nozzle) handleFirehoseError(err error) {
