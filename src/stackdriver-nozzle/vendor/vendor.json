@@ -73,10 +73,10 @@
 			"revision": ""
 		},
 		{
-			"checksumSHA1": "GkEAb/vtwonZKVqhJ2/4RLP/D5s=",
+			"checksumSHA1": "lHErlXpzw9dt2/gvyziQmlOXqTc=",
 			"path": "github.com/cloudfoundry-community/go-cfclient",
-			"revision": "2eadb63a05dc47090a7c22ef02ae1576ac50eabe",
-			"revisionTime": "2018-01-05T22:57:16Z"
+			"revision": "ddaa1458e8c1fa782442f9f4e187be479023b7e5",
+			"revisionTime": "2018-01-08T15:37:11Z"
 		},
 		{
 			"checksumSHA1": "kcsaKOBmcD7alm44Qn5i6zcSNco=",
