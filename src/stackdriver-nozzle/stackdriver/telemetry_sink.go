@@ -125,9 +125,7 @@ func (ts *telemetrySink) Init(registeredSeries []*expvar.KeyValue) {
 				Description: "stackdriver-nozzle created custom metric.",
 			},
 		}
-		err := ts.client.CreateMetricDescriptor(req)
-
-		if err != nil {
+		if err := ts.client.CreateMetricDescriptor(req); err != nil {
 			ts.logger.Error("telemetrySink.CreateMetricDescriptor", err, lager.Data{"req": req})
 		}
 	}
@@ -165,13 +163,17 @@ func (ts *telemetrySink) Report(report []*expvar.KeyValue) {
 		req.TimeSeries = append(req.TimeSeries, ts.timeSeries(ts.metricDescriptorType(data.Key), interval, data)...)
 
 		if len(req.TimeSeries) == maxTimeSeries {
-			ts.client.Post(req)
+			if err := ts.client.Post(req); err != nil {
+				ts.logger.Error("telemetrySink.Report", err, lager.Data{"req": req})
+			}
 			req = ts.newRequest()
 		}
 	}
 
 	if len(req.TimeSeries) != 0 {
-		ts.client.Post(req)
+		if err := ts.client.Post(req); err != nil {
+			ts.logger.Error("telemetrySink.Report", err, lager.Data{"req": req})
+		}
 	}
 }
 
