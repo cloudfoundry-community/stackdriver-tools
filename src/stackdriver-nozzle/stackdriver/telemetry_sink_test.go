@@ -35,13 +35,13 @@ var _ = Describe("TelemetrySink", func() {
 	})
 
 	Context("Init with existing MetricDescriptors", func() {
-		oldData := &expvar.KeyValue{Key: "old", Value: &telemetry.Counter{}}
-		newData := &expvar.KeyValue{Key: "new", Value: &telemetry.Counter{}}
+		oldData := &expvar.KeyValue{Key: telemetry.Nozzle.Qualify("old"), Value: &telemetry.Counter{}}
+		newData := &expvar.KeyValue{Key: telemetry.Nozzle.Qualify("new"), Value: &telemetry.Counter{}}
 
 		BeforeEach(func() {
 			client.ListMetricDescriptorFn = func(request *monitoringpb.ListMetricDescriptorsRequest) ([]*metricpb.MetricDescriptor, error) {
 				return []*metricpb.MetricDescriptor{
-					{Name: projectPath + "/metricDescriptors/custom.googleapis.com/stackdriver-nozzle/" + oldData.Key},
+					{Name: projectPath + "/metricDescriptors/custom.googleapis.com/" + oldData.Key},
 				}, nil
 			}
 
@@ -55,13 +55,12 @@ var _ = Describe("TelemetrySink", func() {
 			Expect(req.Name).To(Equal(projectPath))
 			descriptor := req.MetricDescriptor
 
-			displayName := telemetry.Nozzle.Qualify(newData.Key)
-			metricType := "custom.googleapis.com/" + displayName
+			metricType := "custom.googleapis.com/" + newData.Key
 			name := projectPath + "/metricDescriptors/" + metricType
 
 			Expect(descriptor.Name).To(Equal(name))
 			Expect(descriptor.Type).To(Equal(metricType))
-			Expect(descriptor.DisplayName).To(Equal(displayName))
+			Expect(descriptor.DisplayName).To(Equal(newData.Key))
 			Expect(descriptor.MetricKind).To(Equal(metricpb.MetricDescriptor_CUMULATIVE))
 			Expect(descriptor.ValueType).To(Equal(metricpb.MetricDescriptor_INT64))
 
@@ -91,7 +90,7 @@ var _ = Describe("TelemetrySink", func() {
 			Expect(series.Resource).NotTo(BeNil())
 
 			metric := series.Metric
-			Expect(metric.Type).To(Equal("custom.googleapis.com/stackdriver-nozzle/" + keyValue.Key))
+			Expect(metric.Type).To(Equal("custom.googleapis.com/" + keyValue.Key))
 
 			labels := metric.Labels
 			Expect(labels).To(HaveLen(2))
