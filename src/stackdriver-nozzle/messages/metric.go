@@ -34,6 +34,20 @@ func (m *Metric) metricType() string {
 	return path.Join("custom.googleapis.com", m.Name)
 }
 
+func (m *Metric) metricKind() metricpb.MetricDescriptor_MetricKind {
+	if m.IsCumulative() {
+		return metricpb.MetricDescriptor_CUMULATIVE
+	}
+	return metricpb.MetricDescriptor_GAUGE
+}
+
+func (m *Metric) valueType() metricpb.MetricDescriptor_ValueType {
+	if m.IsCumulative() {
+		return metricpb.MetricDescriptor_INT64
+	}
+	return metricpb.MetricDescriptor_DOUBLE
+}
+
 // NeedsMetricDescriptor determines whether a custom metric descriptor needs to be created for this metric in Stackdriver.
 // We do that if we need to set a custom unit, or mark metric as a cumulative.
 func (m *Metric) NeedsMetricDescriptor() bool {
@@ -52,19 +66,12 @@ func (m *Metric) MetricDescriptor(projectName string) *metricpb.MetricDescriptor
 		})
 	}
 
-	metricKind := metricpb.MetricDescriptor_GAUGE
-	valueType := metricpb.MetricDescriptor_DOUBLE
-	if m.IsCumulative() {
-		metricKind = metricpb.MetricDescriptor_CUMULATIVE
-		valueType = metricpb.MetricDescriptor_INT64
-	}
-
 	return &metricpb.MetricDescriptor{
 		Name:        path.Join(projectName, "metricDescriptors", metricType),
 		Type:        metricType,
 		Labels:      labelDescriptors,
-		MetricKind:  metricKind,
-		ValueType:   valueType,
+		MetricKind:  m.metricKind(),
+		ValueType:   m.valueType(),
 		Unit:        m.Unit,
 		Description: "stackdriver-nozzle created custom metric.",
 		DisplayName: m.Name,
@@ -88,6 +95,8 @@ func (m *Metric) TimeSeries() *monitoringpb.TimeSeries {
 		Value: value,
 	}
 	return &monitoringpb.TimeSeries{
+		MetricKind: m.metricKind(),
+		ValueType:  m.valueType(),
 		Metric: &metricpb.Metric{
 			Type:   m.metricType(),
 			Labels: m.Labels,
