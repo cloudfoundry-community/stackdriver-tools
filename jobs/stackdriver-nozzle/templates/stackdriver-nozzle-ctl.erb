@@ -46,6 +46,9 @@ case $1 in
     <% if_p('credentials.application_default_credentials') do |prop| %>
     export GOOGLE_APPLICATION_CREDENTIALS=$JOB_DIR/config/application_default_credentials.json
     <% end %>
+    <% if_p('nozzle.event_filters.blacklist', 'nozzle.event_filters.whitelist') do |_,_| %>
+    export EVENT_FILTER_FILE=$JOB_DIR/config/event_filters.json
+    <% end %>
 
     echo $$ > $PIDFILE
 
