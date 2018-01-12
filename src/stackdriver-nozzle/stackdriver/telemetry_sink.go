@@ -202,6 +202,8 @@ func duplicate(src map[string]string) map[string]string {
 
 func (ts *telemetrySink) timeSeriesInt(metricType string, interval *monitoringpb.TimeInterval, labels map[string]string, value int64) *monitoringpb.TimeSeries {
 	return &monitoringpb.TimeSeries{
+		MetricKind: metricpb.MetricDescriptor_CUMULATIVE,
+		ValueType:  metricpb.MetricDescriptor_INT64,
 		Metric: &metricpb.Metric{
 			Type:   metricType,
 			Labels: labels,
