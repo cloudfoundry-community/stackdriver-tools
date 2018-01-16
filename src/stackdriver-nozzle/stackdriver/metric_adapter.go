@@ -20,7 +20,6 @@ import (
 	"fmt"
 	"math"
 	"path"
-	"strings"
 	"sync"
 
 	"github.com/cloudfoundry-community/stackdriver-tools/src/stackdriver-nozzle/messages"
@@ -34,34 +33,13 @@ type MetricAdapter interface {
 }
 
 var (
-	timeSeriesReqs  *telemetry.Counter
-	timeSeriesCount *telemetry.Counter
-	timeSeriesErrs  *telemetry.CounterMap
-
-	timeSeriesErrOutOfOrder *telemetry.Counter
-	timeSeriesErrUnknown    *telemetry.Counter
-
+	timeSeriesCount     *telemetry.Counter
 	firehoseEventsCount *telemetry.Counter
-
-	descriptorReqs *telemetry.Counter
-	descriptorErrs *telemetry.Counter
 )
 
 func init() {
-	timeSeriesReqs = telemetry.NewCounter(telemetry.Nozzle, "metrics.timeseries.requests")
 	timeSeriesCount = telemetry.NewCounter(telemetry.Nozzle, "metrics.timeseries.count")
-	timeSeriesErrs = telemetry.NewCounterMap(telemetry.Nozzle, "metrics.timeseries.errors", "error_type")
-
-	timeSeriesErrOutOfOrder = &telemetry.Counter{}
-	timeSeriesErrUnknown = &telemetry.Counter{}
-
-	timeSeriesErrs.Set("out_of_order", timeSeriesErrOutOfOrder)
-	timeSeriesErrs.Set("unknown", timeSeriesErrUnknown)
-
 	firehoseEventsCount = telemetry.NewCounter(telemetry.Nozzle, "metrics.firehose_events.emitted.count")
-
-	descriptorReqs = telemetry.NewCounter(telemetry.Nozzle, "metrics.descriptor.requests")
-	descriptorErrs = telemetry.NewCounter(telemetry.Nozzle, "metrics.descriptor.errors")
 }
 
 type metricAdapter struct {
@@ -111,18 +89,9 @@ func (ma *metricAdapter) PostMetrics(metrics []*messages.Metric) {
 			Name:       projectName,
 			TimeSeries: series[low:high],
 		}
-		err := ma.client.Post(request)
 
-		if err != nil {
-			// This is an expected error once there is more than a single nozzle writing to Stackdriver.
-			// If one nozzle writes a metric occurring at time T2 and this one tries to write at T1 (where T2 later than T1)
-			// we will receive this error.
-			if strings.Contains(err.Error(), `Points must be written in order`) {
-				timeSeriesErrOutOfOrder.Increment()
-			} else {
-				timeSeriesErrUnknown.Increment()
-				ma.logger.Error("metricAdapter.PostMetrics", err, lager.Data{"info": "Unexpected Error", "request": request})
-			}
+		if err := ma.client.Post(request); err != nil {
+			ma.logger.Error("metricAdapter.PostMetrics", err, lager.Data{"info": "Unexpected Error", "request": request})
 		}
 	}
 
@@ -155,13 +124,7 @@ func (ma *metricAdapter) CreateMetricDescriptor(metric *messages.Metric) error {
 		MetricDescriptor: metric.MetricDescriptor(projectName),
 	}
 
-	descriptorReqs.Increment()
-	if err := ma.client.CreateMetricDescriptor(req); err != nil {
-		descriptorErrs.Increment()
-		return err
-	}
-
-	return nil
+	return ma.client.CreateMetricDescriptor(req)
 }
 
 func (ma *metricAdapter) fetchMetricDescriptorNames() error {

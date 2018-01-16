@@ -47,9 +47,6 @@ var _ = Describe("MetricAdapter", func() {
 	BeforeEach(func() {
 		firehoseEventsCount.Set(0)
 		timeSeriesCount.Set(0)
-		timeSeriesReqs.Set(0)
-		timeSeriesErrOutOfOrder.Set(0)
-		timeSeriesErrUnknown.Set(0)
 
 		client = &mocks.MockClient{}
 		logger = &mocks.MockLogger{}
@@ -259,33 +256,9 @@ var _ = Describe("MetricAdapter", func() {
 		subject.PostMetrics(metrics)
 		Expect(firehoseEventsCount.IntValue()).To(Equal(3))
 		Expect(timeSeriesCount.IntValue()).To(Equal(3))
-		Expect(timeSeriesReqs.IntValue()).To(Equal(1))
 
 		subject.PostMetrics(metrics)
 		Expect(firehoseEventsCount.IntValue()).To(Equal(6))
 		Expect(timeSeriesCount.IntValue()).To(Equal(6))
-		Expect(timeSeriesReqs.IntValue()).To(Equal(2))
-	})
-
-	It("measures out of order errors", func() {
-		metrics := []*messages.Metric{{}}
-		client.PostFn = func(req *monitoringpb.CreateTimeSeriesRequest) error {
-			return errors.New("GRPC Stuff. Points must be written in order. Other stuff")
-		}
-
-		subject.PostMetrics(metrics)
-		Expect(timeSeriesErrOutOfOrder.IntValue()).To(Equal(1))
-		Expect(timeSeriesErrUnknown.IntValue()).To(Equal(0))
-	})
-
-	It("measures unknown errors", func() {
-		metrics := []*messages.Metric{{}}
-
-		client.PostFn = func(req *monitoringpb.CreateTimeSeriesRequest) error {
-			return errors.New("tragedy strikes")
-		}
-		subject.PostMetrics(metrics)
-		Expect(timeSeriesErrOutOfOrder.IntValue()).To(Equal(0))
-		Expect(timeSeriesErrUnknown.IntValue()).To(Equal(1))
 	})
 })
