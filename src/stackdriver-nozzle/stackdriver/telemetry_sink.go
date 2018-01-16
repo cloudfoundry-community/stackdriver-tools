@@ -116,7 +116,7 @@ func (ts *telemetrySink) Init(registeredSeries []*expvar.KeyValue) {
 		req := &monitoringpb.CreateMetricDescriptorRequest{
 			Name: ts.projectPath,
 			MetricDescriptor: &metricpb.MetricDescriptor{
-				DisplayName: ts.metricDescriptorDisplayName(series.Key),
+				DisplayName: series.Key,
 				Name:        name,
 				Type:        ts.metricDescriptorType(series.Key),
 				Labels:      labels,
@@ -131,16 +131,12 @@ func (ts *telemetrySink) Init(registeredSeries []*expvar.KeyValue) {
 	}
 }
 
-func (ts *telemetrySink) metricDescriptorDisplayName(key string) string {
-	return fmt.Sprintf("stackdriver-nozzle/%s", key)
-}
-
 func (ts *telemetrySink) metricDescriptorName(key string) string {
 	return fmt.Sprintf("%s/metricDescriptors/%s", ts.projectPath, ts.metricDescriptorType(key))
 }
 
 func (ts *telemetrySink) metricDescriptorType(key string) string {
-	return fmt.Sprintf("custom.googleapis.com/stackdriver-nozzle/%s", key)
+	return fmt.Sprintf("custom.googleapis.com/%s", key)
 }
 
 const maxTimeSeries = 200
@@ -208,6 +204,8 @@ func duplicate(src map[string]string) map[string]string {
 
 func (ts *telemetrySink) timeSeriesInt(metricType string, interval *monitoringpb.TimeInterval, labels map[string]string, value int64) *monitoringpb.TimeSeries {
 	return &monitoringpb.TimeSeries{
+		MetricKind: metricpb.MetricDescriptor_CUMULATIVE,
+		ValueType:  metricpb.MetricDescriptor_INT64,
 		Metric: &metricpb.Metric{
 			Type:   metricType,
 			Labels: labels,

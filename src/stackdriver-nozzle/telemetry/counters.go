@@ -103,7 +103,7 @@ func forEachMetric(f func(expvar.KeyValue)) {
 	for mp, counters := range metricSet.prefixes {
 		for _, k := range counters {
 			val := Get(mp, k)
-			f(expvar.KeyValue{Key: k, Value: val.(expvar.Var)})
+			f(expvar.KeyValue{Key: mp.Qualify(k), Value: val.(expvar.Var)})
 		}
 	}
 }

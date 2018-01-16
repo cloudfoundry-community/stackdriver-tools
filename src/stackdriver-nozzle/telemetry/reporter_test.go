@@ -60,7 +60,7 @@ var _ = Describe("Reporter", func() {
 			Expect(sink.GetInit()).NotTo(BeNil())
 			init := sink.GetInit()
 			Expect(init).To(HaveLen(1))
-			Expect(init).To(ContainElement(&expvar.KeyValue{Key: "int", Value: intCount}))
+			Expect(init).To(ContainElement(&expvar.KeyValue{Key: telemetry.Nozzle.Qualify("int"), Value: intCount}))
 		})
 
 		It("reports updates", func() {
