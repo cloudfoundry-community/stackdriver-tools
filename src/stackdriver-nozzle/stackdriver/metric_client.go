@@ -44,11 +44,8 @@ func init() {
 	timeSeriesReqs = telemetry.NewCounter(telemetry.Nozzle, "metrics.timeseries.requests")
 	timeSeriesErrs = telemetry.NewCounterMap(telemetry.Nozzle, "metrics.timeseries.errors", "error_type")
 
-	timeSeriesErrOutOfOrder = &telemetry.Counter{}
-	timeSeriesErrUnknown = &telemetry.Counter{}
-
-	timeSeriesErrs.Set("out_of_order", timeSeriesErrOutOfOrder)
-	timeSeriesErrs.Set("unknown", timeSeriesErrUnknown)
+	timeSeriesErrOutOfOrder = timeSeriesErrs.MustCounter("out_of_order")
+	timeSeriesErrUnknown = timeSeriesErrs.MustCounter("unknown")
 
 	descriptorReqs = telemetry.NewCounter(telemetry.Nozzle, "metrics.descriptor.requests")
 	descriptorErrs = telemetry.NewCounter(telemetry.Nozzle, "metrics.descriptor.errors")

@@ -18,6 +18,7 @@ import (
 	"github.com/cloudfoundry-community/stackdriver-tools/src/stackdriver-nozzle/telemetry"
 	"github.com/cloudfoundry-community/stackdriver-tools/src/stackdriver-nozzle/version"
 	"github.com/cloudfoundry/lager"
+	"github.com/cloudfoundry/sonde-go/events"
 )
 
 type App struct {
@@ -80,12 +81,14 @@ func (a *App) newConsumer(ctx context.Context) (nozzle.Nozzle, error) {
 		return nil, err
 	}
 
+	sinks := []nozzle.Sink{}
 	logAdapter := a.newLogAdapter()
 	filteredLogSink, err := nozzle.NewFilterSink(logEvents, lbl, lwl,
 		nozzle.NewLogSink(a.labelMaker, logAdapter, a.c.NewlineToken))
 	if err != nil {
 		return nil, err
 	}
+	sinks = append(sinks, filteredLogSink)
 
 	// Destination for metrics
 	metricAdapter := a.newMetricAdapter()
@@ -101,8 +104,18 @@ func (a *App) newConsumer(ctx context.Context) (nozzle.Nozzle, error) {
 	if err != nil {
 		return nil, err
 	}
+	sinks = append(sinks, filteredMetricSink)
 
-	return nozzle.NewNozzle(a.logger, filteredLogSink, filteredMetricSink), nil
+	if a.c.EnableAppHttpMetrics {
+		httpSink := nozzle.NewHttpSink(a.logger, a.labelMaker)
+		filteredHttpSink, err := nozzle.NewFilterSink([]events.Envelope_EventType{events.Envelope_HttpStartStop}, nil, nil, httpSink)
+		if err != nil {
+			return nil, err
+		}
+		sinks = append(sinks, filteredHttpSink)
+	}
+
+	return nozzle.NewNozzle(a.logger, sinks...), nil
 }
 
 func (a *App) newLogAdapter() stackdriver.LogAdapter {

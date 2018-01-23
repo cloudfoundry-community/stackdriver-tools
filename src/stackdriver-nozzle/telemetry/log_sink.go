@@ -55,7 +55,10 @@ func (ls *logSink) Report(values []*expvar.KeyValue) {
 		case *CounterMap:
 			data.Do(func(mapVal expvar.KeyValue) {
 				if counterVal, ok := mapVal.Value.(*Counter); ok {
-					record(fmt.Sprintf("%s.%s", val.Key, mapVal.Key), counterVal)
+					// TODO(fluffle): dumping high-cardinality maps into logs
+					// is pretty horrible, but this data is really helpful
+					// for debugging. Find a reasonable solution.
+					record(fmt.Sprintf("%s{%s}", val.Key, mapVal.Key), counterVal)
 				}
 			})
 		}

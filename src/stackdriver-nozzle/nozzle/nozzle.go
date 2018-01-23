@@ -53,17 +53,11 @@ var (
 func init() {
 	firehoseErrs = telemetry.NewCounterMap(telemetry.Nozzle, "firehose.errors", "error_type")
 
-	firehoseErrEmpty = &telemetry.Counter{}
-	firehoseErrUnknown = &telemetry.Counter{}
-	firehoseErrCloseNormal = &telemetry.Counter{}
-	firehoseErrClosePolicyViolation = &telemetry.Counter{}
-	firehoseErrCloseUnknown = &telemetry.Counter{}
-
-	firehoseErrs.Set("empty", firehoseErrEmpty)
-	firehoseErrs.Set("unknown", firehoseErrUnknown)
-	firehoseErrs.Set("close_normal_closure", firehoseErrCloseNormal)
-	firehoseErrs.Set("close_policy_violation", firehoseErrClosePolicyViolation)
-	firehoseErrs.Set("close_unknown", firehoseErrCloseUnknown)
+	firehoseErrEmpty = firehoseErrs.MustCounter("empty")
+	firehoseErrUnknown = firehoseErrs.MustCounter("unknown")
+	firehoseErrCloseNormal = firehoseErrs.MustCounter("close_normal_closure")
+	firehoseErrClosePolicyViolation = firehoseErrs.MustCounter("close_policy_violation")
+	firehoseErrCloseUnknown = firehoseErrs.MustCounter("close_unknown")
 
 	firehoseEventsTotal = telemetry.NewCounter(telemetry.Nozzle, "firehose_events.total")
 	firehoseEventsDropped = telemetry.NewCounter(telemetry.Nozzle, "firehose_events.dropped")
@@ -71,11 +65,8 @@ func init() {
 }
 
 type nozzle struct {
-	logSink    Sink
-	metricSink Sink
-
-	logger lager.Logger
-
+	sinks   []Sink
+	logger  lager.Logger
 	session state
 }
 
@@ -85,11 +76,10 @@ type state struct {
 	running bool
 }
 
-func NewNozzle(logger lager.Logger, logSink Sink, metricSink Sink) Nozzle {
+func NewNozzle(logger lager.Logger, sinks ...Sink) Nozzle {
 	return &nozzle{
-		logSink:    logSink,
-		metricSink: metricSink,
-		logger:     logger,
+		sinks:  sinks,
+		logger: logger,
 	}
 }
 
@@ -156,8 +146,9 @@ func (n *nozzle) Stop() error {
 func (n *nozzle) handleEvent(envelope *events.Envelope) {
 	firehoseEventsReceived.Increment()
 	firehoseEventsTotal.Increment()
-	n.metricSink.Receive(envelope)
-	n.logSink.Receive(envelope)
+	for _, sink := range n.sinks {
+		sink.Receive(envelope)
+	}
 }
 
 func (n *nozzle) handleFirehoseError(err error) {

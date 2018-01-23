@@ -73,6 +73,10 @@ properties:
     description: Enable reporting counter events as cumulative Stackdriver metrics. This requires all CounterEvent messages for a given metric to be routed to the same nozzle process (which is the case if you run a single copy of the nozzle).
     default: false
 
+  nozzle.enable_app_http_metrics:
+    description: Enable generation of per-app HTTP metrics from HttpStartStop events.
+    default: false
+
   nozzle.event_filters.blacklist:
     description: |
       Should contain an array of maps with three keys 'sink' (valid values:
