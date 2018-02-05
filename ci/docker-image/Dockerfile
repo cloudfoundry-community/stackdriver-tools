@@ -16,6 +16,9 @@ RUN locale-gen en_US.UTF-8; dpkg-reconfigure locales
 WORKDIR /tmp/docker-build
 RUN apt-get -y install build-essential git-core curl wget jq sudo make gcc; apt-get clean
 
+# Ease of debugging
+RUN apt-get -y install vim; apt-get clean
+
 # Golang + Test dependencies
 ENV GO_VERSION=1.9.1
 ENV GO_SHA256SUM=07d81c6b6b4c2dcf1b5ef7c27aaebd3691cdb40548500941f92b221147c5d9c7
@@ -53,21 +56,11 @@ RUN apt-get -y install ruby2.3 ruby2.3-dev; apt-get clean
 RUN /bin/bash -l -c "gem install bundler bosh_cli --no-ri --no-rdoc"
 
 # Install BOSH2 CLI
+ENV BOSH2_VERSION=2.0.48
+ENV BOSH2_SHA1SUM=c807f1938494f4280d65ebbdc863eda3f883d72e
 
-# TODO(jrjohnson): Use this once bosh2 release with bosh-gscli v0.0.4
-#ENV BOSH2_VERSION=2.0.42
-#ENV BOSH2_SHA1SUM=a97b085e45a989abfcd88de77770bb6db0c8a29e
-#
-#RUN curl -LO https://s3.amazonaws.com/bosh-cli-artifacts/bosh-cli-${BOSH2_VERSION}-linux-amd64 && \
-#    echo "${BOSH2_SHA1SUM}  bosh-cli-${BOSH2_VERSION}-linux-amd64" > bosh-cli-${BOSH2_VERSION}-SHA1SUM && \
-#    sha1sum -cw --status bosh-cli-${BOSH2_VERSION}-SHA1SUM && \
-#    mv bosh-cli-${BOSH2_VERSION}-linux-amd64 /usr/local/bin/bosh2 && \
-#    chmod a+x /usr/local/bin/bosh2
-
-ENV BOSH2_DEV_SHA1SUM=7fd9ca0db9f3b4f8d6768602e91fde5dee347129
-RUN curl -LO https://storage.googleapis.com/stackdriver-tools-blobs/bosh && \
-    echo "${BOSH2_DEV_SHA1SUM}  bosh" > bosh-SHA1SUM && \
-    sha1sum -cw --status bosh-SHA1SUM && \
-    mv bosh /usr/local/bin/bosh2 && \
+RUN curl -LO https://s3.amazonaws.com/bosh-cli-artifacts/bosh-cli-${BOSH2_VERSION}-linux-amd64 && \
+    echo "${BOSH2_SHA1SUM}  bosh-cli-${BOSH2_VERSION}-linux-amd64" > bosh-cli-${BOSH2_VERSION}-SHA1SUM && \
+    sha1sum -cw --status bosh-cli-${BOSH2_VERSION}-SHA1SUM && \
+    mv bosh-cli-${BOSH2_VERSION}-linux-amd64 /usr/local/bin/bosh2 && \
     chmod a+x /usr/local/bin/bosh2
-
