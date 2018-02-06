@@ -279,11 +279,15 @@ addons:
     release: stackdriver-tools
 ```
 
-To deploy the runtime config:
+To update the runtime config:
 
 ```
-bosh update runtime-config runtime.yml
-bosh deploy
+bosh2 update-runtime-config -d <your deployment> runtime.yml
+```
+
+Then redeploy your manifest:
+```
+bosh2 deploy -d <your deployment> path/to/manifest.yml
 ```
 
 ## Development
