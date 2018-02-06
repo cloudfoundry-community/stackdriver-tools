@@ -80,19 +80,36 @@ To use any of the jobs in this BOSH release, first upload it to your BOSH
 director:
 
 ```
-bosh upload release https://storage.googleapis.com/bosh-gcp/beta/stackdriver-tools/latest.tgz
+bosh2 upload-release https://storage.googleapis.com/bosh-gcp/beta/stackdriver-tools/latest.tgz
 ```
 
-The [stackdriver-tools.yml][tools-yaml] sample deployment manifest illustrates how to
+The [stackdriver-tools.yml][tools-yaml] sample [BOSH 2.0 manifest][bosh20] illustrates how to
 use all 3 jobs in this release (nozzle, host logging, and host monitoring). You
-can deploy the sample with:
+can deploy the sample with the following commands:
 
 [tools-yaml]: manifests/stackdriver-tools.yml
-
+[bosh20]: https://bosh.io/docs/manifest-v2.html
 
 ```
-bosh deployment manifests/stackdriver-tools.yml 
-bosh -n deploy
+bosh2 upload-stemcell https://bosh.io/d/stemcells/bosh-google-kvm-ubuntu-trusty-go_agent
+
+bosh2 update-cloud-config -n manifests/cloud-config-gcp.yml \
+          -v zone=... \
+          -v network=... \
+          -v subnetwork=... \
+          -v "tags=['stackdriver-nozzle']" \
+          -v internal_cidr=... \
+          -v internal_gw=... \
+          -v "reserved=[10....-10....]"
+
+bosh2 deploy manifests/stackdriver-tools.yml \
+            -d stackdriver-nozzle \
+            --var=firehose_endpoint=https://.. \
+            --var=firehose_username=stackdriver_nozzle \
+            --var=firehose_password=... \
+            --var=skip_ssl=false \
+            --var=gcp_project_id=... \
+            --var-file=gcp_service_account_json=path/to/service_account.json \
 ```
 
 This will create a self-contained deployment that sends Cloud Foundry firehose

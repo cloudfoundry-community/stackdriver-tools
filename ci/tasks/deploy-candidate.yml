@@ -19,6 +19,7 @@ params:
   bosh_director_address: replace-me
   bosh_user:             replace-me
   bosh_password:         replace-me
+  bosh_ca_cert:          replace-me
   cf_deployment_name:    replace-me
 
   # CF settings

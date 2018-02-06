@@ -79,6 +79,7 @@ jobs:
           bosh_director_address: {{bosh_director_address}}
           bosh_user: {{bosh_user}}
           bosh_password: {{bosh_password}}
+          bosh_ca_cert: {{bosh_ca_cert}}
           google_region: {{google_region}}
           google_zone: {{google_zone}}
           network: {{network}}
@@ -121,8 +122,8 @@ resources:
   - name: stackdriver-tools-in
     type: git
     source:
-      uri: https://github.com/cloudfoundry-community/stackdriver-tools.git
-      branch: develop
+      uri: {{source_uri}}
+      branch: {{source_branch}}
       ignore_paths:
         - .final_builds/**/*.yml
         - releases/**/*.yml

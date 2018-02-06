@@ -1,33 +1,26 @@
 ---
-<%
-director_uuid = ""
-# Endpoint for the Cloud Foundry API (eg: https://api.cf.example.org/)
-firehose_endpoint = ""
-firehose_username = ""
-firehose_password = ""
-# Log/Metric Events to send to Stackdriver
-events_to_stackdriver_logging = "LogMessage,Error,HttpStartStop,CounterEvent,ValueMetric,ContainerMetric"
-events_to_stackdriver_monitoring = "CounterEvent,ValueMetric,ContainerMetric"
-zone = ""
-network_name = ""
-subnetwork_name = ""
-# Skip SSL validation, shortcut for evaluating, do not use in production
-skip_ssl = false
-%>
 name: stackdriver-nozzle
-director_uuid: <%= director_uuid %>
 
 releases:
 - name: stackdriver-tools
   version: latest
 
-jobs:
+# This block does not belong in here or needs to be specialized for GCP in a different way
+stemcells:
+- alias: default
+  name: bosh-google-kvm-ubuntu-trusty-go_agent
+  version: latest
+
+instance_groups:
 - name: stackdriver-nozzle
-  instances: 2
+  instances: 1
   networks:
-  - name: private
-  resource_pool: nozzle_pool
-  templates:
+  - name: default
+  azs: [z1]
+  vm_type: default
+  persistent_disk_type: default
+  stemcell: default
+  jobs:
   - name: stackdriver-nozzle
     release: stackdriver-tools
   - name: google-fluentd
@@ -36,48 +29,16 @@ jobs:
     release: stackdriver-tools
   properties:
     firehose:
-      endpoint: <%= firehose_endpoint %>
-      username: <%= firehose_username %>
-      password: <%= firehose_password %>
-      skip_ssl: <%= skip_ssl %> 
-      events_to_stackdriver_logging: <%= events_to_stackdriver_logging %>
-      events_to_stackdriver_monitoring: <%= events_to_stackdriver_monitoring %>
-
-compilation:
-  workers: 3
-  network: private
-  reuse_compilation_vms: true
-  cloud_properties:
-    zone: <%= zone %>
-    machine_type: n1-standard-8
-    root_disk_size_gb: 100
-    root_disk_type: pd-ssd
-    preemptible: true
-
-resource_pools:
-- name: nozzle_pool
-  network: private
-  stemcell:
-    name: bosh-google-kvm-ubuntu-trusty-go_agent
-    version: latest
-  cloud_properties:
-    zone: <%= zone %>
-    machine_type: n1-standard-4
-    root_disk_size_gb: 20
-    root_disk_type: pd-standard
-    service_account: <%= service_account %>
-
-networks:
-- name: private
-  type: dynamic
-  cloud_properties:
-    zone: <%= zone %>
-    network_name: <%= network_name %>
-    subnetwork_name: <%= subnetwork_name %>
-    ephemeral_external_ip: false
-    tags:
-    - internal
-    - no-ip
+      endpoint: ((firehose_endpoint))
+      username: ((firehose_username))
+      password: ((firehose_password))
+      skip_ssl: ((skip_ssl))
+      events_to_stackdriver_logging: LogMessage,Error,HttpStartStop
+      events_to_stackdriver_monitoring: CounterEvent,ValueMetric,ContainerMetric
+    gcp:
+      project_id: ((gcp_project_id))
+    credentials:
+      application_default_credentials: ((gcp_service_account_json))
 
 update:
   canaries: 1

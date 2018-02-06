@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 
-set -e
+set -ex
 
 source stackdriver-tools/ci/tasks/utils.sh
 
@@ -8,6 +8,7 @@ source stackdriver-tools/ci/tasks/utils.sh
 check_param bosh_director_address
 check_param bosh_user
 check_param bosh_password
+check_param bosh_ca_cert
 
 # CF settings
 check_param cf_api_url
@@ -31,122 +32,51 @@ echo "Configuring SSH"
 echo -e "${ssh_key}" > /tmp/${ssh_user}.key
 chmod 700 /tmp/${ssh_user}.key
 
+echo "Configuring credentials"
+echo "${cf_service_account_json}" > /tmp/service_account.json
+
 echo "Connecting to SSH bastion..."
-ssh bosh@${ssh_bastion_address} -i /tmp/${ssh_user}.key -o StrictHostKeyChecking=no -L 25555:${bosh_director_address}:25555 -nNT &
+ssh -4 -D 5000 -fNC bosh@${ssh_bastion_address} -i /tmp/${ssh_user}.key -o StrictHostKeyChecking=no
+export BOSH_ALL_PROXY=socks5://localhost:5000
 
 echo "Using BOSH CLI version..."
-bosh version
+bosh2 --version
+export BOSH_CLIENT=${bosh_user}
+export BOSH_CLIENT_SECRET=${bosh_password}
+export BOSH_ENVIRONMENT=https://${bosh_director_address}:25555
+export BOSH_CA_CERT=${bosh_ca_cert}
 
 echo "Targeting BOSH director..."
-bosh -n target localhost
-bosh login ${bosh_user} ${bosh_password}
-director_uuid=$(bosh status --uuid)
+bosh2 login -n
+bosh2 env
 
 echo "Uploading nozzle release..."
-bosh upload release stackdriver-tools-artifacts/*.tgz
+bosh2 upload-release stackdriver-tools-artifacts/*.tgz
 
-nozzle_manifest_name=stackdriver-nozzle.yml
-cat > ${nozzle_manifest_name} <<EOF
----
+pushd stackdriver-tools
+echo "Updating cloud config"
+bosh2 update-cloud-config -n manifests/cloud-config-gcp.yml \
+          -v zone=${google_zone} \
+          -v network=${network} \
+          -v subnetwork=${private_subnetwork} \
+          -v "tags=['stackdriver-nozzle']" \
+          -v internal_cidr=10.0.0.0/16 \
+          -v internal_gw=10.0.0.1 \
+          -v "reserved=[10.0.0.1-10.0.0.10]"
 
-name: stackdriver-nozzle-ci
-director_uuid: ${director_uuid}
+bosh2 cloud-config
 
-releases:
-- name: stackdriver-tools
-  version: ${semver}
+echo "Deploying nozzle release"
+bosh2 deploy -n manifests/stackdriver-tools.yml \
+            -d stackdriver-nozzle \
+            -v firehose_endpoint=${cf_api_url} \
+            -v firehose_username=${firehose_username} \
+            -v firehose_password=${firehose_password} \
+            -v skip_ssl=true \
+            -v gcp_project_id=${cf_project_id} \
+            --var-file gcp_service_account_json=/tmp/service_account.json
 
-jobs:
-- name: stackdriver-nozzle
-  instances: 3
-  networks:
-    - name: private
-  resource_pool: common
-  templates:
-    - name: stackdriver-nozzle
-      release: stackdriver-tools
-    - name: google-fluentd
-      release: stackdriver-tools
-    - name: stackdriver-agent
-      release: stackdriver-tools
-  properties:
-    firehose:
-      endpoint: ${cf_api_url}
-      events_to_stackdriver_logging: LogMessage,Error,HttpStartStop,CounterEvent,ValueMetric,ContainerMetric
-      events_to_stackdriver_monitoring: CounterEvent,ValueMetric,ContainerMetric
-      username: ${firehose_username}
-      password: ${firehose_password}
-      skip_ssl: true
-      newline_token: ∴
-    gcp:
-      project_id: ${cf_project_id}
-    credentials:
-      application_default_credentials: '${cf_service_account_json}'
-    nozzle:
-      debug: true
-
-compilation:
-  workers: 6
-  network: private
-  reuse_compilation_vms: true
-  cloud_properties:
-    zone: ${google_zone}
-    machine_type: n1-standard-8
-    root_disk_size_gb: 100
-    root_disk_type: pd-ssd
-    preemptible: true
-
-resource_pools:
-  - name: common
-    network: private
-    stemcell:
-      name: bosh-google-kvm-ubuntu-trusty-go_agent
-      version: latest
-    cloud_properties:
-      zone: ${google_zone}
-      machine_type: n1-standard-4
-      root_disk_size_gb: 20
-      root_disk_type: pd-standard
-  - name: nozzle
-    network: private
-    stemcell:
-      name: bosh-google-kvm-ubuntu-trusty-go_agent
-      version: latest
-    cloud_properties:
-      zone: ${google_zone}
-      machine_type: n1-standard-4
-      root_disk_size_gb: 20
-      root_disk_type: pd-standard
-
-networks:
-  - name: private
-    type: manual
-    subnets:
-    - range: 192.168.0.0/16
-      reserved:
-      - 192.168.0.0-192.168.1.15
-      gateway: 192.168.0.1
-      cloud_properties:
-        zone: ${google_zone}
-        network_name: ${network}
-        subnetwork_name: ${private_subnetwork}
-        ephemeral_external_ip: false
-        tags:
-          - stackdriver-nozzle-internal
-          - internal
-          - no-ip
-
-update:
-  canaries: 1
-  max_in_flight: 1
-  serial: false
-  canary_watch_time: 1000-60000
-  update_watch_time: 1000-60000
-
-EOF
-
-bosh deployment ${nozzle_manifest_name}
-bosh -n deploy
+popd
 
 # Move release and its SHA256
 mv stackdriver-tools-artifacts/*.tgz candidate/latest.tgz
