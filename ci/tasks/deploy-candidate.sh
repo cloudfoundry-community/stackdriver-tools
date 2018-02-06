@@ -36,7 +36,7 @@ echo "Configuring credentials"
 echo "${cf_service_account_json}" > /tmp/service_account.json
 
 echo "Connecting to SSH bastion..."
-ssh -4 -D 5000 -fNC bosh@${ssh_bastion_address} -i /tmp/${ssh_user}.key -o StrictHostKeyChecking=no
+ssh -4 -D 5000 -NC bosh@${ssh_bastion_address} -i /tmp/${ssh_user}.key -o StrictHostKeyChecking=no &
 export BOSH_ALL_PROXY=socks5://localhost:5000
 
 echo "Using BOSH CLI version..."
