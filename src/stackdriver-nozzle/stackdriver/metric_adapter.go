@@ -33,13 +33,11 @@ type MetricAdapter interface {
 }
 
 var (
-	timeSeriesCount     *telemetry.Counter
-	firehoseEventsCount *telemetry.Counter
+	timeSeriesCount *telemetry.Counter
 )
 
 func init() {
 	timeSeriesCount = telemetry.NewCounter(telemetry.Nozzle, "metrics.timeseries.count")
-	firehoseEventsCount = telemetry.NewCounter(telemetry.Nozzle, "metrics.firehose_events.emitted.count")
 }
 
 type metricAdapter struct {
@@ -108,7 +106,6 @@ func (ma *metricAdapter) buildTimeSeries(metrics []*messages.Metric) []*monitori
 			continue
 		}
 
-		firehoseEventsCount.Increment()
 		timeSeriesCount.Increment()
 		timeSerieses = append(timeSerieses, metric.TimeSeries())
 	}

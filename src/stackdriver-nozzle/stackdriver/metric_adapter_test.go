@@ -45,7 +45,6 @@ var _ = Describe("MetricAdapter", func() {
 	)
 
 	BeforeEach(func() {
-		firehoseEventsCount.Set(0)
 		timeSeriesCount.Set(0)
 
 		client = &mocks.MockClient{}
@@ -254,11 +253,9 @@ var _ = Describe("MetricAdapter", func() {
 		}
 
 		subject.PostMetrics(metrics)
-		Expect(firehoseEventsCount.IntValue()).To(Equal(3))
 		Expect(timeSeriesCount.IntValue()).To(Equal(3))
 
 		subject.PostMetrics(metrics)
-		Expect(firehoseEventsCount.IntValue()).To(Equal(6))
 		Expect(timeSeriesCount.IntValue()).To(Equal(6))
 	})
 })
