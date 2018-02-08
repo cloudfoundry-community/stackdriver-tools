@@ -46,7 +46,7 @@ type LogAdapter interface {
 }
 
 // NewLogAdapter returns a LogAdapter that can post to Stackdriver Logging.
-func NewLogAdapter(projectID string, batchCount int, batchDuration time.Duration) (LogAdapter, <-chan error) {
+func NewLogAdapter(projectID string, batchCount int, batchDuration time.Duration, inFlight int) (LogAdapter, <-chan error) {
 	errs := make(chan error)
 	loggingClient, err := logging.NewClient(context.Background(), projectID, option.WithUserAgent(version.UserAgent()))
 	if err != nil {
@@ -61,6 +61,7 @@ func NewLogAdapter(projectID string, batchCount int, batchDuration time.Duration
 	sdLogger := loggingClient.Logger(logId,
 		logging.EntryCountThreshold(batchCount),
 		logging.DelayThreshold(batchDuration),
+		logging.ConcurrentWriteLimit(inFlight),
 	)
 
 	resource := &mrpb.MonitoredResource{

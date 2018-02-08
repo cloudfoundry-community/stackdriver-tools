@@ -53,6 +53,10 @@ properties:
     description: Flush interval (in seconds) of the internal logging buffer
     default: 30
 
+  nozzle.logging_requests_in_flight:
+    description: The maximum permitted number of concurrent in-flight requests to Stackdriver Logging.
+    default: 16
+
   nozzle.debug:
     description: Enable debug features for the stackdriver-nozzle for development or troubleshooting
     default: false

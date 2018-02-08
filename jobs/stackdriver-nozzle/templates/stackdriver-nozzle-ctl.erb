@@ -38,6 +38,7 @@ case $1 in
     export FOUNDATION_NAME=<%= p('nozzle.foundation_name', 'cf') %>
     export LOGGING_BATCH_COUNT=<%= p('nozzle.logging_batch_count', '1000') %>
     export LOGGING_BATCH_DURATION=<%= p('nozzle.logging_batch_duration', '30') %>
+    export LOGGING_REQUESTS_IN_FLIGHT=<%= p('nozzle.logging_requests_in_flight', '16') %>
     export ENABLE_CUMULATIVE_COUNTERS=<%= p('nozzle.enable_cumulative_counters', 'false') %>
     export ENABLE_APP_HTTP_METRICS=<%= p('nozzle.enable_app_http_metrics', 'false') %>
 
