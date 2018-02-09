@@ -39,7 +39,7 @@ Export the follow environment variable to the name of your Stackdriver Monitorin
 export GCP_PROJECT_ID=<Your GCP Project ID, eg cf-prod-monitoring-foo>
 ```
 
-Execute the `clear-metrics-descriptors` program:
+Execute the `clear-metrics-descriptors` program you compiled in step 2:
 ```bash
 ./clear-metrics-descriptors
 ```
