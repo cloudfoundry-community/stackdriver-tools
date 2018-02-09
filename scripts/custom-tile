@@ -22,7 +22,7 @@ if ! git rev-parse; then
 fi
 cd "$(git rev-parse --show-toplevel)"
 
-export VERSION="0.0.1-custom.$(git rev-parse --short HEAD)"
+export VERSION="0.0.$(date +%s)-custom.$(git rev-parse --short HEAD)"
 export TMP_GOPATH="/tmp/gopath"
 
 usage() {
