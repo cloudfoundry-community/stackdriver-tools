@@ -16,8 +16,8 @@ go install github.com/onsi/ginkgo/...
 go get github.com/golang/lint/golint
 
 ## Install Bosh 2 CLI
-BOSH2_VERSION="2.0.45"
-BOSH2_SHA1="bf04be72daa7da0c9bbeda16fda7fc7b2b8af51e"
+BOSH2_VERSION=2.0.48
+BOSH2_SHA1="c807f1938494f4280d65ebbdc863eda3f883d72e"
 
 wget -q -c "https://s3.amazonaws.com/bosh-cli-artifacts/bosh-cli-${BOSH2_VERSION}-linux-amd64"
 echo "${BOSH2_SHA1}	bosh-cli-${BOSH2_VERSION}-linux-amd64" > "bosh2_${BOSH2_VERSION}_SHA1SUM"
