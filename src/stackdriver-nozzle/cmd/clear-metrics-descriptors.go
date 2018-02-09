@@ -38,11 +38,17 @@ import (
 
 	monitoring "cloud.google.com/go/monitoring/apiv3"
 
+	"bufio"
+	"log"
+	"strings"
+
 	"golang.org/x/net/context"
 	"google.golang.org/api/iterator"
 	"google.golang.org/api/option"
 	monitoringpb "google.golang.org/genproto/googleapis/monitoring/v3"
 )
+
+const projectIdEnv = "GCP_PROJECT_ID"
 
 func main() {
 	ctx := context.Background()
@@ -51,29 +57,54 @@ func main() {
 		panic(err)
 	}
 
-	projectID := os.Getenv("GCP_PROJECT_ID")
+	projectID := os.Getenv(projectIdEnv)
+	if projectID == "" {
+		log.Fatalf("error: environment variable %s is empty, set it to the project ID used for Stackdriver Monitoring", projectIdEnv)
+	}
+
+	log.Printf("discovering metric descriptors for %s", projectID)
 
 	req := &monitoringpb.ListMetricDescriptorsRequest{
 		Name:   fmt.Sprintf("projects/%s", projectID),
 		Filter: "metric.type = starts_with(\"custom.googleapis.com/\")",
 	}
 	it := metricClient.ListMetricDescriptors(ctx, req)
+	var names []string
 	for {
 		resp, err := it.Next()
 		if err == iterator.Done {
 			break
 		}
 		if err != nil {
-			panic(err)
+			log.Fatalf("listing metric descriptors for %s: %v", projectID, err)
 		}
 
-		fmt.Printf("Clearing %v\n", resp.Name)
+		names = append(names, resp.Name)
+		log.Printf("Found metric descriptor for deletion: %s\n", resp.Name)
+	}
+
+	if len(names) == 0 {
+		log.Printf("no metric descriptors found for deletion")
+		os.Exit(0)
+	}
+
+	fmt.Printf("Delete listed metric descriptors from project?\n")
+	fmt.Printf("This is irreversible and will result in data loss: (y/n) ")
+	reader := bufio.NewReader(os.Stdin)
+	confirm, _ := reader.ReadString('\n')
+
+	if strings.TrimSpace(strings.ToLower(confirm)) != "y" {
+		os.Exit(0)
+	}
+
+	for _, name := range names {
+		log.Printf("Clearing: %s\n", name)
 		req := &monitoringpb.DeleteMetricDescriptorRequest{
-			Name: resp.Name,
+			Name: name,
 		}
 		err = metricClient.DeleteMetricDescriptor(ctx, req)
 		if err != nil {
-			panic(err)
+			log.Fatalf("deleting %s: %v", name, err)
 		}
 	}
 }
