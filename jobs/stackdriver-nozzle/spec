@@ -75,7 +75,7 @@ properties:
 
   nozzle.enable_cumulative_counters:
     description: Enable reporting counter events as cumulative Stackdriver metrics. This requires all CounterEvent messages for a given metric to be routed to the same nozzle process (which is the case if you run a single copy of the nozzle).
-    default: false
+    default: true
 
   nozzle.enable_app_http_metrics:
     description: Enable generation of per-app HTTP metrics from HttpStartStop events.
