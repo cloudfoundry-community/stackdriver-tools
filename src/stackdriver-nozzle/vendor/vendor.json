@@ -39,10 +39,10 @@
 			"revisionTime": "2017-09-07T13:44:44Z"
 		},
 		{
-			"checksumSHA1": "4d0MpRY76M+iwt8yrnWnL+RzRtw=",
+			"checksumSHA1": "WJBH5TFiXNjdmq9l/vsGc0UhZAM=",
 			"path": "cloud.google.com/go/logging",
-			"revision": "1816f0b79338997f0dc2dc43e2b725a8560e80de",
-			"revisionTime": "2017-09-07T13:44:44Z"
+			"revision": "8a6926029c1fa28ad24746f6feb11c90abe6bdce",
+			"revisionTime": "2016-11-03T09:58:51Z"
 		},
 		{
 			"checksumSHA1": "2Hr929XAOiiLE58cFjRcQ/yEkVo=",
@@ -673,10 +673,10 @@
 			"revisionTime": "2017-09-09T00:03:25Z"
 		},
 		{
-			"checksumSHA1": "eHVH24oTjntznqeFbggEeaN3XU8=",
+			"checksumSHA1": "HWIhW/XO2mHu6Flmgnf260tprTU=",
 			"path": "google.golang.org/api/support/bundler",
-			"revision": "b6a02105ec5a446209e9d38557f0e1ac30cacf82",
-			"revisionTime": "2017-09-09T00:03:25Z"
+			"revision": "e771abbff930c1ae3c6e2c35117fc88856f11b2f",
+			"revisionTime": "2018-01-30T22:58:17Z"
 		},
 		{
 			"checksumSHA1": "W24V3U8s386thzZOK6g+EjlKeu0=",

@@ -123,6 +123,7 @@ func (a *App) newLogAdapter() stackdriver.LogAdapter {
 		a.c.ProjectID,
 		a.c.LoggingBatchCount,
 		time.Duration(a.c.LoggingBatchDuration)*time.Second,
+		a.c.LoggingReqsInFlight,
 	)
 	go func() {
 		err := <-logErrs

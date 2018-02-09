@@ -43,6 +43,7 @@ packages:
         foundation_name: (( .properties.foundation_name.value ))
         logging_batch_count: (( .properties.logging_batch_count.value ))
         logging_batch_duration: (( .properties.logging_batch_duration.value ))
+        logging_requests_in_flight: (( .properties.logging_requests_in_flight.value ))
         debug: (( .properties.debug.value ))
         event_filters:
           blacklist: (( .properties.blacklist.value ))
@@ -108,6 +109,11 @@ forms:
     default: 1000
     label: Logging Batch Count
     description: Batch size for log messages being sent to Stackdriver
+  - name: logging_requests_in_flight
+    type: integer
+    default: 16
+    label: Max In-Flight Logging Requests
+    description: The maximum permitted number of concurrent in-flight requests to Stackdriver Logging.
   - name: metric_path_prefix
     type: string
     default: firehose
