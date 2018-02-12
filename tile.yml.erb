@@ -136,9 +136,16 @@ forms:
     ## Event Filters
 
     Event filters allow users to selectively enable or disable the processing of
-    firehose events by the Stackdriver Nozzle. The default behaviour is to process
-    all events. Events that match a blacklist filter will not be processed unless
-    they also match a whitelist filter.
+    firehose events by the Stackdriver Nozzle. Events that match a blacklist filter
+    will not be processed unless they also match a whitelist filter.
+
+    **IMPORTANT:** The Nozzle tile configures a default black/whitelist combination that
+    whitelists only Pivotal's Key Performance / Capacity Scaling Indicators for
+    transmission to Stackdriver Monitoring, because Stackdriver limits users to 500
+    custom metric descriptors. **Removing the blacklist may result in this limit being hit.**
+
+    *   **PCF KPIs:** https://docs.pivotal.io/pivotalcf/2-0/monitoring/kpi.html
+    *   **PCF KCSIs:** https://docs.pivotal.io/pivotalcf/2-0/monitoring/key-cap-scaling.html
 
     A filter rule has three elements.
 
@@ -162,7 +169,11 @@ forms:
     label: Event Blacklist
     description: Events matching these blacklist filters will not be propagated to Stackdriver.
     configurable: true
-    optional: true
+    default:
+    - description: Blacklist all metrics from Stackdriver Monitoring.
+      type: name
+      regexp: '.*'
+      sink: monitoring
     property_blueprints:
     - name: description
       type: string
@@ -200,7 +211,63 @@ forms:
     label: Event Whitelist
     description: Events matching these whitelist filters will be propagated to Stackdriver even if they match a blacklist filter above.
     configurable: true
-    optional: true
+    default:
+    - description: Whitelist auctioneer KPI metrics.
+      type: name
+      regexp: 'auctioneer\.LockHeld|auctioneer\.Auctioneer.*'
+      sink: monitoring
+    - description: Whitelist bbs KPI metrics.
+      type: name
+      regexp: 'bbs\.(LockHeld|RequestLatency)|bbs\.Domain\..*|bbs\..*LRP.*'
+      sink: monitoring
+    - description: Whitelist rep KPI metrics.
+      type: name
+      regexp: 'rep\.Capacity(Remaining|Total)(Memory|Disk|Containers)|rep\.RepBulkSyncDuration|rep\.UnhealthyCell'
+      sink: monitoring
+    - description: Whitelist locket KPI metrics.
+      type: name
+      regexp: 'locket\.Active.*'
+      sink: monitoring
+    - description: Whitelist route_emitter KPI metrics.
+      type: name
+      regexp: 'route_emitter\.MessagesEmitted|route_emitter\..*Route.*'
+      sink: monitoring
+    - description: Whitelist MySQL KPI metrics.
+      type: name
+      regexp: '/mysql/.*'
+      sink: monitoring
+    - description: Whitelist gorouter KPI metrics.
+      type: name
+      regexp: 'gorouter\.(file_descriptors|backend_exhausted_conns|ms_since_last_registry_update|total_routes|registry_message\.route-emitter)'
+      sink: monitoring
+    - description: Whitelist gorouter response metrics.
+      type: name
+      regexp: 'gorouter\.(total_requests|latency.*|responses.*|bad_gateways)'
+      sink: monitoring
+    - description: Whitelist UAA KPI metrics.
+      type: name
+      regexp: 'uaa\.requests\.global\.completed\.count|uaa\.server\.inflight\.count'
+      sink: monitoring
+    - description: Whitelist loggregator KPI metrics.
+      type: name
+      regexp: 'loggregator\.(doppler|rlp)\.(ingress|dropped)'
+      sink: monitoring
+    - description: Whitelist Doppler KPI metrics.
+      type: name
+      regexp: 'DopplerServer\.listeners\.totalReceivedMessageCount|DopplerServer\.doppler\.shedEnvelopes'
+      sink: monitoring
+    - description: Whitelist syslog KPI metrics.
+      type: name
+      regexp: '(scalablesyslog|cf-syslog-drain)\.(adapter\.(ingress|dropped)|scheduler\.drains)'
+      sink: monitoring
+    - description: Whitelist BOSH system KPI metrics.
+      type: name
+      regexp: 'system\..*'
+      sink: monitoring
+    - description: Whitelist metrics derived or republished by Healthwatch.
+      type: name
+      regexp: 'health(watch)?\..*'
+      sink: monitoring
     property_blueprints:
     - name: description
       type: string
