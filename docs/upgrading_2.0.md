@@ -15,14 +15,23 @@ Ensure the `stackdriver-nozzle` is not running during this process.
 ## Singleton Deployment of `stackdriver-nozzle`
 The `stackdriver-nozzle` keeps track of counter metrics to send to Stackdriver Monitoring at the instance level by default. 
 If multiple copies of the `stackdriver-nozzle` are reporting the same metrics for a Cloud Foundry deployment they
-will report incorrect data. 
+will report incorrect data. This issue is mitigated by running a single instance of the nozzle. 
+An upstream feature in Loggregator is being [tracked](https://www.pivotaltracker.com/n/projects/993188/stories/154821450) to address this.
 
-This issue is mitigated by running a single instance of the nozzle. 
-An upstream feature in Loggregator is being [tracked](https://www.pivotaltracker.com/n/projects/993188/stories/154821450) to fix this.
-It is highly recommended that users evaluate running a single instance. This release significantly improves
-performance of the `stackdriver-nozzle` and will reduce the needed footprint compared to earlier releases.
+Operations Manager/Tile users are forced to run the `stackdriver-nozzle` job as a single instance. 
 
-If you find that a single instance is not performing as needed then the manifest setting `nozzle.enable_cumulative_counters` 
-can be set to false. Note this option is not avaliable to tile users and will be removed once the tracked
-issue is resolved. It is also possible to manually shard to multiple nozzle instances by only subscribing
-to specific events (see: `firehose.events_to_stackdriver_monitoring`).
+BOSH release users must ensure they are running a single instance and should review the [example manifest](../manifests/stackdriver-tools.yml).
+
+Users are encouraged to vertically scale the `stackdriver-nozzle` VM in case of resource saturation. A number of performance optimizations in this release make sure 
+that a single instance of the nozzle is able to provide enough throughput for a medium sized PCF installation.
+
+If you find the need to scale the `stackdriver-nozzle` job horizontally you must use the BOSH release. There are two possible ways forward:
+
+- If the nozzle is heavily used to proxy log events, you can run two separate nozzle bosh jobs: 
+  one for log messages (which can be scaled horizontally), and the other for metrics (which will need to have a single instance). 
+  Nozzle jobs can be configured to receive only a subset of events via `firehose.events_to_stackdriver_logging` and 
+  `firehose.events_to_stackdriver_monitoring` BOSH manifest properties.
+- You can disable cumulative counter tracking completely by setting `nozzle.enable_cumulative_counters` to `false`. 
+  This will revert to the old behavior of exporting each counter as a pair of gauges (with `.delta` and `.total` suffixes). 
+  With cumulative counters disabled, a single nozzle job can be configured to run with multiple instances
+
