@@ -17,11 +17,9 @@ gcloud auth login
 gcloud auth appliaction-default login
 ```
 
-## 2. Fetch and build `clear-metrics-descriptors
+## 2. Fetch `clear-metrics-descriptors`
 ```bash
 go get -d github.com/cloudfoundry-community/stackdriver-tools/src/stackdriver-nozzle
-GOBIN=`pwd` go install $(go env GOPATH)/src/github.com/cloudfoundry-community/stackdriver-tools/src/stackdriver-nozzle/cmd/clear-metrics-descriptors.go
-ls clear-metrics-descriptors
 ``` 
 
 ## 3. Stop all instance of `stackdriver-nozzle`
@@ -34,14 +32,10 @@ to delete the product and apply changes to your deployment.
 If you're using the `stackdriver-tools` BOSH release, run: `bosh -d <your deployment> --stop stackdriver-nozle`
 
 ## 4. Clear Metric Descriptors
-Export the follow environment variable to the name of your Stackdriver Monitoring project:
+Export the follow environment variable to the name of your Stackdriver Monitoring project and execute the script:
 ```bash
-export GCP_PROJECT_ID=<Your GCP Project ID, eg cf-prod-monitoring-foo>
-```
-
-Execute the `clear-metrics-descriptors` program you compiled in step 2:
-```bash
-./clear-metrics-descriptors
+cd $(go env GOPATH)/src/github.com/cloudfoundry-community/stackdriver-tools/src/stackdriver-nozzle/cmd
+go run ./clear-metrics-descriptors.go --project-id <your GCP project, eg cf-prod-logs>
 ```
 
 Your project should now be clear of all custom metric descriptors. You can proceed with upgrading the nozzle.

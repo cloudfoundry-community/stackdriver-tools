@@ -15,10 +15,9 @@
  */
 
 /*
-ClearMetricsDescriptors - delete _all_ custom MetricDescriptors from a Google Cloud Project
+ClearMetricsDescriptors - delete custom MetricDescriptors from a Google Cloud Project
 
 Setup:
-- Export environment variable GCP_PROJECT_ID=<GCP Project for Stackdriver Monitoring>
 - Setup application default credentials to a user with 'roles/monitoring.admin'
   `gcloud auth application-default login`
 - Ensure your GOPATH is correct relative to the source repo.
@@ -28,7 +27,7 @@ Setup:
     $HOME/go/src/github.com/cloudfoundry-community/stackdriver-tools/src/stackdriver-nozzle/cmd/clear-metric-descriptors.go
 
 Usage (from this directory):
-go run ./clear-metric-descriptors.go
+go run ./clear-metric-descriptors.go --help
 */
 package main
 
@@ -36,45 +35,49 @@ import (
 	"fmt"
 	"os"
 
-	monitoring "cloud.google.com/go/monitoring/apiv3"
-
 	"bufio"
+	"flag"
 	"log"
 	"strings"
 
+	"cloud.google.com/go/monitoring/apiv3"
 	"golang.org/x/net/context"
 	"google.golang.org/api/iterator"
 	"google.golang.org/api/option"
 	monitoringpb "google.golang.org/genproto/googleapis/monitoring/v3"
 )
 
-const projectIdEnv = "GCP_PROJECT_ID"
+var (
+	projectID string
+	prefix    string
+)
+
+func init() {
+	flag.StringVar(&projectID, "project-id", "", "The Google Cloud Project ID used for Stackdriver Monitoring, eg cf-prod-mon")
+	flag.StringVar(&prefix, "prefix", "custom.googleapis.com/", "Prefix of metric.type for finding Metric Descriptors")
+}
 
 func main() {
+	flag.Parse()
+
+	if projectID == "" {
+		log.Fatalf("error: project-id flag required, try runnig with --help")
+	}
+
 	ctx := context.Background()
 	metricClient, err := monitoring.NewMetricClient(ctx, option.WithScopes("https://www.googleapis.com/auth/monitoring"))
 	if err != nil {
 		panic(err)
 	}
 
-	projectID := os.Getenv(projectIdEnv)
-	if projectID == "" {
-		log.Fatalf("error: environment variable %s is empty, set it to the project ID used for Stackdriver Monitoring", projectIdEnv)
-	}
-
 	log.Printf("discovering metric descriptors for %s", projectID)
 
-	req := &monitoringpb.ListMetricDescriptorsRequest{
+	itr := metricClient.ListMetricDescriptors(ctx, &monitoringpb.ListMetricDescriptorsRequest{
 		Name:   fmt.Sprintf("projects/%s", projectID),
-		Filter: "metric.type = starts_with(\"custom.googleapis.com/\")",
-	}
-	it := metricClient.ListMetricDescriptors(ctx, req)
+		Filter: fmt.Sprintf(`metric.type = starts_with("%s")`, prefix),
+	})
 	var names []string
-	for {
-		resp, err := it.Next()
-		if err == iterator.Done {
-			break
-		}
+	for resp, err := itr.Next(); err != iterator.Done; resp, err = itr.Next() {
 		if err != nil {
 			log.Fatalf("listing metric descriptors for %s: %v", projectID, err)
 		}
@@ -88,7 +91,7 @@ func main() {
 		os.Exit(0)
 	}
 
-	fmt.Printf("Delete listed metric descriptors from project?\n")
+	fmt.Printf("Delete %d metric descriptors from project?\n", len(names))
 	fmt.Printf("This is irreversible and will result in data loss: (y/n) ")
 	reader := bufio.NewReader(os.Stdin)
 	confirm, _ := reader.ReadString('\n')
