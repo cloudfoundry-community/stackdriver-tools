@@ -78,8 +78,8 @@ forms:
     label: UAA Password
     optional: true
   - name: firehose_skip_ssl
-    type: string
-    default: 'false'
+    type: boolean
+    default: false
     label: Skip SSL validation on Cloud Foundry API Endpoint
   - name: service_account
     type: text
@@ -172,7 +172,7 @@ forms:
     default:
     - description: Blacklist all metrics from Stackdriver Monitoring.
       type: name
-      regexp: '.*'
+      regexp: '^.*$'
       sink: monitoring
     property_blueprints:
     - name: description
@@ -214,59 +214,59 @@ forms:
     default:
     - description: Whitelist auctioneer KPI metrics.
       type: name
-      regexp: 'auctioneer\.LockHeld|auctioneer\.Auctioneer.*'
+      regexp: '^auctioneer\.LockHeld|auctioneer\.Auctioneer'
       sink: monitoring
     - description: Whitelist bbs KPI metrics.
       type: name
-      regexp: 'bbs\.(LockHeld|RequestLatency)|bbs\.Domain\..*|bbs\..*LRP.*'
+      regexp: '^bbs\.(LockHeld|RequestLatency)|bbs\.Domain\.|bbs\..*LRP'
       sink: monitoring
     - description: Whitelist rep KPI metrics.
       type: name
-      regexp: 'rep\.Capacity(Remaining|Total)(Memory|Disk|Containers)|rep\.RepBulkSyncDuration|rep\.UnhealthyCell'
+      regexp: '^rep\.Capacity(Remaining|Total)(Memory|Disk|Containers)|rep\.RepBulkSyncDuration|rep\.UnhealthyCell$'
       sink: monitoring
     - description: Whitelist locket KPI metrics.
       type: name
-      regexp: 'locket\.Active.*'
+      regexp: '^locket\.Active'
       sink: monitoring
     - description: Whitelist route_emitter KPI metrics.
       type: name
-      regexp: 'route_emitter\.MessagesEmitted|route_emitter\..*Route.*'
+      regexp: '^route_emitter\.MessagesEmitted|route_emitter\..*Route'
       sink: monitoring
     - description: Whitelist MySQL KPI metrics.
       type: name
-      regexp: '/mysql/.*'
+      regexp: '^/mysql/'
       sink: monitoring
     - description: Whitelist gorouter KPI metrics.
       type: name
-      regexp: 'gorouter\.(file_descriptors|backend_exhausted_conns|ms_since_last_registry_update|total_routes|registry_message\.route-emitter)'
+      regexp: '^gorouter\.(file_descriptors|backend_exhausted_conns|ms_since_last_registry_update|total_routes|registry_message\.route-emitter)'
       sink: monitoring
     - description: Whitelist gorouter response metrics.
       type: name
-      regexp: 'gorouter\.(total_requests|latency.*|responses.*|bad_gateways)'
+      regexp: '^gorouter\.(total_requests|latency|responses|bad_gateways)'
       sink: monitoring
     - description: Whitelist UAA KPI metrics.
       type: name
-      regexp: 'uaa\.requests\.global\.completed\.count|uaa\.server\.inflight\.count'
+      regexp: '^uaa\.requests\.global\.completed\.count|uaa\.server\.inflight\.count$'
       sink: monitoring
     - description: Whitelist loggregator KPI metrics.
       type: name
-      regexp: 'loggregator\.(doppler|rlp)\.(ingress|dropped)'
+      regexp: '^loggregator\.(doppler|rlp)\.(ingress|dropped)$'
       sink: monitoring
     - description: Whitelist Doppler KPI metrics.
       type: name
-      regexp: 'DopplerServer\.listeners\.totalReceivedMessageCount|DopplerServer\.doppler\.shedEnvelopes'
+      regexp: '^DopplerServer\.listeners\.totalReceivedMessageCount|DopplerServer\.doppler\.shedEnvelopes$'
       sink: monitoring
     - description: Whitelist syslog KPI metrics.
       type: name
-      regexp: '(scalablesyslog|cf-syslog-drain)\.(adapter\.(ingress|dropped)|scheduler\.drains)'
+      regexp: '^(scalablesyslog|cf-syslog-drain)\.(adapter\.(ingress|dropped)|scheduler\.drains)$'
       sink: monitoring
     - description: Whitelist BOSH system KPI metrics.
       type: name
-      regexp: 'system\..*'
+      regexp: '^bosh-system-metrics-forwarder\.system\.'
       sink: monitoring
     - description: Whitelist metrics derived or republished by Healthwatch.
       type: name
-      regexp: 'health(watch)?\..*'
+      regexp: '^health(watch)?\.'
       sink: monitoring
     property_blueprints:
     - name: description
