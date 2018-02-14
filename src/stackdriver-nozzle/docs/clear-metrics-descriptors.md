@@ -32,10 +32,15 @@ to delete the product and apply changes to your deployment.
 If you're using the `stackdriver-tools` BOSH release, run: `bosh -d <your deployment> --stop stackdriver-nozle`
 
 ## 4. Clear Metric Descriptors
-Export the follow environment variable to the name of your Stackdriver Monitoring project and execute the script:
+Enter the directory with the clear-metrics-descriptors tool:
 ```bash
 cd $(go env GOPATH)/src/github.com/cloudfoundry-community/stackdriver-tools/src/stackdriver-nozzle/cmd
+```
+
+Fill in your GCP Project in the following command and execute the tool:
+```bash
 go run ./clear-metrics-descriptors.go --project-id <your GCP project, eg cf-prod-logs>
 ```
+
 
 Your project should now be clear of all custom metric descriptors. You can proceed with upgrading the nozzle.
