@@ -24,7 +24,8 @@ import (
 )
 
 type Logger struct {
-	client *logging.Client
+	client     *logging.Client
+	foundation string
 }
 
 type Message struct {
@@ -36,17 +37,17 @@ type Message struct {
 }
 
 func (lg *Logger) Publish(message Message) {
-	lg.client.Logger("stackdriver-spinner-logs").Log(logging.Entry{Payload: message})
+	lg.client.Logger("stackdriver-spinner-logs").Log(logging.Entry{Payload: message, Labels: map[string]string{"foundation": lg.foundation}})
 
 	if err := lg.client.Close(); err != nil {
-		fmt.Println(fmt.Errorf("failed to close client: %v", err))
+		fmt.Errorf("Failed to close client: %v", err)
 	}
 }
 
-func NewLogger(projectID string) (*Logger, error) {
+func NewLogger(projectID, foundation string) (*Logger, error) {
 	client, err := logging.NewClient(context.Background(), projectID)
 	if err != nil {
 		return nil, fmt.Errorf("creating client: %v", err)
 	}
-	return &Logger{client}, nil
+	return &Logger{client, foundation}, nil
 }

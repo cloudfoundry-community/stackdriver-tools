@@ -46,7 +46,12 @@ func main() {
 		log.Fatal("A GCP project must be specified.")
 	}
 
-	go startSpinner(gcpProj, count, wait)
+	foundation := os.Getenv("FOUNDATION")
+	if len(foundation) == 0 {
+		log.Fatal("A foundation must be specified.")
+	}
+
+	go startSpinner(gcpProj, foundation, count, wait)
 
 	http.HandleFunc("/", func(res http.ResponseWriter, req *http.Request) {
 		if _, err := fmt.Fprintf(res, "Johny 5 alive!"); err != nil {
@@ -61,7 +66,7 @@ func main() {
 	}
 }
 
-func startSpinner(proj string, count, wait int) {
+func startSpinner(proj, foundation string, count, wait int) {
 	burstInterval := time.Duration(wait) * time.Second
 
 	emitter := cloudfoundry.NewEmitter(os.Stdout, count, 10*time.Millisecond)
@@ -76,7 +81,7 @@ func startSpinner(proj string, count, wait int) {
 			log.Println(err)
 			continue
 		}
-		logger, err := stackdriver.NewLogger(proj)
+		logger, err := stackdriver.NewLogger(proj, foundation)
 		if err != nil {
 			log.Fatal(err)
 		}

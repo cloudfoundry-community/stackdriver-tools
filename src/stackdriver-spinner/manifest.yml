@@ -9,4 +9,5 @@ applications:
     GOOGLE_APPLICATION_CREDENTIALS: ./credentials.json
     SPINNER_COUNT: 999
     SPINNER_WAIT: 300
-    GCP_PROJECT: <project-name>
+    GCP_PROJECT: gcp-project-here 
+    FOUNDATION: foundation-name-here 
