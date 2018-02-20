@@ -42,7 +42,6 @@ end
 agent_pkg = File.basename(`ls stackdriver-agent/archives/stackdriver-agent*.deb`.strip)
 
 agent_full_name = strip_end(agent_pkg)
-extractor_full_name = strip_end(extractor_pkg)
 
 def repackage(src_pkg, full_name)
    exec! "mkdir -p stackdriver-agent/extracted/#{full_name}"

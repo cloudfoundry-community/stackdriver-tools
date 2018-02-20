@@ -54,6 +54,6 @@ pushd ${BOSH_COMPILE_TARGET}/lloyd-yajl-66cb08c
   make install 
 popd
 
-# Copy StackDriver agents
-tar xzvf ${BOSH_COMPILE_TARGET}/stackdriver-agent/stackdriver-agent_5.5.2-347.tgz
+# Copy Stackdriver agents
+tar xzvf ${BOSH_COMPILE_TARGET}/stackdriver-agent/stackdriver-agent_5.5.2-379.sdl.tgz
 cp -a ${BOSH_COMPILE_TARGET}/stackdriver/* ${BOSH_INSTALL_TARGET}

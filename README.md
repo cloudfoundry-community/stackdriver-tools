@@ -300,14 +300,14 @@ bosh2 deploy -d <your deployment> path/to/manifest.yml
 1. Update Gemfile.lock: `bundle update`
 1. Create a vendor cache from the Gemfile.lock: `bundle package`
 1. Tar and compress the vendor folder: `tar zvc vendor >
-   google-fluentd-vendor-VERSION-NUMBER.tgz`
+   google-fluentd-vendor-<VERSION>-plugin-<VERSION>.tgz`
 1. Update the vendor version in the `google-fluentd` package
    [packaging][fluentd-packaging] and [spec][fluentd-spec]
-1. Add vendored cache to the BOSH blobstore: `bosh add blob
-   google-fluentd-vendor-VERSION-NUMBER.tgz google-fluentd-vendor`
+1. Add vendored cache to the BOSH blobstore: `bosh2 add-blob
+   google-fluentd-vendor-<VERSION>-plugin-<VERSION>.tgz google-fluentd-vendor/google-fluentd-vendor-VERSION-NUMBER.tgz`
 1. [Create a dev release][dev-release] and deploy it to verify that all of the
    above worked
-1. Update the BOSH blobstore: `bosh upload blobs`
+1. Update the BOSH blobstore: `bosh upload-blobs`
 1. Commit your changes
 
 [gemfile]: https://github.com/cloudfoundry-community/stackdriver-tools/blob/master/src/google-fluentd/Gemfile
