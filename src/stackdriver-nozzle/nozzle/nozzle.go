@@ -17,82 +17,159 @@
 package nozzle
 
 import (
-	"strings"
+	"errors"
+	"sync"
 
+	"code.cloudfoundry.org/diodes"
 	"github.com/cloudfoundry-community/stackdriver-tools/src/stackdriver-nozzle/cloudfoundry"
-	"github.com/cloudfoundry-community/stackdriver-tools/src/stackdriver-nozzle/heartbeat"
+	"github.com/cloudfoundry-community/stackdriver-tools/src/stackdriver-nozzle/telemetry"
+	"github.com/cloudfoundry/lager"
+	"github.com/cloudfoundry/noaa/consumer"
 	"github.com/cloudfoundry/sonde-go/events"
+	"github.com/gorilla/websocket"
 )
 
-type PostMetricError struct {
-	Errors []error
+const bufferSize = 30000 // 1k messages/second * 30 seconds
+
+type Nozzle interface {
+	Start(firehose cloudfoundry.Firehose)
+	Stop() error
 }
 
-func (e *PostMetricError) Error() string {
-	errors := []string{}
-	for _, err := range e.Errors {
-		errors = append(errors, err.Error())
+var (
+	firehoseErrs *telemetry.CounterMap
+
+	firehoseErrEmpty                *telemetry.Counter
+	firehoseErrUnknown              *telemetry.Counter
+	firehoseErrCloseNormal          *telemetry.Counter
+	firehoseErrClosePolicyViolation *telemetry.Counter
+	firehoseErrCloseUnknown         *telemetry.Counter
+
+	firehoseEventsTotal    *telemetry.Counter
+	firehoseEventsDropped  *telemetry.Counter
+	firehoseEventsReceived *telemetry.Counter
+)
+
+func init() {
+	firehoseErrs = telemetry.NewCounterMap(telemetry.Nozzle, "firehose.errors", "error_type")
+
+	firehoseErrEmpty = firehoseErrs.MustCounter("empty")
+	firehoseErrUnknown = firehoseErrs.MustCounter("unknown")
+	firehoseErrCloseNormal = firehoseErrs.MustCounter("close_normal_closure")
+	firehoseErrClosePolicyViolation = firehoseErrs.MustCounter("close_policy_violation")
+	firehoseErrCloseUnknown = firehoseErrs.MustCounter("close_unknown")
+
+	firehoseEventsTotal = telemetry.NewCounter(telemetry.Nozzle, "firehose_events.total")
+	firehoseEventsDropped = telemetry.NewCounter(telemetry.Nozzle, "firehose_events.dropped")
+	firehoseEventsReceived = telemetry.NewCounter(telemetry.Nozzle, "firehose_events.received")
+}
+
+type nozzle struct {
+	sinks   []Sink
+	logger  lager.Logger
+	session state
+}
+
+type state struct {
+	sync.Mutex
+	done    chan struct{}
+	running bool
+}
+
+func NewNozzle(logger lager.Logger, sinks ...Sink) Nozzle {
+	return &nozzle{
+		sinks:  sinks,
+		logger: logger,
 	}
-	return strings.Join(errors, "\n")
 }
 
-type Nozzle struct {
-	LogSink    Sink
-	MetricSink Sink
+func (n *nozzle) Start(firehose cloudfoundry.Firehose) {
+	n.session = state{done: make(chan struct{}), running: true}
 
-	Heartbeater heartbeat.Heartbeater
+	messages, fhErrInternal := firehose.Connect()
 
-	done chan struct{}
-}
+	// Drain and report errors from firehose
+	go func() {
+		for err := range fhErrInternal {
+			if err == nil {
+				// Ignore empty errors. Customers observe a flooding of empty errors from firehose.
+				firehoseErrEmpty.Increment()
+				continue
+			}
 
-func (n *Nozzle) Start(firehose cloudfoundry.Firehose) (errs chan error, fhErrs <-chan error) {
-	n.Heartbeater.Start()
-	n.done = make(chan struct{})
+			go n.handleFirehoseError(err)
+		}
+	}()
 
-	errs = make(chan error)
-	messages, fhErrs := firehose.Connect()
+	buffer := diodes.NewPoller(diodes.NewOneToOne(bufferSize, diodes.AlertFunc(func(missed int) {
+		firehoseEventsDropped.Add(int64(missed))
+		firehoseEventsTotal.Add(int64(missed))
+	})))
+
+	// Drain messages from the firehose and place them into the ring buffer
 	go func() {
 		for {
 			select {
 			case envelope := <-messages:
-				n.Heartbeater.Increment("nozzle.events")
-				err := n.handleEvent(envelope)
-				if err != nil {
-					errs <- err
-				}
-			case <-n.done:
+				buffer.Set(diodes.GenericDataType(envelope))
+			case <-n.session.done:
 				return
 			}
 		}
 	}()
 
-	return errs, fhErrs
-}
-
-func (n *Nozzle) Stop() {
-	n.Heartbeater.Stop()
-	n.done <- struct{}{}
-}
-
-func (n *Nozzle) handleEvent(envelope *events.Envelope) error {
-	if err := n.LogSink.Receive(envelope); err != nil {
-		return err
-	}
-
-	if isMetric(envelope) {
-		if err := n.MetricSink.Receive(envelope); err != nil {
-			return err
+	// Drain the ring buffer of firehose events to send through the nozzle
+	go func() {
+		for {
+			unsafeEvent := buffer.Next()
+			if unsafeEvent != nil {
+				var event = (*events.Envelope)(unsafeEvent)
+				n.handleEvent(event)
+			}
 		}
+	}()
+}
+
+func (n *nozzle) Stop() error {
+	n.session.Lock()
+	defer n.session.Unlock()
+
+	if !n.session.running {
+		return errors.New("nozzle is not running")
 	}
+	close(n.session.done)
+	n.session.running = false
 
 	return nil
 }
 
-func isMetric(envelope *events.Envelope) bool {
-	switch envelope.GetEventType() {
-	case events.Envelope_ValueMetric, events.Envelope_ContainerMetric, events.Envelope_CounterEvent:
-		return true
+func (n *nozzle) handleEvent(envelope *events.Envelope) {
+	firehoseEventsReceived.Increment()
+	firehoseEventsTotal.Increment()
+	for _, sink := range n.sinks {
+		sink.Receive(envelope)
+	}
+}
+
+func (n *nozzle) handleFirehoseError(err error) {
+	if err == consumer.ErrMaxRetriesReached {
+		n.logger.Fatal("firehose", err)
+	} else {
+		n.logger.Error("firehose", err)
+	}
+
+	closeErr, ok := err.(*websocket.CloseError)
+	if !ok {
+		firehoseErrUnknown.Increment()
+		return
+	}
+
+	switch closeErr.Code {
+	case websocket.CloseNormalClosure:
+		firehoseErrCloseNormal.Increment()
+	case websocket.ClosePolicyViolation:
+		firehoseErrClosePolicyViolation.Increment()
 	default:
-		return false
+		firehoseErrCloseUnknown.Increment()
 	}
 }

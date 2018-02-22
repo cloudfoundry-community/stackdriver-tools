@@ -28,15 +28,16 @@ jobs:
 
       - task: make-semver-public
         file: stackdriver-tools/ci/tasks/public-semver.yml
-        config:
-          params:
-            project_id: {{project_id}}
-            service_account_key_json: {{service_account_key_json}}
-            bucket_name: {{bucket_name}}
-            semver_key: beta/stackdriver-tools/current-version
+        params:
+          project_id: {{project_id}}
+          service_account_key_json: {{service_account_key_json}}
+          bucket_name: {{bucket_name}}
+          semver_key: beta/stackdriver-tools/current-version
 
       - task: build-release
         file: stackdriver-tools/ci/tasks/build-candidate.yml
+        params:
+          service_account_key_json: {{release_blobstore_service_account_key_json}}
         on_failure:
           aggregate:
             - put: slack-alert
@@ -49,16 +50,16 @@ jobs:
       - put: stackdriver-tools-artifacts
         params: {file: candidate/*.tgz}
 
-      - put: stackdriver-tools-artifacts-sha1
-        params: {file: candidate/*.tgz.sha1}
+      - put: stackdriver-tools-artifacts-sha256
+        params: {file: candidate/*.tgz.sha256}
 
   - name: deploy-candidate
     plan:
       - aggregate:
-        - {trigger: true,  passed: [build-candidate],  get: stackdriver-tools,                resource: stackdriver-tools-in}
-        - {trigger: true,  passed: [build-candidate],  get: stackdriver-tools-artifacts,      resource: stackdriver-tools-artifacts}
-        - {trigger: false, passed: [build-candidate],  get: stackdriver-tools-artifacts-sha1, resource: stackdriver-tools-artifacts-sha1}
-        - {trigger: false,                             get: version-semver,                   resource: version-semver}
+        - {trigger: true,  passed: [build-candidate],  get: stackdriver-tools,                  resource: stackdriver-tools-in}
+        - {trigger: true,  passed: [build-candidate],  get: stackdriver-tools-artifacts,        resource: stackdriver-tools-artifacts}
+        - {trigger: false, passed: [build-candidate],  get: stackdriver-tools-artifacts-sha256, resource: stackdriver-tools-artifacts-sha256}
+        - {trigger: false,                             get: version-semver,                     resource: version-semver}
 
       - task: deploy-candidate
         file: stackdriver-tools/ci/tasks/deploy-candidate.yml
@@ -71,36 +72,35 @@ jobs:
                 username: Build pipeline
                 channel: "#lambr-private"
                 text: "deploy-candidate failed"
-        config:
-          params:
-            ssh_bastion_address     : {{ssh_bastion_address}}
-            ssh_user: {{ssh_user}}
-            ssh_key: {{ssh_key}}
-            bosh_director_address: {{bosh_director_address}}
-            bosh_user: {{bosh_user}}
-            bosh_password: {{bosh_password}}
-            google_region: {{google_region}}
-            google_zone: {{google_zone}}
-            network: {{network}}
-            public_subnetwork: {{public_subnetwork}}
-            private_subnetwork: {{private_subnetwork}}
-            project_id: {{project_id}}
-            cf_service_account: {{cf_service_account}}
-            nozzle_user: {{nozzle_user}}
-            nozzle_password: {{nozzle_password}}
-            vip_ip: {{vip_ip}}
-            service_account_key_json: {{service_account_key_json}}
+        params:
+          ssh_bastion_address: {{ssh_bastion_address}}
+          ssh_user: {{ssh_user}}
+          ssh_key: {{ssh_key}}
+          bosh_director_address: {{bosh_director_address}}
+          bosh_user: {{bosh_user}}
+          bosh_password: {{bosh_password}}
+          bosh_ca_cert: {{bosh_ca_cert}}
+          google_region: {{google_region}}
+          google_zone: {{google_zone}}
+          network: {{network}}
+          public_subnetwork: {{public_subnetwork}}
+          private_subnetwork: {{private_subnetwork}}
+          cf_project_id: {{cf_project_id}}
+          firehose_username: {{firehose_username}}
+          firehose_password: {{firehose_password}}
+          cf_api_url: {{cf_api_url}}
+          cf_service_account_json: {{cf_service_account_json}}
 
   - name: build-tile
     plan:
       - aggregate:
         - {trigger: true,  passed: [build-candidate],   get: stackdriver-tools,                resource: stackdriver-tools-in}
+        - {trigger: true,  passed: [build-candidate],   get: stackdriver-tools-artifacts,      resource: stackdriver-tools-artifacts}
         - {trigger: false,                              get: version-semver,                   resource: version-semver}
 
       - task: build-tile
         file: stackdriver-tools/ci/tasks/build-tile.yml
         params:
-          image_directory: develop-stackdriver-tools
           tile_name: stackdriver-nozzle-develop
           tile_label: Stackdriver Nozzle (develop)
         on_failure:
@@ -115,13 +115,15 @@ jobs:
       - put: stackdriver-nozzle-tile
         params: {file: candidate/*.pivotal}
 
+      - put: stackdriver-nozzle-tile-sha256
+        params: {file: candidate/*.pivotal.sha256}
 
 resources:
   - name: stackdriver-tools-in
     type: git
     source:
-      uri: https://github.com/cloudfoundry-community/stackdriver-tools.git
-      branch: develop
+      uri: {{source_uri}}
+      branch: {{source_branch}}
       ignore_paths:
         - .final_builds/**/*.yml
         - releases/**/*.yml
@@ -133,12 +135,12 @@ resources:
       bucket:   {{bucket_name}}
       regexp:   beta/develop-stackdriver-tools/stackdriver-tools([0-9]+\.[0-9]+\.[0-9]+)\.tgz
 
-  - name: stackdriver-tools-artifacts-sha1
+  - name: stackdriver-tools-artifacts-sha256
     type: gcs-resource
     source:
       json_key: {{service_account_key_json}}
       bucket:   {{bucket_name}}
-      regexp:   beta/develop-stackdriver-tools/stackdriver-tools([0-9]+\.[0-9]+\.[0-9]+)\.tgz.sha1
+      regexp:   beta/develop-stackdriver-tools/stackdriver-tools([0-9]+\.[0-9]+\.[0-9]+)\.tgz.sha256
 
   - name: stackdriver-nozzle-tile
     type: gcs-resource
@@ -146,6 +148,13 @@ resources:
       json_key: {{service_account_key_json}}
       bucket:   {{bucket_name}}
       regexp:   beta/develop-stackdriver-tools/stackdriver-nozzle-tile([0-9]+\.[0-9]+\.[0-9]+)\.pivotal
+
+  - name: stackdriver-nozzle-tile-sha256
+    type: gcs-resource
+    source:
+      json_key: {{service_account_key_json}}
+      bucket:   {{bucket_name}}
+      regexp:   beta/develop-stackdriver-tools/stackdriver-nozzle-tile([0-9]+\.[0-9]+\.[0-9]+)\.pivotal.sha256
 
   - name: version-semver
     type: semver

@@ -10,15 +10,23 @@ import (
 type MockClient struct {
 	Mutex          sync.Mutex
 	MetricReqs     []*monitoringpb.CreateTimeSeriesRequest
+	TimeSeries     []*monitoringpb.TimeSeries
 	DescriptorReqs []*monitoringpb.CreateMetricDescriptorRequest
 	ListErr        error
 
-	CreateMetricDescriptorFn func(request *monitoringpb.CreateMetricDescriptorRequest) error
+	CreateMetricDescriptorFn func(req *monitoringpb.CreateMetricDescriptorRequest) error
+	ListMetricDescriptorFn   func(request *monitoringpb.ListMetricDescriptorsRequest) ([]*metricpb.MetricDescriptor, error)
+	PostFn                   func(req *monitoringpb.CreateTimeSeriesRequest) error
 }
 
 func (mc *MockClient) Post(req *monitoringpb.CreateTimeSeriesRequest) error {
+	if mc.PostFn != nil {
+		return mc.PostFn(req)
+	}
+
 	mc.Mutex.Lock()
 	mc.MetricReqs = append(mc.MetricReqs, req)
+	mc.TimeSeries = append(mc.TimeSeries, req.TimeSeries...)
 	mc.Mutex.Unlock()
 
 	return nil
@@ -37,6 +45,10 @@ func (mc *MockClient) CreateMetricDescriptor(request *monitoringpb.CreateMetricD
 }
 
 func (mc *MockClient) ListMetricDescriptors(request *monitoringpb.ListMetricDescriptorsRequest) ([]*metricpb.MetricDescriptor, error) {
+	if mc.ListMetricDescriptorFn != nil {
+		return mc.ListMetricDescriptorFn(request)
+	}
+
 	if mc.ListErr != nil {
 		return nil, mc.ListErr
 	}

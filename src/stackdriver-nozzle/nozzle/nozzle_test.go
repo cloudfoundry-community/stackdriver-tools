@@ -14,13 +14,14 @@
  * limitations under the License.
  */
 
-package nozzle_test
+package nozzle
 
 import (
 	"errors"
 
 	"github.com/cloudfoundry-community/stackdriver-tools/src/stackdriver-nozzle/mocks"
-	"github.com/cloudfoundry-community/stackdriver-tools/src/stackdriver-nozzle/nozzle"
+	"github.com/cloudfoundry/lager"
+	"github.com/cloudfoundry/noaa/consumer"
 	"github.com/cloudfoundry/sonde-go/events"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -28,48 +29,38 @@ import (
 
 var _ = Describe("Nozzle", func() {
 	var (
-		subject     *nozzle.Nozzle
-		firehose    *mocks.FirehoseClient
-		logSink     *mocks.Sink
-		metricSink  *mocks.Sink
-		heartbeater *mocks.Heartbeater
-		errs        chan error
-		fhErrs      <-chan error
+		subject    Nozzle
+		firehose   *mocks.FirehoseClient
+		logSink    *mocks.NozzleSink
+		metricSink *mocks.NozzleSink
+		logger     *mocks.MockLogger
 	)
 
 	BeforeEach(func() {
 		firehose = mocks.NewFirehoseClient()
-		logSink = &mocks.Sink{}
-		metricSink = &mocks.Sink{}
-		heartbeater = mocks.NewHeartbeater()
+		logSink = &mocks.NozzleSink{}
+		metricSink = &mocks.NozzleSink{}
+		logger = &mocks.MockLogger{}
 
-		subject = &nozzle.Nozzle{
-			LogSink:     logSink,
-			MetricSink:  metricSink,
-			Heartbeater: heartbeater,
-		}
-		errs, fhErrs = subject.Start(firehose)
+		firehoseEventsTotal.Set(0)
+		firehoseEventsReceived.Set(0)
+
+		subject = NewNozzle(logger, logSink, metricSink)
+		subject.Start(firehose)
 	})
 
-	It("starts the heartbeater", func() {
-		Expect(heartbeater.IsRunning()).To(Equal(true))
-	})
-
-	It("updates the heartbeater", func() {
+	It("updates the counter", func() {
 		for _, value := range events.Envelope_EventType_value {
 			eventType := events.Envelope_EventType(value)
 			event := events.Envelope{EventType: &eventType}
 			firehose.Messages <- &event
 		}
 
+		count := len(events.Envelope_EventType_value)
 		Eventually(func() int {
-			return heartbeater.GetCount("nozzle.events")
-		}).Should(Equal(len(events.Envelope_EventType_value)))
-	})
-
-	It("stops the heartbeater", func() {
-		subject.Stop()
-		Expect(heartbeater.IsRunning()).To(Equal(false))
+			return firehoseEventsReceived.IntValue()
+		}).Should(Equal(count))
+		Expect(firehoseEventsTotal.IntValue()).To(Equal(count))
 	})
 
 	It("does not receive errors", func() {
@@ -78,9 +69,6 @@ var _ = Describe("Nozzle", func() {
 			event := events.Envelope{EventType: &eventType}
 			firehose.Messages <- &event
 		}
-
-		Consistently(errs).ShouldNot(Receive())
-		Consistently(fhErrs).ShouldNot(Receive())
 	})
 
 	It("handles HttpStartStop event", func() {
@@ -99,7 +87,6 @@ var _ = Describe("Nozzle", func() {
 		firehose.Messages <- envelope
 
 		Eventually(logSink.LastEnvelope).Should(Equal(envelope))
-
 	})
 
 	It("handles Error event", func() {
@@ -117,7 +104,6 @@ var _ = Describe("Nozzle", func() {
 
 		firehose.Messages <- envelope
 
-		Eventually(logSink.LastEnvelope).Should(Equal(envelope))
 		Eventually(metricSink.LastEnvelope).Should(Equal(envelope))
 	})
 
@@ -127,7 +113,6 @@ var _ = Describe("Nozzle", func() {
 
 		firehose.Messages <- envelope
 
-		Eventually(logSink.LastEnvelope).Should(Equal(envelope))
 		Eventually(metricSink.LastEnvelope).Should(Equal(envelope))
 	})
 
@@ -137,27 +122,35 @@ var _ = Describe("Nozzle", func() {
 
 		firehose.Messages <- envelope
 
-		Eventually(logSink.LastEnvelope).Should(Equal(envelope))
 		Eventually(metricSink.LastEnvelope).Should(Equal(envelope))
 	})
 
-	It("returns error if handler errors out", func() {
-		expectedError := errors.New("fail")
-		metricSink.Error = expectedError
-		metricType := events.Envelope_ValueMetric
-		envelope := &events.Envelope{
-			EventType:   &metricType,
-			ValueMetric: nil,
-		}
-
-		firehose.Messages <- envelope
-		Eventually(errs).Should(Receive(Equal(expectedError)))
-	})
-
-	It("returns the firehose client errors", func() {
+	It("logs the firehose client errors", func() {
 		err := errors.New("omg")
 		go func() { firehose.Errs <- err }()
 
-		Eventually(fhErrs).Should(Receive(Equal(err)))
+		Eventually(logger.Logs).Should(ContainElement(mocks.Log{
+			Level:  lager.ERROR,
+			Err:    err,
+			Action: "firehose",
+		}))
 	})
+
+	It("crashes on unrecoverable firehose errors", func() {
+		err := consumer.ErrMaxRetriesReached
+		go func() { firehose.Errs <- err }()
+		Eventually(logger.Logs).Should(ContainElement(mocks.Log{
+			Level:  lager.FATAL,
+			Err:    err,
+			Action: "firehose",
+		}))
+	})
+
+	It("is resilient to multiple exists", func(done Done) {
+		Expect(subject.Stop()).NotTo(HaveOccurred())
+		Expect(subject.Stop()).To(HaveOccurred())
+		Expect(subject.Stop()).To(HaveOccurred())
+
+		close(done)
+	}, 0.2)
 })

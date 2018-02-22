@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package config_test
+package config
 
 import (
 	. "github.com/onsi/ginkgo"

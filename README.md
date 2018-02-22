@@ -20,8 +20,16 @@ Functionality is provided by 3 jobs in this release:
 
 ## Project Status
 
-This is currently a beta release. It should be used in production environments
-with an abundance of caution, and only after being vetted in dev environment.
+The following is generally available:
+- Stackdriver Host Monitoring Agent (`stackdriver-agent`) 
+- Stackdriver Host Logging Agent (`google-fluentd`)
+- Stackdriver Nozzle (`stackdriver-nozzle`)
+  - Stackdriver Logging for Cloud Foundry Log Events (`LogMessage, Error, HttpStartStop`)
+  - Stackdriver Monitoring for Cloud Foundry Metric Events (`ContainerMetric, ValueMetric, CounterEvent`)
+
+The following is in beta:
+- Stackdriver Nozzle
+   - Stackdriver Logging for Cloud Foundry Metric Events (`ContainerMetric, ValueMetric, CounterEvent`)
 
 The project was developed in partnership with Google and Pivotal and is actively
 maintained by Google.
@@ -72,19 +80,36 @@ To use any of the jobs in this BOSH release, first upload it to your BOSH
 director:
 
 ```
-bosh upload release https://storage.googleapis.com/bosh-gcp/beta/stackdriver-tools/latest.tgz
+bosh2 upload-release https://storage.googleapis.com/bosh-gcp/beta/stackdriver-tools/latest.tgz
 ```
 
-The [stackdriver-tools.yml][tools-yaml] sample deployment manifest illustrates how to
+The [stackdriver-tools.yml][tools-yaml] sample [BOSH 2.0 manifest][bosh20] illustrates how to
 use all 3 jobs in this release (nozzle, host logging, and host monitoring). You
-can deploy the sample with:
+can deploy the sample with the following commands:
 
 [tools-yaml]: manifests/stackdriver-tools.yml
-
+[bosh20]: https://bosh.io/docs/manifest-v2.html
 
 ```
-bosh deployment manifests/stackdriver-tools.yml 
-bosh -n deploy
+bosh2 upload-stemcell https://bosh.io/d/stemcells/bosh-google-kvm-ubuntu-trusty-go_agent
+
+bosh2 update-cloud-config -n manifests/cloud-config-gcp.yml \
+          -v zone=... \
+          -v network=... \
+          -v subnetwork=... \
+          -v "tags=['stackdriver-nozzle']" \
+          -v internal_cidr=... \
+          -v internal_gw=... \
+          -v "reserved=[10....-10....]"
+
+bosh2 deploy manifests/stackdriver-tools.yml \
+            -d stackdriver-nozzle \
+            --var=firehose_endpoint=https://.. \
+            --var=firehose_username=stackdriver_nozzle \
+            --var=firehose_password=... \
+            --var=skip_ssl=false \
+            --var=gcp_project_id=... \
+            --var-file=gcp_service_account_json=path/to/service_account.json \
 ```
 
 This will create a self-contained deployment that sends Cloud Foundry firehose
@@ -254,11 +279,15 @@ addons:
     release: stackdriver-tools
 ```
 
-To deploy the runtime config:
+To update the runtime config:
 
 ```
-bosh update runtime-config runtime.yml
-bosh deploy
+bosh2 update-runtime-config -d <your deployment> runtime.yml
+```
+
+Then redeploy your manifest:
+```
+bosh2 deploy -d <your deployment> path/to/manifest.yml
 ```
 
 ## Development
@@ -271,14 +300,14 @@ bosh deploy
 1. Update Gemfile.lock: `bundle update`
 1. Create a vendor cache from the Gemfile.lock: `bundle package`
 1. Tar and compress the vendor folder: `tar zvc vendor >
-   google-fluentd-vendor-VERSION-NUMBER.tgz`
+   google-fluentd-vendor-<VERSION>-plugin-<VERSION>.tgz`
 1. Update the vendor version in the `google-fluentd` package
    [packaging][fluentd-packaging] and [spec][fluentd-spec]
-1. Add vendored cache to the BOSH blobstore: `bosh add blob
-   google-fluentd-vendor-VERSION-NUMBER.tgz google-fluentd-vendor`
+1. Add vendored cache to the BOSH blobstore: `bosh2 add-blob
+   google-fluentd-vendor-<VERSION>-plugin-<VERSION>.tgz google-fluentd-vendor/google-fluentd-vendor-VERSION-NUMBER.tgz`
 1. [Create a dev release][dev-release] and deploy it to verify that all of the
    above worked
-1. Update the BOSH blobstore: `bosh upload blobs`
+1. Update the BOSH blobstore: `bosh upload-blobs`
 1. Commit your changes
 
 [gemfile]: https://github.com/cloudfoundry-community/stackdriver-tools/blob/master/src/google-fluentd/Gemfile

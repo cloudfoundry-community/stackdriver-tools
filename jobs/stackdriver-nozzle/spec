@@ -3,6 +3,7 @@ name: stackdriver-nozzle
 templates:
   stackdriver-nozzle-ctl.erb: bin/stackdriver-nozzle-ctl
   application_default_credentials.json.erb: config/application_default_credentials.json
+  event_filters.json.erb: config/event_filters.json
 
 packages:
   - stackdriver-nozzle
@@ -36,6 +37,26 @@ properties:
   credentials.application_default_credentials:
     description: Contents of application_default_credentials.json, see https://cloud.google.com/logging/docs/agent/authorization#configuring_client_id_authorization.
 
+  nozzle.metrics_buffer_duration:
+    description: Flush interval (in seconds) of the internal metric buffer
+    default: 30
+
+  nozzle.metrics_batch_size:
+    description: Batch size for time series being sent to Stackdriver
+    default: 200
+
+  nozzle.logging_batch_count:
+    description: Batch size for log messages being sent to Stackdriver
+    default: 1000
+
+  nozzle.logging_batch_duration:
+    description: Flush interval (in seconds) of the internal logging buffer
+    default: 30
+
+  nozzle.logging_requests_in_flight:
+    description: The maximum permitted number of concurrent in-flight requests to Stackdriver Logging.
+    default: 16
+
   nozzle.debug:
     description: Enable debug features for the stackdriver-nozzle for development or troubleshooting
     default: false
@@ -43,3 +64,33 @@ properties:
   nozzle.resolve_app_metadata:
     description: Enable resolution of app metadata from appGuid
     default: true
+
+  nozzle.metric_path_prefix:
+    description: Prefix added to all metric names being sent to Stackdriver, e.g. 'custom/PREFIX/gorouter.total_requests'. May contain slashes.
+    default: firehose
+
+  nozzle.foundation_name:
+    description: Name added as the 'foundation' label to all time series being sent to Stackdriver, useful for differentiating between multiple PCF instances in a project.
+    default: cf
+
+  nozzle.enable_cumulative_counters:
+    description: Enable reporting counter events as cumulative Stackdriver metrics. This requires all CounterEvent messages for a given metric to be routed to the same nozzle process (which is the case if you run a single copy of the nozzle).
+    default: true
+
+  nozzle.enable_app_http_metrics:
+    description: Enable generation of per-app HTTP metrics from HttpStartStop events.
+    default: false
+
+  nozzle.event_filters.blacklist:
+    description: |
+      Should contain an array of maps with three keys 'sink' (valid values:
+      'logging', 'monitoring', or 'all'), 'type' (valid values: 'name' or 'job')
+      and 'regexp' (must be a valid regexp). Events matching these filters will
+      not be processed by the Nozzle.
+
+  nozzle.event_filters.whitelist:
+    description: |
+      Should contain an array of maps with three keys 'sink' (valid values:
+      'logging', 'monitoring', or 'all'), 'type' (valid values: 'name' or 'job')
+      and 'regexp' (must be a valid regexp). Events matching these filters will
+      be processed by the Nozzle even if they also match a blacklist filter.

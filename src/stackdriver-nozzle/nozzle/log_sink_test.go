@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package nozzle_test
+package nozzle
 
 import (
 	"time"
@@ -22,7 +22,6 @@ import (
 	"cloud.google.com/go/logging"
 
 	"github.com/cloudfoundry-community/stackdriver-tools/src/stackdriver-nozzle/mocks"
-	"github.com/cloudfoundry-community/stackdriver-tools/src/stackdriver-nozzle/nozzle"
 	"github.com/cloudfoundry/sonde-go/events"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -30,19 +29,19 @@ import (
 
 var _ = Describe("LogSink", func() {
 	var (
-		subject    nozzle.Sink
+		subject    Sink
 		labelMaker *mocks.LabelMaker
 		logAdapter *mocks.LogAdapter
 		labels     map[string]string
 	)
 
 	BeforeEach(func() {
-		labels = map[string]string{"foo": "bar", "applicationId": "ab313b25-aa48-4a8f-8e7d-d63a6d410e7c"}
+		labels = map[string]string{"foo": "bar", "applicationPath": "/system/autoscaling/autoscale"}
 		labelMaker = &mocks.LabelMaker{Labels: labels}
 		logAdapter = &mocks.LogAdapter{}
 
 		newlineToken := ""
-		subject = nozzle.NewLogSink(labelMaker, logAdapter, newlineToken)
+		subject = NewLogSink(labelMaker, logAdapter, newlineToken)
 	})
 
 	It("passes fields through to the adapter", func() {
@@ -128,7 +127,7 @@ var _ = Describe("LogSink", func() {
 				"requestId": "f47ac10b-58cc-4372-a567-0e02b2c3d479",
 			}))
 			Expect(payload).To(HaveKeyWithValue("serviceContext", map[string]interface{}{
-				"service": "ab313b25-aa48-4a8f-8e7d-d63a6d410e7c",
+				"service": "/system/autoscaling/autoscale",
 			}))
 		})
 
@@ -260,7 +259,7 @@ var _ = Describe("LogSink", func() {
 				},
 				"message": "19400: Success: Go",
 				"serviceContext": map[string]interface{}{
-					"service": "ab313b25-aa48-4a8f-8e7d-d63a6d410e7c",
+					"service": "/system/autoscaling/autoscale",
 				},
 			}))
 			Expect(postedLog.Severity).To(Equal(logging.Default))
@@ -311,7 +310,7 @@ var _ = Describe("LogSink", func() {
 		})
 
 		It("translates newline tokens when one is passed in", func() {
-			subject = nozzle.NewLogSink(labelMaker, logAdapter, "∴")
+			subject = NewLogSink(labelMaker, logAdapter, "∴")
 
 			eventType := events.Envelope_LogMessage
 			messageType := events.LogMessage_OUT

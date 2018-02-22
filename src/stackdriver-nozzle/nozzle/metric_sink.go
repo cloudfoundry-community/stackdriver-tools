@@ -17,29 +17,71 @@
 package nozzle
 
 import (
+	"bytes"
 	"fmt"
+	"regexp"
 	"time"
 
+	"github.com/cloudfoundry-community/stackdriver-tools/src/stackdriver-nozzle/messages"
 	"github.com/cloudfoundry-community/stackdriver-tools/src/stackdriver-nozzle/stackdriver"
+	"github.com/cloudfoundry/lager"
 	"github.com/cloudfoundry/sonde-go/events"
 )
 
-func NewMetricSink(labelMaker LabelMaker, metricBuffer stackdriver.MetricsBuffer, unitParser UnitParser) Sink {
-	return &metricSink{
-		labelMaker:   labelMaker,
-		metricBuffer: metricBuffer,
-		unitParser:   unitParser,
+// NewLogSink returns a Sink that can receive sonde Events, translate them and send them to a stackdriver.MetricAdapter
+func NewMetricSink(logger lager.Logger, pathPrefix string, labelMaker LabelMaker, metricAdapter stackdriver.MetricAdapter, ct *CounterTracker, unitParser UnitParser, runtimeMetricRegex string) (Sink, error) {
+	r, err := regexp.Compile(runtimeMetricRegex)
+	if err != nil {
+		return nil, fmt.Errorf("cannot compile runtime metric regex: %v", err)
 	}
+	return &metricSink{
+		pathPrefix:      pathPrefix,
+		labelMaker:      labelMaker,
+		metricAdapter:   metricAdapter,
+		unitParser:      unitParser,
+		counterTracker:  ct,
+		logger:          logger,
+		runtimeMetricRe: r,
+	}, nil
 }
 
 type metricSink struct {
-	labelMaker   LabelMaker
-	metricBuffer stackdriver.MetricsBuffer
-	unitParser   UnitParser
+	pathPrefix      string
+	labelMaker      LabelMaker
+	metricAdapter   stackdriver.MetricAdapter
+	unitParser      UnitParser
+	counterTracker  *CounterTracker
+	logger          lager.Logger
+	runtimeMetricRe *regexp.Regexp
 }
 
-func (ms *metricSink) Receive(envelope *events.Envelope) error {
-	labels := ms.labelMaker.Build(envelope)
+// isRuntimeMetric determines whether a given metric is a runtime metric.
+// "Runtime metrics" are the ones that are exported by multiple processes (with different values of the 'origin' label).
+// By default 'origin' label value gets prepended to metric name, however for runtime metrics we instead add it as a metric label.
+// As the result, instead of creating a separate copy of each runtime metric per origin, we have a single metric with origin available as a label.
+// This allows aggregating values of these metrics across origins, and also helps us stay below the Stackdriver limit for the number of custom metrics.
+func (ms *metricSink) isRuntimeMetric(envelope *events.Envelope) bool {
+	return envelope.GetEventType() == events.Envelope_ValueMetric && ms.runtimeMetricRe.MatchString(envelope.GetValueMetric().GetName())
+}
+
+func (ms *metricSink) getPrefix(envelope *events.Envelope) string {
+	buf := bytes.Buffer{}
+	if ms.pathPrefix != "" {
+		buf.WriteString(ms.pathPrefix)
+		buf.WriteString("/")
+	}
+	// Non-runtime metrics get origin prepended to metric name.
+	if !ms.isRuntimeMetric(envelope) && envelope.GetOrigin() != "" {
+		buf.WriteString(envelope.GetOrigin())
+		buf.WriteString(".")
+	}
+	return buf.String()
+}
+
+func (ms *metricSink) Receive(envelope *events.Envelope) {
+	labels := ms.labelMaker.MetricLabels(envelope, ms.isRuntimeMetric(envelope))
+	metricPrefix := ms.getPrefix(envelope)
+	eventType := envelope.GetEventType()
 
 	timestamp := time.Duration(envelope.GetTimestamp())
 	eventTime := time.Unix(
@@ -47,49 +89,77 @@ func (ms *metricSink) Receive(envelope *events.Envelope) error {
 		int64(timestamp%time.Second),
 	)
 
-	var metrics []stackdriver.Metric
+	var metrics []*messages.Metric
 	switch envelope.GetEventType() {
 	case events.Envelope_ValueMetric:
 		valueMetric := envelope.GetValueMetric()
-		metrics = []stackdriver.Metric{{
-			Name:      valueMetric.GetName(),
-			Value:     valueMetric.GetValue(),
+		metrics = []*messages.Metric{{
+			Name:      metricPrefix + valueMetric.GetName(),
 			Labels:    labels,
+			Type:      eventType,
+			Value:     valueMetric.GetValue(),
 			EventTime: eventTime,
+			StartTime: eventTime,
 			Unit:      ms.unitParser.Parse(valueMetric.GetUnit()),
 		}}
 	case events.Envelope_ContainerMetric:
 		containerMetric := envelope.GetContainerMetric()
-		metrics = []stackdriver.Metric{
-			{Name: "diskBytesQuota", Value: float64(containerMetric.GetDiskBytesQuota()), EventTime: eventTime, Labels: labels},
-			{Name: "instanceIndex", Value: float64(containerMetric.GetInstanceIndex()), EventTime: eventTime, Labels: labels},
-			{Name: "cpuPercentage", Value: float64(containerMetric.GetCpuPercentage()), EventTime: eventTime, Labels: labels},
-			{Name: "diskBytes", Value: float64(containerMetric.GetDiskBytes()), EventTime: eventTime, Labels: labels},
-			{Name: "memoryBytes", Value: float64(containerMetric.GetMemoryBytes()), EventTime: eventTime, Labels: labels},
-			{Name: "memoryBytesQuota", Value: float64(containerMetric.GetMemoryBytesQuota()), EventTime: eventTime, Labels: labels},
+		metrics = []*messages.Metric{
+			{Name: metricPrefix + "diskBytesQuota", Value: float64(containerMetric.GetDiskBytesQuota())},
+			{Name: metricPrefix + "cpuPercentage", Value: float64(containerMetric.GetCpuPercentage())},
+			{Name: metricPrefix + "diskBytes", Value: float64(containerMetric.GetDiskBytes())},
+			{Name: metricPrefix + "memoryBytes", Value: float64(containerMetric.GetMemoryBytes())},
+			{Name: metricPrefix + "memoryBytesQuota", Value: float64(containerMetric.GetMemoryBytesQuota())},
+		}
+		for _, metric := range metrics {
+			metric.Labels = labels
+			metric.Type = eventType
+			metric.EventTime = eventTime
+			metric.StartTime = eventTime
 		}
 	case events.Envelope_CounterEvent:
 		counterEvent := envelope.GetCounterEvent()
-		metrics = []stackdriver.Metric{
-			{
-				Name:      fmt.Sprintf("%v.delta", counterEvent.GetName()),
-				Value:     float64(counterEvent.GetDelta()),
-				EventTime: eventTime,
+		if ms.counterTracker == nil {
+			// When there is no counter tracker, report CounterEvent metrics as two gauges: 'delta' and 'total'.
+			metrics = []*messages.Metric{
+				{
+					Name:      fmt.Sprintf("%s%v.delta", metricPrefix, counterEvent.GetName()),
+					Labels:    labels,
+					Type:      events.Envelope_ValueMetric,
+					Value:     float64(counterEvent.GetDelta()),
+					EventTime: eventTime,
+					StartTime: eventTime,
+				},
+				{
+					Name:      fmt.Sprintf("%s%v.total", metricPrefix, counterEvent.GetName()),
+					Labels:    labels,
+					Type:      events.Envelope_ValueMetric,
+					Value:     float64(counterEvent.GetTotal()),
+					EventTime: eventTime,
+					StartTime: eventTime,
+				},
+			}
+		} else {
+			// Create a partial metric struct (lacking IntValue and StartTime) to allow determining metric.Hash (used as
+			// the counter name) based on metric name and labels.
+			metric := &messages.Metric{
+				Name:      metricPrefix + counterEvent.GetName(),
 				Labels:    labels,
-			},
-			{
-				Name:      fmt.Sprintf("%v.total", counterEvent.GetName()),
-				Value:     float64(counterEvent.GetTotal()),
+				Type:      eventType,
 				EventTime: eventTime,
-				Labels:    labels,
-			},
+			}
+			total, st := ms.counterTracker.Update(metric.Hash(), counterEvent.GetTotal(), eventTime)
+			// Stackdriver expects non-zero time intervals, so only add a metric if event time is older than start time.
+			if eventTime.After(st) {
+				metric.StartTime = st
+				metric.IntValue = total
+				metrics = append(metrics, metric)
+			}
 		}
 	default:
-		return fmt.Errorf("unknown event type: %v", envelope.EventType)
+		ms.logger.Error("metricSink.Receive", fmt.Errorf("unknown event type: %v", envelope.EventType))
+		return
 	}
 
-	for k, _ := range metrics {
-		ms.metricBuffer.PostMetric(&metrics[k])
-	}
-	return nil
+	ms.metricAdapter.PostMetrics(metrics)
 }

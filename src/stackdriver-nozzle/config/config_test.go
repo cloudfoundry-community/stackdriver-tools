@@ -14,9 +14,10 @@
  * limitations under the License.
  */
 
-package config_test
+package config
 
 import (
+	"bytes"
 	"os"
 
 	. "github.com/onsi/ginkgo"
@@ -24,8 +25,25 @@ import (
 	. "github.com/onsi/gomega"
 
 	"cloud.google.com/go/compute/metadata"
-	"github.com/cloudfoundry-community/stackdriver-tools/src/stackdriver-nozzle/config"
 )
+
+// Hoisted to top level because it's (even more) horrible inline.
+var validEventFilterJSON = bytes.NewBufferString(`{
+	"blacklist": [{
+		"sink": "monitoring",
+		"type": "name",
+		"regexp": "^gorouter\\."
+	}, {
+		"sink": "all",
+		"type": "job",
+		"regexp": "jerrbb"
+	}],
+	"whitelist": [{
+		"sink": "logging",
+		"type": "name",
+		"regexp": "^MetronAgent\\."
+	}]
+}`)
 
 var _ = Describe("Config", func() {
 
@@ -42,7 +60,7 @@ var _ = Describe("Config", func() {
 	})
 
 	It("returns valid config from environment", func() {
-		c, err := config.NewConfig()
+		c, err := NewConfig()
 
 		Expect(err).To(BeNil())
 		Expect(c.APIEndpoint).To(Equal("https://api.example.com"))
@@ -71,13 +89,67 @@ var _ = Describe("Config", func() {
 	DescribeTable("required values aren't empty", func(envName string) {
 		os.Setenv(envName, "")
 
-		_, err := config.NewConfig()
+		_, err := NewConfig()
 
 		Expect(err).NotTo(BeNil())
 		Expect(err.Error()).To(ContainSubstring(envName))
 	},
 		Entry("FIREHOSE_ENDPOINT", "FIREHOSE_ENDPOINT"),
-		Entry("FIREHOSE_EVENTS_TO_STACKDRIVER_LOGGING", "FIREHOSE_EVENTS_TO_STACKDRIVER_LOGGING"),
 		Entry("FIREHOSE_SUBSCRIPTION_ID", "FIREHOSE_SUBSCRIPTION_ID"),
 	)
+
+	Describe("event selection", func() {
+		BeforeEach(func() {
+			os.Setenv("FIREHOSE_EVENTS_TO_STACKDRIVER_LOGGING", "")
+			os.Setenv("FIREHOSE_EVENTS_TO_STACKDRIVER_MONITORING", "")
+		})
+		It("is invalid with no events", func() {
+			_, err := NewConfig()
+			Expect(err).To(HaveOccurred())
+		})
+		It("a single event for logging is valid", func() {
+			os.Setenv("FIREHOSE_EVENTS_TO_STACKDRIVER_LOGGING", "LogMessage")
+			_, err := NewConfig()
+			Expect(err).NotTo(HaveOccurred())
+		})
+		It("a single event for monitoring is valid", func() {
+			os.Setenv("FIREHOSE_EVENTS_TO_STACKDRIVER_MONITORING", "ValueMetric")
+			_, err := NewConfig()
+			Expect(err).NotTo(HaveOccurred())
+		})
+	})
+
+	DescribeTable("parses empty-but-valid JSON files without errors", func(data string) {
+		c, err := NewConfig()
+		Expect(err).To(BeNil())
+		b := bytes.NewBufferString(data)
+		Expect(c.parseEventFilterJSON(b)).To(BeNil())
+		Expect(c.EventFilterJSON.Blacklist).To(HaveLen(0))
+		Expect(c.EventFilterJSON.Whitelist).To(HaveLen(0))
+	},
+		Entry("handles zero-length file", ""),
+		Entry("parses JSON with no lists", "{}"),
+		Entry("parses JSON with empty blacklist", `{"blacklist":[]}`),
+		Entry("parses JSON with empty whitelist", `{"whitelist":[]}`),
+		Entry("parses JSON with empty lists", `{"blacklist":[], "whitelist":[]}`),
+		// This is due to the unmarshalling behaviour of encoding/json.
+		Entry("ignores invalid lists", `{"yellowlist":[{"sink": "foo", "type": "name", "regexp": ".*"}]}`),
+	)
+
+	It("Errors on invalid JSON files", func() {
+		c, err := NewConfig()
+		Expect(err).To(BeNil())
+		b := bytes.NewBufferString(`{blacklist:[],}`)
+		Expect(c.parseEventFilterJSON(b)).NotTo(BeNil())
+		Expect(c.EventFilterJSON.Blacklist).To(HaveLen(0))
+		Expect(c.EventFilterJSON.Whitelist).To(HaveLen(0))
+	})
+
+	It("parses valid event filter JSON", func() {
+		c, err := NewConfig()
+		Expect(err).To(BeNil())
+		Expect(c.parseEventFilterJSON(validEventFilterJSON)).To(BeNil())
+		Expect(c.EventFilterJSON.Blacklist).To(HaveLen(2))
+		Expect(c.EventFilterJSON.Whitelist).To(HaveLen(1))
+	})
 })

@@ -1,7 +1,5 @@
 source 'https://rubygems.org'
 
-gem 'fluent-plugin-google-cloud', '~> 0.5.3'
-gem 'fluent-plugin-detect-exceptions', '0.0.3'
+gem 'fluent-plugin-google-cloud', '0.6.15'
+gem 'fluent-plugin-detect-exceptions', '0.0.9'
 gem 'fluentd', '~> 0.12'
-gem 'google-api-client', '~> 0.9.15'
-gem 'googleauth', '~> 0.5.1'

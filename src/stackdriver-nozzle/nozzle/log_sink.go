@@ -18,15 +18,16 @@ package nozzle
 
 import (
 	"encoding/json"
-	"errors"
 
 	"strings"
 
 	"cloud.google.com/go/logging"
+	"github.com/cloudfoundry-community/stackdriver-tools/src/stackdriver-nozzle/messages"
 	"github.com/cloudfoundry-community/stackdriver-tools/src/stackdriver-nozzle/stackdriver"
 	"github.com/cloudfoundry/sonde-go/events"
 )
 
+// NewLogSink returns a Sink that can receive sonde Events, translate them and send them to a stackdriver.LogAdapter
 func NewLogSink(labelMaker LabelMaker, logAdapter stackdriver.LogAdapter, newlineToken string) Sink {
 	return &logSink{
 		labelMaker:   labelMaker,
@@ -41,13 +42,15 @@ type logSink struct {
 	newlineToken string
 }
 
-func (ls *logSink) Receive(envelope *events.Envelope) error {
+func (ls *logSink) Receive(envelope *events.Envelope) {
 	if envelope == nil {
-		return errors.New("recieved emtpy envelope")
+		// This happens when we get a fatal error from firehose,
+		// It also happens a few thousand times in a row.
+		// Quietly ignore the error and let other parts of the system handle the logging.
+		return
 	}
 	log := ls.parseEnvelope(envelope)
 	ls.logAdapter.PostLog(&log)
-	return nil
 }
 
 func structToMap(obj interface{}) map[string]interface{} {
@@ -58,7 +61,7 @@ func structToMap(obj interface{}) map[string]interface{} {
 	return unmarshaled_map
 }
 
-func (ls *logSink) parseEnvelope(envelope *events.Envelope) stackdriver.Log {
+func (ls *logSink) parseEnvelope(envelope *events.Envelope) messages.Log {
 	payload := structToMap(envelope)
 	payload["eventType"] = envelope.GetEventType().String()
 
@@ -102,15 +105,15 @@ func (ls *logSink) parseEnvelope(envelope *events.Envelope) stackdriver.Log {
 		}
 	}
 
-	labels := ls.labelMaker.Build(envelope)
-	appID := labels["applicationId"]
-	if appID != "" {
+	labels := ls.labelMaker.LogLabels(envelope)
+	app := labels["applicationPath"]
+	if app != "" {
 		payload["serviceContext"] = map[string]interface{}{
-			"service": appID,
+			"service": app,
 		}
 	}
 
-	log := stackdriver.Log{
+	log := messages.Log{
 		Payload:  payload,
 		Labels:   labels,
 		Severity: severity,

@@ -32,12 +32,24 @@ case $1 in
 
     export DEBUG_NOZZLE=<%= p('nozzle.debug', 'false') %>
     export RESOLVE_APP_METADATA=<%= p('nozzle.resolve_app_metadata', 'true') %>
+    export METRICS_BUFFER_DURATION=<%= p('nozzle.metrics_buffer_duration', '30') %>
+    export METRICS_BATCH_SIZE=<%= p('nozzle.metrics_batch_size', '200') %>
+    export METRIC_PATH_PREFIX=<%= p('nozzle.metric_path_prefix', 'firehose') %>
+    export FOUNDATION_NAME=<%= p('nozzle.foundation_name', 'cf') %>
+    export LOGGING_BATCH_COUNT=<%= p('nozzle.logging_batch_count', '1000') %>
+    export LOGGING_BATCH_DURATION=<%= p('nozzle.logging_batch_duration', '30') %>
+    export LOGGING_REQUESTS_IN_FLIGHT=<%= p('nozzle.logging_requests_in_flight', '16') %>
+    export ENABLE_CUMULATIVE_COUNTERS=<%= p('nozzle.enable_cumulative_counters', 'true') %>
+    export ENABLE_APP_HTTP_METRICS=<%= p('nozzle.enable_app_http_metrics', 'false') %>
 
     <% if_p('gcp.project_id') do |prop| %>
     export GCP_PROJECT_ID=<%= prop %>
     <% end %>
     <% if_p('credentials.application_default_credentials') do |prop| %>
     export GOOGLE_APPLICATION_CREDENTIALS=$JOB_DIR/config/application_default_credentials.json
+    <% end %>
+    <% if_p('nozzle.event_filters.blacklist', 'nozzle.event_filters.whitelist') do |_,_| %>
+    export EVENT_FILTER_FILE=$JOB_DIR/config/event_filters.json
     <% end %>
 
     echo $$ > $PIDFILE

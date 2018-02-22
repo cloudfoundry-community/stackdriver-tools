@@ -19,30 +19,33 @@ package mocks
 import (
 	"sync"
 
-	"github.com/cloudfoundry-community/stackdriver-tools/src/stackdriver-nozzle/stackdriver"
+	"github.com/cloudfoundry-community/stackdriver-tools/src/stackdriver-nozzle/messages"
 )
 
 type MetricAdapter struct {
-	PostMetricsFn   func(metrics []stackdriver.Metric) error
-	PostMetricError error
-	PostedMetrics   []stackdriver.Metric
-	Mutex           sync.Mutex
+	sync.Mutex
+
+	PostMetricsFn    func(metrics []*messages.Metric) error
+	PostMetricsCount int
+	PostedMetrics    []*messages.Metric
 }
 
-func (m *MetricAdapter) PostMetrics(metrics []stackdriver.Metric) error {
+func (m *MetricAdapter) PostMetrics(metrics []*messages.Metric) {
+	m.Lock()
+	defer m.Unlock()
+
+	m.PostMetricsCount += 1
+
 	if m.PostMetricsFn != nil {
-		return m.PostMetricsFn(metrics)
+		m.PostMetricsFn(metrics)
 	}
 
-	m.Mutex.Lock()
-	defer m.Mutex.Unlock()
 	m.PostedMetrics = append(m.PostedMetrics, metrics...)
-	return m.PostMetricError
 }
 
-func (m *MetricAdapter) GetPostedMetrics() []stackdriver.Metric {
-	m.Mutex.Lock()
-	defer m.Mutex.Unlock()
+func (m *MetricAdapter) GetPostedMetrics() []*messages.Metric {
+	m.Lock()
+	defer m.Unlock()
 
 	return m.PostedMetrics
 }

@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package nozzle_test
+package nozzle
 
 import (
 	. "github.com/onsi/ginkgo"

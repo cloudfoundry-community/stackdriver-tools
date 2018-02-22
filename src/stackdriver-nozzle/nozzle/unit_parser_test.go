@@ -14,23 +14,22 @@
  * limitations under the License.
  */
 
-package nozzle_test
+package nozzle
 
 import (
-	"github.com/cloudfoundry-community/stackdriver-tools/src/stackdriver-nozzle/nozzle"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 )
 
 var _ = Describe("UnitParser", func() {
 	var (
-		subject nozzle.UnitParser
+		subject UnitParser
 
 		AssertUnitParsed func(string, string)
 	)
 
 	BeforeEach(func() {
-		subject = nozzle.NewUnitParser()
+		subject = NewUnitParser()
 
 		AssertUnitParsed = func(input, output string) {
 			Expect(subject.Parse(input)).To(Equal(output))

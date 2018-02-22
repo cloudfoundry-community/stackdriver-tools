@@ -20,8 +20,8 @@ go get github.com/cloudfoundry-community/stackdriver-tools/src/stackdriver-nozzl
 
 - `FIREHOSE_ENDPOINT` - the CF API endpoint; e.g., `https://api.bosh-lite.com'
 - `FIREHOSE_EVENTS_TO_STACKDRIVER_LOGGING` - comma-separated list of events to pass to Stackdriver Logging;
-  valid events are `LogMessage`, `ValueMetric`, `CounterEvent`, `Error`,
-  `ContainerMetric`, `HttpStart`, `HttpStop`, and `HttpStartStop`
+  valid events are `LogMessage`,  `Error`, `HttpStartStop`, `ValueMetric` (BETA), `CounterEvent` (BETA),
+  `ContainerMetric` (BETA)
 - `FIREHOSE_EVENTS_TO_STACKDRIVER_MONITORING` - comma-separated list of events to pass to Stackdriver Monitoring;
   valid events are  `ValueMetric`, `CounterEvent`, and `ContainerMetric`
 - `FIREHOSE_USERNAME` - CF username; defaults to `admin`
@@ -39,16 +39,67 @@ go get github.com/cloudfoundry-community/stackdriver-tools/src/stackdriver-nozzl
 
 #### Nozzle
 
+- `FOUNDATION_NAME` - sets the value of the "foundation" label added to every
+  metric / log exported to Stackdriver; defaults to "cf". This is useful for
+  differentiating between multiple cloud foundry / BOSH instances in the same
+  GCP / Stackdriver project.
 - `HEARTBEAT_RATE` - how often `stackdriver-nozzle` reports stats to stdout;
   defaults to 30 seconds
-- `BATCH_COUNT` - how many logs and metrics to batch into a single report to
+- `LOGGING_BATCH_COUNT` - how many logs to batch into a single report to
   Stackdriver; defaults to 10
-- `BATCH_DURATION` - maximum time to batch logs to Stackdriver; defaults to 1
+- `LOGGING_BATCH_DURATION` - maximum time to batch logs to Stackdriver; defaults to 1
   second
+- `METRICS_BUFFER_DURATION` - flush interval (in seconds) of the internal metric
+  buffer; defaults to 30
+- `METRICS_BATCH_SIZE` - batch size for metric time series being sent to
+  Stackdriver; defaults to 200
+- `METRIC_PATH_PREFIX` - sets a prefix for all custom metrics exported to
+  Stackdriver, e.g. custom.googleapis.com/PREFIX/gorouter.total_requests;
+  defaults to "firehose". May contain slashes. Useful to "namespace"
+  cloud foundry metrics from others in the same Stackdriver project.
 - `RESOLVE_APP_METADATA` - whether to hydrate app UUIDs into org name, org
   UUID, space name, space UUID, and app name; defaults to `true`
 - `SUBSCRIPTION_ID` - what subscription ID to use for connecting to the
   firehose; defaults to `stackdriver-nozzle`
+
+#### Event Filters
+
+Event filters allow users to selectively enable or disable the processing of
+firehose events by the Stackdriver Nozzle. The default behaviour is to process
+all events. Events that match a blacklist filter will not be processed unless
+they also match a whitelist filter.
+
+A filter rule has three elements:
+
+*   A *regexp*, which must be a valid regular expression.
+*   A *type*, which may be either "name" or "job".
+    *   *name* matches against a concatenation of event _origin_ and metric
+        _name_ with "." (e.g. `gorouter.total_requests`), and is only applicable
+        for CounterEvent and ValueMetric event types.
+        *   *job* matches against the event _job_.
+*   A *sink*, which may be either "monitoring", "logging", or "all". The
+    latter applies the rule to all firehose events, while the other two
+    restrict the filter rule to events destined for Stackdriver Monitoring
+    or Logging respectively.
+
+These filter rules are expressed as a JSON object with two keys "blacklist" and
+"whitelist". They are loaded from the file named in `EVENT_FILTER_FILE`. It is
+valid to omit either or both keys. Please take special care when escaping
+regexp metacharacters with backslashes, because JSON!
+
+An example filter file:
+
+```json
+{
+    "blacklist": [
+        {"sink": "all", "type": "job", "regexp": "^router$"}
+    ],
+    "whitelist": [
+        {"sink": "monitoring", "type": "name", "regexp": "^gorouter\\..*requests"},
+        ...
+    ]
+}
+```
 
 ### Usage
 

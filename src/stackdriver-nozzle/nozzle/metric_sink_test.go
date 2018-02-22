@@ -14,17 +14,21 @@
  * limitations under the License.
  */
 
-package nozzle_test
+package nozzle
 
 import (
+	"context"
+	"errors"
 	"time"
 
+	"github.com/cloudfoundry-community/stackdriver-tools/src/stackdriver-nozzle/cloudfoundry"
+	"github.com/cloudfoundry-community/stackdriver-tools/src/stackdriver-nozzle/messages"
 	"github.com/cloudfoundry-community/stackdriver-tools/src/stackdriver-nozzle/mocks"
-	"github.com/cloudfoundry-community/stackdriver-tools/src/stackdriver-nozzle/nozzle"
-	"github.com/cloudfoundry-community/stackdriver-tools/src/stackdriver-nozzle/stackdriver"
+	"github.com/cloudfoundry/lager"
 	"github.com/cloudfoundry/sonde-go/events"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
+	. "github.com/onsi/gomega/gstruct"
 )
 
 type mockUnitParser struct {
@@ -38,24 +42,30 @@ func (m *mockUnitParser) Parse(unit string) string {
 
 var _ = Describe("MetricSink", func() {
 	var (
-		subject      nozzle.Sink
-		metricBuffer *mocks.MetricsBuffer
-		unitParser   *mockUnitParser
-		labels       map[string]string
+		subject        Sink
+		metricBuffer   *mocks.MetricsBuffer
+		unitParser     *mockUnitParser
+		logger         *mocks.MockLogger
+		labelMaker     LabelMaker
+		counterTracker *CounterTracker
+		err            error
 	)
 
 	BeforeEach(func() {
-		labels = map[string]string{"foo": "bar"}
-		labelMaker := &mocks.LabelMaker{Labels: labels}
+		appInfoRepository := &mocks.AppInfoRepository{AppInfoMap: map[string]cloudfoundry.AppInfo{}}
+		labelMaker = NewLabelMaker(appInfoRepository, "foobar")
 		metricBuffer = &mocks.MetricsBuffer{}
 		unitParser = &mockUnitParser{}
+		logger = &mocks.MockLogger{}
 
-		subject = nozzle.NewMetricSink(labelMaker, metricBuffer, unitParser)
+		subject, err = NewMetricSink(logger, "firehose", labelMaker, metricBuffer, counterTracker, unitParser, "^runtimeMetric\\..*")
+		Expect(err).To(BeNil())
 	})
 
 	It("creates metric for ValueMetric", func() {
 		eventTime := time.Now()
 
+		origin := "origin"
 		name := "valueMetricName"
 		value := 123.456
 		unit := "barUnit"
@@ -68,29 +78,72 @@ var _ = Describe("MetricSink", func() {
 		eventType := events.Envelope_ValueMetric
 		timeStamp := eventTime.UnixNano()
 		envelope := &events.Envelope{
+			Origin:      &origin,
 			EventType:   &eventType,
 			ValueMetric: &event,
 			Timestamp:   &timeStamp,
 		}
 
-		err := subject.Receive(envelope)
-		Expect(err).To(BeNil())
+		subject.Receive(envelope)
 
 		metrics := metricBuffer.PostedMetrics
-		Expect(metrics).To(ConsistOf(stackdriver.Metric{
-			Name:      "valueMetricName",
-			Value:     123.456,
-			Labels:    labels,
-			EventTime: eventTime,
-			Unit:      "{foo}",
+		Expect(metrics).To(HaveLen(1))
+		Expect(metrics[0]).To(MatchAllFields(Fields{
+			"Name":      Equal("firehose/origin.valueMetricName"),
+			"Labels":    Equal(map[string]string{"foundation": "foobar"}),
+			"Value":     Equal(123.456),
+			"IntValue":  BeNumerically("==", 0),
+			"EventTime": BeTemporally("~", eventTime),
+			"StartTime": BeTemporally("~", eventTime),
+			"Unit":      Equal("{foo}"),
+			"Type":      Equal(eventType),
 		}))
+		Expect(metrics[0].EventTime.UnixNano()).To(Equal(timeStamp))
 
 		Expect(unitParser.lastInput).To(Equal("barUnit"))
+	})
+
+	It("handles runtime ValueMetric", func() {
+		eventTime := time.Now()
+
+		origin := "myOrigin"
+		name := "runtimeMetric.foobar"
+		value := 123.456
+		event := events.ValueMetric{
+			Name:  &name,
+			Value: &value,
+		}
+
+		eventType := events.Envelope_ValueMetric
+		timeStamp := eventTime.UnixNano()
+		envelope := &events.Envelope{
+			Origin:      &origin,
+			EventType:   &eventType,
+			ValueMetric: &event,
+			Timestamp:   &timeStamp,
+		}
+
+		subject.Receive(envelope)
+
+		metrics := metricBuffer.PostedMetrics
+		Expect(metrics).To(HaveLen(1))
+		Expect(metrics[0]).To(MatchAllFields(Fields{
+			"Name":      Equal("firehose/runtimeMetric.foobar"),
+			"Labels":    Equal(map[string]string{"foundation": "foobar", "origin": "myOrigin"}),
+			"Value":     Equal(123.456),
+			"IntValue":  BeNumerically("==", 0),
+			"EventTime": BeTemporally("~", eventTime),
+			"StartTime": BeTemporally("~", eventTime),
+			"Unit":      Ignore(),
+			"Type":      Ignore(),
+		}))
+		Expect(metrics[0].EventTime.UnixNano()).To(Equal(timeStamp))
 	})
 
 	It("creates the proper metrics for ContainerMetric", func() {
 		eventTime := time.Now()
 
+		origin := "origin"
 		diskBytesQuota := uint64(1073741824)
 		instanceIndex := int32(0)
 		cpuPercentage := 0.061651273460637
@@ -112,29 +165,36 @@ var _ = Describe("MetricSink", func() {
 		}
 
 		envelope := &events.Envelope{
+			Origin:          &origin,
 			EventType:       &metricType,
 			ContainerMetric: &containerMetric,
 			Timestamp:       &timeStamp,
 		}
 
-		err := subject.Receive(envelope)
-		Expect(err).To(BeNil())
+		subject.Receive(envelope)
 
 		metrics := metricBuffer.PostedMetrics
-		Expect(metrics).To(HaveLen(6))
+		Expect(metrics).To(HaveLen(5))
 
-		Expect(metrics).To(ContainElement(stackdriver.Metric{Name: "diskBytesQuota", Value: float64(1073741824), Labels: labels, EventTime: eventTime, Unit: ""}))
-		Expect(metrics).To(ContainElement(stackdriver.Metric{Name: "instanceIndex", Value: float64(0), Labels: labels, EventTime: eventTime, Unit: ""}))
-		Expect(metrics).To(ContainElement(stackdriver.Metric{Name: "cpuPercentage", Value: 0.061651273460637, Labels: labels, EventTime: eventTime, Unit: ""}))
-		Expect(metrics).To(ContainElement(stackdriver.Metric{Name: "diskBytes", Value: float64(164634624), Labels: labels, EventTime: eventTime, Unit: ""}))
-		Expect(metrics).To(ContainElement(stackdriver.Metric{Name: "memoryBytes", Value: float64(16601088), Labels: labels, EventTime: eventTime, Unit: ""}))
-		Expect(metrics).To(ContainElement(stackdriver.Metric{Name: "memoryBytesQuota", Value: float64(33554432), Labels: labels, EventTime: eventTime, Unit: ""}))
+		eventName := func(element interface{}) string {
+			return element.(messages.Metric).Name
+		}
+
+		labels := map[string]string{"foundation": "foobar", "instanceIndex": "0"}
+		Expect(metrics).To(MatchAllElements(eventName, Elements{
+			"firehose/origin.diskBytesQuota":   MatchFields(IgnoreExtras, Fields{"Labels": Equal(labels), "Type": Equal(metricType), "Value": Equal(float64(1073741824)), "Unit": Equal("")}),
+			"firehose/origin.cpuPercentage":    MatchFields(IgnoreExtras, Fields{"Labels": Equal(labels), "Type": Equal(metricType), "Value": Equal(float64(0.061651273460637)), "Unit": Equal("")}),
+			"firehose/origin.diskBytes":        MatchFields(IgnoreExtras, Fields{"Labels": Equal(labels), "Type": Equal(metricType), "Value": Equal(float64(164634624)), "Unit": Equal("")}),
+			"firehose/origin.memoryBytes":      MatchFields(IgnoreExtras, Fields{"Labels": Equal(labels), "Type": Equal(metricType), "Value": Equal(float64(16601088)), "Unit": Equal("")}),
+			"firehose/origin.memoryBytesQuota": MatchFields(IgnoreExtras, Fields{"Labels": Equal(labels), "Type": Equal(metricType), "Value": Equal(float64(33554432)), "Unit": Equal("")}),
+		}))
 	})
 
 	It("creates total and delta metrics for CounterEvent", func() {
 		eventTime := time.Now()
 
 		eventType := events.Envelope_CounterEvent
+		origin := "origin"
 		name := "counterName"
 		delta := uint64(654321)
 		total := uint64(123456)
@@ -146,41 +206,121 @@ var _ = Describe("MetricSink", func() {
 			Total: &total,
 		}
 		envelope := &events.Envelope{
+			Origin:       &origin,
 			EventType:    &eventType,
 			CounterEvent: &event,
 			Timestamp:    &timeStamp,
 		}
 
-		err := subject.Receive(envelope)
-		Expect(err).To(BeNil())
+		subject.Receive(envelope)
 
 		metrics := metricBuffer.PostedMetrics
-		Expect(metrics).To(ConsistOf(
-			stackdriver.Metric{
-				Name:      "counterName.delta",
-				Value:     float64(654321),
-				Labels:    labels,
-				EventTime: eventTime,
-				Unit:      "",
-			},
-			stackdriver.Metric{
-				Name:      "counterName.total",
-				Value:     float64(123456),
-				Labels:    labels,
-				EventTime: eventTime,
-				Unit:      "",
-			},
-		))
+
+		eventName := func(element interface{}) string {
+			return element.(messages.Metric).Name
+		}
+		Expect(metrics).To(MatchAllElements(eventName, Elements{
+			"firehose/origin.counterName.delta": MatchAllFields(Fields{
+				"Name":      Ignore(),
+				"Labels":    Equal(map[string]string{"foundation": "foobar"}),
+				"Value":     Equal(float64(654321)),
+				"IntValue":  BeNumerically("==", 0),
+				"EventTime": BeTemporally("~", eventTime),
+				"StartTime": BeTemporally("~", eventTime),
+				"Unit":      Equal(""),
+				"Type":      Equal(events.Envelope_ValueMetric),
+			}),
+			"firehose/origin.counterName.total": MatchAllFields(Fields{
+				"Name":      Ignore(),
+				"Labels":    Equal(map[string]string{"foundation": "foobar"}),
+				"Value":     Equal(float64(123456)),
+				"IntValue":  BeNumerically("==", 0),
+				"EventTime": BeTemporally("~", eventTime),
+				"StartTime": BeTemporally("~", eventTime),
+				"Unit":      Equal(""),
+				"Type":      Equal(events.Envelope_ValueMetric),
+			}),
+		}))
+	})
+
+	Context("with CounterTracker enabled", func() {
+		BeforeEach(func() {
+			counterTracker = NewCounterTracker(context.TODO(), time.Duration(5)*time.Second, logger)
+			subject, err = NewMetricSink(logger, "firehose", labelMaker, metricBuffer, counterTracker, unitParser, "^runtimeMetric\\..*")
+			Expect(err).To(BeNil())
+		})
+
+		It("creates cumulative metrics for CounterEvent", func() {
+			eventTime := time.Now()
+
+			eventType := events.Envelope_CounterEvent
+			origin := "origin"
+			name := "counterName"
+
+			// List of {delta, total} events to produce.
+			eventValues := [][]uint64{
+				{5, 105},
+				{10, 115},
+				{10, 125},
+				{5, 5}, // counter reset
+				{20, 25},
+			}
+
+			for idx, values := range eventValues {
+				ts := eventTime.UnixNano() + int64(time.Second)*int64(idx) // Events are 1 second apart.
+				delta := values[0]
+				total := values[1]
+				subject.Receive(&events.Envelope{
+					Origin:    &origin,
+					EventType: &eventType,
+					Timestamp: &ts,
+					CounterEvent: &events.CounterEvent{
+						Name:  &name,
+						Delta: &delta,
+						Total: &total,
+					},
+				})
+			}
+
+			metrics := metricBuffer.PostedMetrics
+			Expect(metrics).To(HaveLen(4))
+			eventName := func(element interface{}) string {
+				return element.(messages.Metric).Name
+			}
+			Expect(metrics).To(MatchElements(eventName, AllowDuplicates, Elements{
+				"firehose/origin.counterName": MatchAllFields(Fields{
+					"Name":      Ignore(),
+					"Labels":    Equal(map[string]string{"foundation": "foobar"}),
+					"Value":     BeNumerically("==", 0),
+					"IntValue":  Ignore(),
+					"EventTime": Ignore(),
+					"StartTime": BeTemporally("~", eventTime),
+					"Unit":      Equal(""),
+					"Type":      Equal(eventType),
+				}),
+			}))
+			expectedTotals := []float64{10, 20, 25, 45}
+			for idx, total := range expectedTotals {
+				Expect(metrics[idx]).To(MatchFields(IgnoreExtras, Fields{
+					"IntValue":  BeNumerically("==", total),
+					"EventTime": BeTemporally("~", eventTime.Add(time.Duration(idx+1)*time.Second)),
+				}))
+			}
+		})
 	})
 
 	It("returns error when envelope contains unhandled event type", func() {
-		eventType := events.Envelope_HttpStart
+		eventType := events.Envelope_HttpStartStop
 		envelope := &events.Envelope{
 			EventType: &eventType,
 		}
 
-		err := subject.Receive(envelope)
+		subject.Receive(envelope)
 
-		Expect(err).NotTo(BeNil())
+		Expect(logger.Logs()).To(ContainElement(mocks.Log{
+			Action: "metricSink.Receive",
+			Level:  lager.ERROR,
+			Err:    errors.New("unknown event type: HttpStartStop"),
+		}))
 	})
 })

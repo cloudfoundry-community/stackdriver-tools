@@ -16,13 +16,13 @@
 
 package mocks
 
-import "github.com/cloudfoundry-community/stackdriver-tools/src/stackdriver-nozzle/stackdriver"
+import "github.com/cloudfoundry-community/stackdriver-tools/src/stackdriver-nozzle/messages"
 
 type LogAdapter struct {
-	PostedLogs []stackdriver.Log
+	PostedLogs []messages.Log
 }
 
-func (la *LogAdapter) PostLog(log *stackdriver.Log) {
+func (la *LogAdapter) PostLog(log *messages.Log) {
 	la.PostedLogs = append(la.PostedLogs, *log)
 }
 

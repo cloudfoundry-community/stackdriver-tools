@@ -18,13 +18,38 @@ package stackdriver
 
 import (
 	"context"
+	"strings"
 
 	"cloud.google.com/go/monitoring/apiv3"
+	"github.com/cloudfoundry-community/stackdriver-tools/src/stackdriver-nozzle/telemetry"
 	"github.com/cloudfoundry-community/stackdriver-tools/src/stackdriver-nozzle/version"
+	"google.golang.org/api/iterator"
 	"google.golang.org/api/option"
 	metricpb "google.golang.org/genproto/googleapis/api/metric"
 	monitoringpb "google.golang.org/genproto/googleapis/monitoring/v3"
 )
+
+var (
+	timeSeriesReqs *telemetry.Counter
+	timeSeriesErrs *telemetry.CounterMap
+
+	timeSeriesErrOutOfOrder *telemetry.Counter
+	timeSeriesErrUnknown    *telemetry.Counter
+
+	descriptorReqs *telemetry.Counter
+	descriptorErrs *telemetry.Counter
+)
+
+func init() {
+	timeSeriesReqs = telemetry.NewCounter(telemetry.Nozzle, "metrics.timeseries.requests")
+	timeSeriesErrs = telemetry.NewCounterMap(telemetry.Nozzle, "metrics.timeseries.errors", "error_type")
+
+	timeSeriesErrOutOfOrder = timeSeriesErrs.MustCounter("out_of_order")
+	timeSeriesErrUnknown = timeSeriesErrs.MustCounter("unknown")
+
+	descriptorReqs = telemetry.NewCounter(telemetry.Nozzle, "metrics.descriptor.requests")
+	descriptorErrs = telemetry.NewCounter(telemetry.Nozzle, "metrics.descriptor.errors")
+}
 
 type MetricClient interface {
 	Post(*monitoringpb.CreateTimeSeriesRequest) error
@@ -51,11 +76,27 @@ type metricClient struct {
 }
 
 func (m *metricClient) Post(request *monitoringpb.CreateTimeSeriesRequest) error {
-	return m.sdMetricClient.CreateTimeSeries(m.ctx, request)
+	timeSeriesReqs.Increment()
+	err := m.sdMetricClient.CreateTimeSeries(m.ctx, request)
+	if err != nil {
+		if strings.Contains(err.Error(), `Points must be written in order`) {
+			// This is an expected error once there is more than a single nozzle writing to Stackdriver.
+			// If one nozzle writes a metric occurring at time T2 and this one tries to write at T1 (where T2 later than T1)
+			// we will receive this error.
+			timeSeriesErrOutOfOrder.Increment()
+			return nil // absorb error
+		}
+		timeSeriesErrUnknown.Increment()
+	}
+	return err
 }
 
 func (m *metricClient) CreateMetricDescriptor(request *monitoringpb.CreateMetricDescriptorRequest) error {
+	descriptorReqs.Increment()
 	_, err := m.sdMetricClient.CreateMetricDescriptor(m.ctx, request)
+	if err != nil {
+		descriptorErrs.Increment()
+	}
 	return err
 }
 
@@ -65,7 +106,7 @@ func (m *metricClient) ListMetricDescriptors(request *monitoringpb.ListMetricDes
 	descriptors := []*metricpb.MetricDescriptor{}
 	for {
 		metricDescriptor, err := it.Next()
-		if err == monitoring.Done {
+		if err == iterator.Done {
 			break
 		}
 		if err != nil {

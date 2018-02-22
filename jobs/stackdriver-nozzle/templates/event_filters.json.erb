@@ -1,0 +1,11 @@
+<%
+require 'json'
+config = {}
+
+%w[blacklist whitelist].each do |prop|
+  if_p("nozzle.event_filters.#{prop}") do |val|
+    config[prop] = val
+  end
+end
+%>
+<%=config.to_json %>

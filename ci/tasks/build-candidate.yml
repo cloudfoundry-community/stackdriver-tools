@@ -3,8 +3,7 @@ platform: linux
 image_resource:
   type: docker-image
   source:
-    repository: lambr/gcp-tools
-    tag: v3
+    repository: jrjohnsongoog/stackdriver-tools-ci
 inputs:
   - name: stackdriver-tools
   - name: version-semver
@@ -12,3 +11,5 @@ outputs:
   - name: candidate
 run:
   path: stackdriver-tools/ci/tasks/build-candidate.sh
+params:
+  service_account_key_json: replace-me

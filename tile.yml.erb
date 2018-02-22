@@ -6,12 +6,12 @@ end
 ---
 name: <%=ENV["TILE_NAME"] %>
 label: <%=ENV["TILE_LABEL"] %>
-description: Import your Cloud Foundry logs and metrics into Stackdriver Logging and Monitoring for diagnostics and alerting 
+description: Import your Cloud Foundry logs and metrics into Stackdriver Logging and Monitoring for diagnostics and alerting
 icon_file: gcp_logo.png
 packages:
 - name: stackdriver-tools
   type: bosh-release
-  path: <%=ENV["RELEASE_PATH"] %> 
+  path: <%=ENV["RELEASE_PATH"] %>
   jobs:
   - name: stackdriver-nozzle
     templates:
@@ -20,9 +20,9 @@ packages:
     memory: 512
     ephemeral_disk: 4096
     cpu: 2
-    dynamic_ip: 0
-    static_ip: 1
-    instances: 2
+    dynamic_ip: 1
+    static_ip: 0
+    singleton: true
     properties:
       firehose:
         endpoint: (( .properties.firehose_endpoint.value ))
@@ -31,10 +31,23 @@ packages:
         username: (( .properties.firehose_username.value || ..cf.uaa.stackdriver_nozzle_credentials.identity ))
         password: (( .properties.firehose_password.value || ..cf.uaa.stackdriver_nozzle_credentials.password ))
         skip_ssl: (( .properties.firehose_skip_ssl.value ))
+        subscription_id: <%=ENV["TILE_NAME"] %>
       credentials:
         application_default_credentials: (( .properties.service_account.value ))
       gcp:
         project_id: (( .properties.project_id.value ))
+      nozzle:
+        metrics_buffer_duration: (( .properties.metrics_buffer_duration.value ))
+        metrics_batch_size: (( .properties.metrics_batch_size.value ))
+        metric_path_prefix: (( .properties.metric_path_prefix.value ))
+        foundation_name: (( .properties.foundation_name.value ))
+        logging_batch_count: (( .properties.logging_batch_count.value ))
+        logging_batch_duration: (( .properties.logging_batch_duration.value ))
+        logging_requests_in_flight: (( .properties.logging_requests_in_flight.value ))
+        debug: (( .properties.debug.value ))
+        event_filters:
+          blacklist: (( .properties.blacklist.value ))
+          whitelist: (( .properties.whitelist.value ))
 
 
 forms:
@@ -49,7 +62,7 @@ forms:
     type: string
     default: HttpStartStop,LogMessage,Error
     label: Whitelist for Stackdriver Logging
-    description: Comma separated list without spaces consisting of any or all of HttpStart,HttpStop,HttpStartStop,LogMessage,ValueMetric,CounterEvent,Error,ContainerMetric
+    description: Comma separated list without spaces consisting of any or all of HttpStartStop,LogMessage,Error. ValueMetric,CounterEvent,ContainerMetric may also be used but they are in beta.
   - name: firehose_events_to_stackdriver_monitoring
     type: string
     default: CounterEvent,ValueMetric,ContainerMetric
@@ -65,8 +78,8 @@ forms:
     label: UAA Password
     optional: true
   - name: firehose_skip_ssl
-    type: string
-    default: 'false'
+    type: boolean
+    default: false
     label: Skip SSL validation on Cloud Foundry API Endpoint
   - name: service_account
     type: text
@@ -76,3 +89,218 @@ forms:
     type: string
     label: Google Project ID
     description: Project id for project with logging and monitoring APIs enabled
+  - name: metrics_buffer_duration
+    type: integer
+    default: 30
+    label: Metrics Buffer Duration
+    description: Flush interval (in seconds) of the internal metric buffer
+  - name: metrics_batch_size
+    type: integer
+    default: 200
+    label: Metrics Batch Size
+    description: Batch size for time series being sent to Stackdriver
+  - name: logging_batch_duration
+    type: integer
+    default: 30
+    label: Logging Buffer Duration
+    description: Flush interval (in seconds) of the internal logging buffer
+  - name: logging_batch_count
+    type: integer
+    default: 1000
+    label: Logging Batch Count
+    description: Batch size for log messages being sent to Stackdriver
+  - name: logging_requests_in_flight
+    type: integer
+    default: 16
+    label: Max In-Flight Logging Requests
+    description: The maximum permitted number of concurrent in-flight requests to Stackdriver Logging.
+  - name: metric_path_prefix
+    type: string
+    default: firehose
+    label: Metric Path Prefix
+    description: Prefix added to all metric names being sent to Stackdriver, e.g. 'custom/PREFIX/gorouter.total_requests'. May contain slashes.
+  - name: foundation_name
+    type: string
+    default: cf
+    label: Foundation Name
+    description: Name added as the 'foundation' label to all time series being sent to Stackdriver, useful for differentiating between multiple PCF instances in a project.
+  - name: debug
+    type: boolean
+    default: false
+    label: Nozzle Debugging
+    description: Enable Nozzle Debugging Features. With this enabled each Stackdriver Nozzle instance will host a web server on port 6060 that exposes debug information such as a heap dump and running threads.
+- name: event_filters
+  label: Event Filters
+  description: Configure regexp-based blacklists / whitelists for firehose events here.
+  markdown: |
+    ## Event Filters
+
+    Event filters allow users to selectively enable or disable the processing of
+    firehose events by the Stackdriver Nozzle. Events that match a blacklist filter
+    will not be processed unless they also match a whitelist filter.
+
+    **IMPORTANT:** The Nozzle tile configures a default black/whitelist combination that
+    whitelists only Pivotal's Key Performance / Capacity Scaling Indicators for
+    transmission to Stackdriver Monitoring, because Stackdriver limits users to 500
+    custom metric descriptors. **Removing the blacklist may result in this limit being hit.**
+
+    *   **PCF KPIs:** https://docs.pivotal.io/pivotalcf/2-0/monitoring/kpi.html
+    *   **PCF KCSIs:** https://docs.pivotal.io/pivotalcf/2-0/monitoring/key-cap-scaling.html
+
+    A filter rule has three elements.
+
+    *   A *regexp*, which must be a valid regular expression.
+    *   A *type*, which may be either "name" or "job".
+        *   *name* matches against a concatenation of event _origin_ and metric _name_
+            with "." (e.g. `gorouter.total_requests`), and is only applicable for
+            CounterEvent and ValueMetric event types.
+        *   *job* matches against the event _job_.
+    *   A *sink*, which may be either "monitoring", "logging", or "all". The latter
+        applies the rule to all firehose events, while the other two restrict the
+        filter rule to events destined for Stackdriver Monitoring or Logging
+        respectively.
+
+    An optional *description* field is provided for a human-readable name for each filter,
+    to aid in identifying filters when the list elements are collapsed. This is ignored
+    by the Stackdriver Nozzle.
+  properties:
+  - name: blacklist
+    type: collection
+    label: Event Blacklist
+    description: Events matching these blacklist filters will not be propagated to Stackdriver.
+    configurable: true
+    default:
+    - description: Blacklist all metrics from Stackdriver Monitoring.
+      type: name
+      regexp: '^.*$'
+      sink: monitoring
+    property_blueprints:
+    - name: description
+      type: string
+      label: Description
+      optional: true
+      configurable: true
+    - name: regexp
+      type: string
+      label: Regexp
+      configurable: true
+    - name: type
+      type: dropdown_select
+      label: Type
+      configurable: true
+      options:
+      - name: job
+        label: Job
+        default: true
+      - name: name
+        label: Name
+    - name: sink
+      type: dropdown_select
+      label: Sink
+      configurable: true
+      options:
+      - name: all
+        label: All
+        default: true
+      - name: logging
+        label: Stackdriver Logging
+      - name: monitoring
+        label: Stackdriver Monitoring
+  - name: whitelist
+    type: collection
+    label: Event Whitelist
+    description: Events matching these whitelist filters will be propagated to Stackdriver even if they match a blacklist filter above.
+    configurable: true
+    default:
+    - description: Whitelist auctioneer KPI metrics.
+      type: name
+      regexp: '^auctioneer\.LockHeld|auctioneer\.Auctioneer'
+      sink: monitoring
+    - description: Whitelist bbs KPI metrics.
+      type: name
+      regexp: '^bbs\.(LockHeld|RequestLatency)|bbs\.Domain\.|bbs\..*LRP'
+      sink: monitoring
+    - description: Whitelist rep KPI metrics.
+      type: name
+      regexp: '^rep\.Capacity(Remaining|Total)(Memory|Disk|Containers)|rep\.RepBulkSyncDuration|rep\.UnhealthyCell$'
+      sink: monitoring
+    - description: Whitelist locket KPI metrics.
+      type: name
+      regexp: '^locket\.Active'
+      sink: monitoring
+    - description: Whitelist route_emitter KPI metrics.
+      type: name
+      regexp: '^route_emitter\.MessagesEmitted|route_emitter\..*Route'
+      sink: monitoring
+    - description: Whitelist MySQL KPI metrics.
+      type: name
+      regexp: '^/mysql/'
+      sink: monitoring
+    - description: Whitelist gorouter KPI metrics.
+      type: name
+      regexp: '^gorouter\.(file_descriptors|backend_exhausted_conns|ms_since_last_registry_update|total_routes|registry_message\.route-emitter)'
+      sink: monitoring
+    - description: Whitelist gorouter response metrics.
+      type: name
+      regexp: '^gorouter\.(total_requests|latency|responses|bad_gateways)'
+      sink: monitoring
+    - description: Whitelist UAA KPI metrics.
+      type: name
+      regexp: '^uaa\.requests\.global\.completed\.count|uaa\.server\.inflight\.count$'
+      sink: monitoring
+    - description: Whitelist loggregator KPI metrics.
+      type: name
+      regexp: '^loggregator\.(doppler|rlp)\.(ingress|dropped)$'
+      sink: monitoring
+    - description: Whitelist Doppler KPI metrics.
+      type: name
+      regexp: '^DopplerServer\.listeners\.totalReceivedMessageCount|DopplerServer\.doppler\.shedEnvelopes$'
+      sink: monitoring
+    - description: Whitelist syslog KPI metrics.
+      type: name
+      regexp: '^(scalablesyslog|cf-syslog-drain)\.(adapter\.(ingress|dropped)|scheduler\.drains)$'
+      sink: monitoring
+    - description: Whitelist BOSH system KPI metrics.
+      type: name
+      regexp: '^bosh-system-metrics-forwarder\.system\.'
+      sink: monitoring
+    - description: Whitelist metrics derived or republished by Healthwatch.
+      type: name
+      regexp: '^health(watch)?\.'
+      sink: monitoring
+    property_blueprints:
+    - name: description
+      type: string
+      label: Description
+      optional: true
+      configurable: true
+    - name: regexp
+      type: string
+      label: Regexp
+      configurable: true
+    - name: type
+      type: dropdown_select
+      label: Type
+      configurable: true
+      options:
+      - name: job
+        label: Job
+        default: true
+      - name: name
+        label: Name
+    - name: sink
+      type: dropdown_select
+      label: Sink
+      configurable: true
+      options:
+      - name: all
+        label: All
+        default: true
+      - name: logging
+        label: Stackdriver Logging
+      - name: monitoring
+        label: Stackdriver Monitoring
+
+requires_product_versions:
+ - name: cf
+   version: '>= 1.9.29'

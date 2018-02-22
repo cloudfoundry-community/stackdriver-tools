@@ -30,15 +30,17 @@ type appInfoRepository struct {
 func (air *appInfoRepository) GetAppInfo(guid string) AppInfo {
 	appInfo, ok := air.cache[guid]
 	if !ok {
-		app := air.cfClient.AppByGuid(guid)
-		appInfo = AppInfo{
-			AppName:   app.Name,
-			SpaceGUID: app.SpaceData.Entity.Guid,
-			SpaceName: app.SpaceData.Entity.Name,
-			OrgGUID:   app.SpaceData.Entity.OrgData.Entity.Guid,
-			OrgName:   app.SpaceData.Entity.OrgData.Entity.Name,
+		app, err := air.cfClient.AppByGuid(guid)
+		if err == nil {
+			appInfo = AppInfo{
+				AppName:   app.Name,
+				SpaceGUID: app.SpaceData.Entity.Guid,
+				SpaceName: app.SpaceData.Entity.Name,
+				OrgGUID:   app.SpaceData.Entity.OrgData.Entity.Guid,
+				OrgName:   app.SpaceData.Entity.OrgData.Entity.Name,
+			}
+			air.cache[guid] = appInfo
 		}
-		air.cache[guid] = appInfo
 	}
 	return appInfo
 }

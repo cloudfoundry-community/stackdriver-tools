@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package stackdriver_test
+package stackdriver
 
 import (
 	. "github.com/onsi/ginkgo"
