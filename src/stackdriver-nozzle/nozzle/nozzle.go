@@ -21,6 +21,7 @@ import (
 	"sync"
 
 	"code.cloudfoundry.org/diodes"
+	loggregator "code.cloudfoundry.org/go-loggregator"
 	"github.com/cloudfoundry-community/stackdriver-tools/src/stackdriver-nozzle/cloudfoundry"
 	"github.com/cloudfoundry-community/stackdriver-tools/src/stackdriver-nozzle/telemetry"
 	"github.com/cloudfoundry/lager"
@@ -32,7 +33,7 @@ import (
 const bufferSize = 30000 // 1k messages/second * 30 seconds
 
 type Nozzle interface {
-	Start(firehose cloudfoundry.Firehose)
+	Start(rlp cloudfoundry.ReverseLogProxy)
 	Stop() error
 }
 
@@ -83,10 +84,10 @@ func NewNozzle(logger lager.Logger, sinks ...Sink) Nozzle {
 	}
 }
 
-func (n *nozzle) Start(firehose cloudfoundry.Firehose) {
+func (n *nozzle) Start(rlp cloudfoundry.ReverseLogProxy) {
 	n.session = state{done: make(chan struct{}), running: true}
 
-	messages, fhErrInternal := firehose.Connect()
+	messages, fhErrInternal := rlp.Connect()
 
 	// Drain and report errors from firehose
 	go func() {

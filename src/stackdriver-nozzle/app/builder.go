@@ -9,6 +9,7 @@ import (
 	"strings"
 	"time"
 
+	loggregator "code.cloudfoundry.org/go-loggregator"
 	cfclient "github.com/cloudfoundry-community/go-cfclient"
 	"github.com/cloudfoundry-community/stackdriver-tools/src/stackdriver-nozzle/cloudfoundry"
 	"github.com/cloudfoundry-community/stackdriver-tools/src/stackdriver-nozzle/config"
@@ -61,8 +62,8 @@ func New(c *config.Config, logger lager.Logger) *App {
 	}
 }
 
-func (a *App) newProducer() cloudfoundry.Firehose {
-	return cloudfoundry.NewFirehose(a.cfConfig, a.cfClient, a.c.SubscriptionID)
+func (a *App) newProducer() cloudfoundry.ReverseLogProxy {
+	return cloudfoundry.NewFirehose(a.cfConfig, a.cfClient)
 }
 
 func (a *App) newConsumer(ctx context.Context) (nozzle.Nozzle, error) {
