@@ -69,6 +69,30 @@
 			"revisionTime": "2017-09-01T20:05:24Z"
 		},
 		{
+			"checksumSHA1": "wei6nnaRVIBVKgG02Y2ZKZFImOs=",
+			"path": "code.cloudfoundry.org/go-diodes",
+			"revision": "3385e722aaa0b227aa64439d3c451eb626aa5ac3",
+			"revisionTime": "2018-07-12T02:56:49Z"
+		},
+		{
+			"checksumSHA1": "cuJAaUpvM138zlZFn25HxTXdbeI=",
+			"path": "code.cloudfoundry.org/go-loggregator",
+			"revision": "2ded767835fa974fdac6000051bdb773da7765e0",
+			"revisionTime": "2018-08-02T19:44:07Z"
+		},
+		{
+			"checksumSHA1": "H3HaVeKmLpuE/h2mVOgijiYB+os=",
+			"path": "code.cloudfoundry.org/go-loggregator/rpc/loggregator_v2",
+			"revision": "2ded767835fa974fdac6000051bdb773da7765e0",
+			"revisionTime": "2018-08-02T19:44:07Z"
+		},
+		{
+			"checksumSHA1": "3h5TYyUNNdIhRM2j8cTr/yuPVWs=",
+			"path": "code.cloudfoundry.org/rfc5424",
+			"revision": "769e2ed6887e639e9a2b9492fad9844dd2846ca0",
+			"revisionTime": "2017-08-22T18:30:49Z"
+		},
+		{
 			"path": "context",
 			"revision": ""
 		},
@@ -131,6 +155,12 @@
 			"path": "github.com/gogo/protobuf/protoc-gen-gogo/descriptor",
 			"revision": "2adc21fd136931e0388e278825291678e1d98309",
 			"revisionTime": "2017-08-31T18:35:40Z"
+		},
+		{
+			"checksumSHA1": "BP2buXHHOKxI5eYS2xELVng2kf4=",
+			"path": "github.com/golang/protobuf/jsonpb",
+			"revision": "aa810b61a9c79d51363740d207bb46cf8e620ed5",
+			"revisionTime": "2018-08-14T21:14:27Z"
 		},
 		{
 			"checksumSHA1": "yqF125xVSkmfLpIVGrLlfE05IUk=",
