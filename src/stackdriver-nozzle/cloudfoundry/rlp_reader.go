@@ -1,5 +1,16 @@
 package cloudfoundry
 
+import (
+	"context"
+	"log"
+	"os"
+
+	loggregator "code.cloudfoundry.org/go-loggregator"
+	"code.cloudfoundry.org/go-loggregator/rpc/loggregator_v2"
+	cfclient "github.com/cloudfoundry-community/go-cfclient"
+	"github.com/cloudfoundry/sonde-go/events"
+)
+
 type ReverseLogProxyHandler interface {
 	HandleEvent(*events.Envelope) error
 }
@@ -11,6 +22,34 @@ type ReverseLogProxy interface {
 type reverseLogProxy struct {
 	cfConfig *cfclient.Config
 	cfClient *cfclient.Client
+}
+
+var allSelectors = []*loggregator_v2.Selector{
+	{
+		Message: &loggregator_v2.Selector_Log{
+			Log: &loggregator_v2.LogSelector{},
+		},
+	},
+	{
+		Message: &loggregator_v2.Selector_Counter{
+			Counter: &loggregator_v2.CounterSelector{},
+		},
+	},
+	{
+		Message: &loggregator_v2.Selector_Gauge{
+			Gauge: &loggregator_v2.GaugeSelector{},
+		},
+	},
+	{
+		Message: &loggregator_v2.Selector_Timer{
+			Timer: &loggregator_v2.TimerSelector{},
+		},
+	},
+	{
+		Message: &loggregator_v2.Selector_Event{
+			Event: &loggregator_v2.EventSelector{},
+		},
+	},
 }
 
 func NewReverseLogProxy(cfConfig *cfclient.Config, cfClient *cfclient.Client) ReverseLogProxy {
@@ -38,9 +77,10 @@ func NewReverseLogProxy(cfConfig *cfclient.Config, cfClient *cfclient.Client) Re
 		//DeterministicName: os.Getenv("DET_NAME"),
 		Selectors: allSelectors,
 	})
-	return &reverseLogProxy{cfConfig, cfClient}
+	rx()
+	return reverseLogProxy{cfConfig, cfClient}
 }
 
-func (c *reverseLogProxy) Connect() (<-chan *events.Envelope, <-chan error) {
-
+func (c reverseLogProxy) Connect() (<-chan *events.Envelope, <-chan error) {
+	return nil, nil
 }
