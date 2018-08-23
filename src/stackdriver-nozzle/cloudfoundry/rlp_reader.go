@@ -7,6 +7,7 @@ import (
 
 	loggregator "code.cloudfoundry.org/go-loggregator"
 	"code.cloudfoundry.org/go-loggregator/rpc/loggregator_v2"
+	"code.cloudfoundry.org/loggregator/plumbing/conversion"
 	cfclient "github.com/cloudfoundry-community/go-cfclient"
 	"github.com/cloudfoundry/sonde-go/events"
 )
@@ -20,8 +21,9 @@ type ReverseLogProxy interface {
 }
 
 type reverseLogProxy struct {
-	cfConfig *cfclient.Config
-	cfClient *cfclient.Client
+	cfConfig       *cfclient.Config
+	cfClient       *cfclient.Client
+	envelopeStream loggregator.EnvelopeStream
 }
 
 var allSelectors = []*loggregator_v2.Selector{
@@ -77,10 +79,22 @@ func NewReverseLogProxy(cfConfig *cfclient.Config, cfClient *cfclient.Client) Re
 		//DeterministicName: os.Getenv("DET_NAME"),
 		Selectors: allSelectors,
 	})
-	rx()
-	return reverseLogProxy{cfConfig, cfClient}
+	return reverseLogProxy{cfConfig, cfClient, rx}
 }
 
 func (c reverseLogProxy) Connect() (<-chan *events.Envelope, <-chan error) {
-	return nil, nil
+	envelopes := make(chan *events.Envelope)
+	errors := make(chan error)
+
+	go func() {
+		for {
+			batch := c.envelopeStream()
+			for _, e := range batch {
+				for _, v1 := range conversion.ToV1(e) {
+					envelopes <- v1
+				}
+			}
+		}
+	}()
+	return envelopes, errors
 }
