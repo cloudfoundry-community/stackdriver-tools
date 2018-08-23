@@ -87,6 +87,12 @@
 			"revisionTime": "2018-08-02T19:44:07Z"
 		},
 		{
+			"checksumSHA1": "mJvheLFtNAONN4R0CucBiFPHHUo=",
+			"path": "code.cloudfoundry.org/loggregator/plumbing/conversion",
+			"revision": "1a7410e5304eb27c7e7c158b96ec2054a79d558d",
+			"revisionTime": "2018-08-17T03:55:54Z"
+		},
+		{
 			"checksumSHA1": "3h5TYyUNNdIhRM2j8cTr/yuPVWs=",
 			"path": "code.cloudfoundry.org/rfc5424",
 			"revision": "769e2ed6887e639e9a2b9492fad9844dd2846ca0",
@@ -107,6 +113,12 @@
 			"path": "github.com/cloudfoundry/lager",
 			"revision": "0bfa98e49e7a976af91e918d47978f07c00b081f",
 			"revisionTime": "2017-08-15T21:11:08Z"
+		},
+		{
+			"checksumSHA1": "Ry0qRAyuasreIfZj+buk3frquCo=",
+			"path": "github.com/cloudfoundry/loggregator/plumbing/conversion",
+			"revision": "1a7410e5304eb27c7e7c158b96ec2054a79d558d",
+			"revisionTime": "2018-08-17T03:55:54Z"
 		},
 		{
 			"checksumSHA1": "VmXOTc6jNWYiINtOImSEoJMjQaw=",
