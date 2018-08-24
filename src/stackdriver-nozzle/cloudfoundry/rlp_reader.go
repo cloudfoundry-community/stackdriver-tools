@@ -2,13 +2,11 @@ package cloudfoundry
 
 import (
 	"context"
-	"log"
-	"os"
+	"crypto/tls"
 
 	loggregator "code.cloudfoundry.org/go-loggregator"
 	"code.cloudfoundry.org/go-loggregator/rpc/loggregator_v2"
 	"code.cloudfoundry.org/loggregator/plumbing/conversion"
-	cfclient "github.com/cloudfoundry-community/go-cfclient"
 	"github.com/cloudfoundry/sonde-go/events"
 )
 
@@ -21,8 +19,8 @@ type ReverseLogProxy interface {
 }
 
 type reverseLogProxy struct {
-	cfConfig       *cfclient.Config
-	cfClient       *cfclient.Client
+	tlsConfig      *tls.Config
+	rlpAddress     string
 	envelopeStream loggregator.EnvelopeStream
 }
 
@@ -54,20 +52,10 @@ var allSelectors = []*loggregator_v2.Selector{
 	},
 }
 
-func NewReverseLogProxy(cfConfig *cfclient.Config, cfClient *cfclient.Client) ReverseLogProxy {
-	tlsConfig, err := loggregator.NewEgressTLSConfig(
-		//TODO(evanbrown): get from app config
-		os.Getenv("CA_CERT_PATH"),
-		os.Getenv("CERT_PATH"),
-		os.Getenv("KEY_PATH"),
-	)
-	if err != nil {
-		log.Fatal("Could not create TLS config", err)
-	}
+func NewReverseLogProxy(tlsConfig *tls.Config, rlpAddress string) ReverseLogProxy {
 
 	streamConnector := loggregator.NewEnvelopeStreamConnector(
-		//TODO(evanbrown): get from app config
-		os.Getenv("LOGS_API_ADDR"),
+		rlpAddress,
 		tlsConfig,
 		//TODO(evanbrown): Do we want the stream logger?
 		//loggregator.WithEnvelopeStreamLogger(loggr),
@@ -79,7 +67,7 @@ func NewReverseLogProxy(cfConfig *cfclient.Config, cfClient *cfclient.Client) Re
 		//DeterministicName: os.Getenv("DET_NAME"),
 		Selectors: allSelectors,
 	})
-	return reverseLogProxy{cfConfig, cfClient, rx}
+	return reverseLogProxy{tlsConfig, rlpAddress, rx}
 }
 
 func (c reverseLogProxy) Connect() (<-chan *events.Envelope, <-chan error) {

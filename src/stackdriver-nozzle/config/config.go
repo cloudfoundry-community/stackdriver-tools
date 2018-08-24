@@ -59,13 +59,20 @@ func NewConfig() (*Config, error) {
 type Config struct {
 	// Firehose config
 	APIEndpoint      string `envconfig:"firehose_endpoint" required:"true"`
+	SubscriptionID   string `envconfig:"firehose_subscription_id" required:"false"`
 	LoggingEvents    string `envconfig:"firehose_events_to_stackdriver_logging" required:"true"`
 	MonitoringEvents string `envconfig:"firehose_events_to_stackdriver_monitoring" required:"false"`
 	Username         string `envconfig:"firehose_username" default:"admin"`
 	Password         string `envconfig:"firehose_password" default:"admin"`
 	SkipSSL          bool   `envconfig:"firehose_skip_ssl" default:"false"`
-	SubscriptionID   string `envconfig:"firehose_subscription_id" required:"true"`
 	NewlineToken     string `envconfig:"firehose_newline_token"`
+
+	// Reverse Log Proxy (Firehose alternative) config
+	RLPAddress string `envconfig:"rlp_address_colon_port" required:"true"`
+	RLPCACert  string `envconfig:"rlp_ca_cert" required:"true"`
+	RLPCert    string `envconfig:"rlp_cert" required:"true"`
+	RLPKey     string `envconfig:"rlp_key" required:"true"`
+	//TODO: Add Shard and Deterministic Name
 
 	// Stackdriver config
 	ProjectID            string `envconfig:"gcp_project_id"`
@@ -104,11 +111,8 @@ type Config struct {
 	EventFilterJSON *EventFilterJSON
 }
 
+//TODO(evanbrown): Validate configs for both Firehose and RLP modes
 func (c *Config) validate() error {
-	if c.SubscriptionID == "" {
-		return errors.New("FIREHOSE_SUBSCRIPTION_ID is empty")
-	}
-
 	if c.APIEndpoint == "" {
 		return errors.New("FIREHOSE_ENDPOINT is empty")
 	}

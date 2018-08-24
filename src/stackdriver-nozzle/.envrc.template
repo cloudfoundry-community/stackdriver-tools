@@ -9,6 +9,11 @@ export FIREHOSE_SKIP_SSL=true
 export FIREHOSE_SUBSCRIPTION_ID=stackdriver-nozzle-dev
 export FIREHOSE_NEWLINE_TOKEN=∴
 
+export RLP_ADDRESS_COLON_PORT=
+export RLP_CA_CERT=
+export RLP_CERT=
+export RLP_KEY=
+
 export GOOGLE_APPLICATION_CREDENTIALS=credentials.json
 export GCP_PROJECT_ID=some-project-id
 
