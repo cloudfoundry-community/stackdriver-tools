@@ -3,7 +3,6 @@ package app
 import (
 	"bytes"
 	"context"
-	"crypto/tls"
 	"errors"
 	"fmt"
 	_ "net/http/pprof"
@@ -28,7 +27,7 @@ type App struct {
 	c           *config.Config
 	cfConfig    *cfclient.Config
 	cfClient    *cfclient.Client
-	tlsConfig   *tls.Config
+	rlpConfig   *cloudfoundry.ReverseLogProxyConfig
 	labelMaker  nozzle.LabelMaker
 	bufferEmpty func() bool
 }
@@ -56,12 +55,19 @@ func New(c *config.Config, logger lager.Logger) *App {
 	labelMaker := nozzle.NewLabelMaker(appInfoRepository, c.FoundationName)
 
 	tlsConfig, err := loggregator.NewEgressTLSConfig(
-		c.RLPCACert,
-		c.RLPCert,
-		c.RLPKey,
+		c.RLPCACertFile,
+		c.RLPCertFile,
+		c.RLPKeyFile,
 	)
 	if err != nil {
 		logger.Fatal("Could not create TLS config", err)
+	}
+
+	rlpConfig := &cloudfoundry.ReverseLogProxyConfig{
+		Address:           c.RLPAddress,
+		ShardID:           c.RLPShardID,
+		DeterministicName: c.RLPDeterministicName,
+		TLSConfig:         tlsConfig,
 	}
 
 	return &App{
@@ -69,13 +75,13 @@ func New(c *config.Config, logger lager.Logger) *App {
 		c:          c,
 		cfConfig:   cfConfig,
 		cfClient:   cfClient,
-		tlsConfig:  tlsConfig,
+		rlpConfig:  rlpConfig,
 		labelMaker: labelMaker,
 	}
 }
 
 func (a *App) newProducer() cloudfoundry.ReverseLogProxy {
-	return cloudfoundry.NewReverseLogProxy(a.tlsConfig, a.c.RLPAddress)
+	return cloudfoundry.NewReverseLogProxy(a.rlpConfig)
 }
 
 func (a *App) newConsumer(ctx context.Context) (nozzle.Nozzle, error) {

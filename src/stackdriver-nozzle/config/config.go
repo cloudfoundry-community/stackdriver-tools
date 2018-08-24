@@ -68,11 +68,12 @@ type Config struct {
 	NewlineToken     string `envconfig:"firehose_newline_token"`
 
 	// Reverse Log Proxy (Firehose alternative) config
-	RLPAddress string `envconfig:"rlp_address_colon_port" required:"true"`
-	RLPCACert  string `envconfig:"rlp_ca_cert" required:"true"`
-	RLPCert    string `envconfig:"rlp_cert" required:"true"`
-	RLPKey     string `envconfig:"rlp_key" required:"true"`
-	//TODO: Add Shard and Deterministic Name
+	RLPAddress           string `envconfig:"rlp_address_colon_port" required:"true"`
+	RLPCACertFile        string `envconfig:"rlp_ca_cert_file" required:"true"`
+	RLPCertFile          string `envconfig:"rlp_cert_file" required:"true"`
+	RLPKeyFile           string `envconfig:"rlp_key_file" required:"true"`
+	RLPShardID           string `envconfig:"rlp_shard_id" default:"stackdriver-nozzle"`
+	RLPDeterministicName string `envconfig:"rlp_deterministic_name"`
 
 	// Stackdriver config
 	ProjectID            string `envconfig:"gcp_project_id"`

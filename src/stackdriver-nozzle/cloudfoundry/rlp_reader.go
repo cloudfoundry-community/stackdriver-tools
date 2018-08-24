@@ -10,6 +10,13 @@ import (
 	"github.com/cloudfoundry/sonde-go/events"
 )
 
+type ReverseLogProxyConfig struct {
+	Address           string
+	ShardID           string
+	DeterministicName string
+	TLSConfig         *tls.Config
+}
+
 type ReverseLogProxyHandler interface {
 	HandleEvent(*events.Envelope) error
 }
@@ -19,8 +26,7 @@ type ReverseLogProxy interface {
 }
 
 type reverseLogProxy struct {
-	tlsConfig      *tls.Config
-	rlpAddress     string
+	config         *ReverseLogProxyConfig
 	envelopeStream loggregator.EnvelopeStream
 }
 
@@ -52,22 +58,21 @@ var allSelectors = []*loggregator_v2.Selector{
 	},
 }
 
-func NewReverseLogProxy(tlsConfig *tls.Config, rlpAddress string) ReverseLogProxy {
-
+func NewReverseLogProxy(config *ReverseLogProxyConfig) ReverseLogProxy {
+	//TODO(evanbrown) Add WithEnvelopeStreamBuffer and alerter to track dropped envelopes
 	streamConnector := loggregator.NewEnvelopeStreamConnector(
-		rlpAddress,
-		tlsConfig,
+		config.Address,
+		config.TLSConfig,
 		//TODO(evanbrown): Do we want the stream logger?
 		//loggregator.WithEnvelopeStreamLogger(loggr),
 	)
 
 	rx := streamConnector.Stream(context.Background(), &loggregator_v2.EgressBatchRequest{
-		//TODO(evanbrown): Set ShardID and DN
-		//ShardId:           "test",
-		//DeterministicName: os.Getenv("DET_NAME"),
-		Selectors: allSelectors,
+		ShardId:           config.ShardID,
+		DeterministicName: config.DeterministicName,
+		Selectors:         allSelectors,
 	})
-	return reverseLogProxy{tlsConfig, rlpAddress, rx}
+	return reverseLogProxy{config, rx}
 }
 
 func (c reverseLogProxy) Connect() (<-chan *events.Envelope, <-chan error) {
