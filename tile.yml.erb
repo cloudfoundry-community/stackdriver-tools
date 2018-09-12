@@ -8,6 +8,9 @@ name: <%=ENV["TILE_NAME"] %>
 label: <%=ENV["TILE_LABEL"] %>
 description: Import your Cloud Foundry logs and metrics into Stackdriver Logging and Monitoring for diagnostics and alerting
 icon_file: gcp_logo.png
+stemcell_criteria:
+  os: 'ubuntu-xenial'
+  version: '97.16'
 packages:
 - name: stackdriver-tools
   type: bosh-release
