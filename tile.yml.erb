@@ -61,6 +61,7 @@ forms:
   - name: firehose_endpoint
     type: string
     label: Cloud Foundry API Endpoint
+    default: (( $runtime.system_api_url ))
   - name: firehose_events_to_stackdriver_logging
     type: string
     default: HttpStartStop,LogMessage,Error
