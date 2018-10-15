@@ -11,7 +11,7 @@ build-all:
 # Prepration for tests
 get-deps:
 	# Go lint tool
-	go get github.com/golang/lint/golint
+	go get golang.org/x/lint/golint
 
 	# Simplify cross-compiling
 	go get github.com/mitchellh/gox
