@@ -84,11 +84,14 @@ func (ls *logSink) parseEnvelope(envelope *events.Envelope) messages.Log {
 			// to remain consistent with the protobuf.
 			logMessageMap["message_type"] = logMessage.GetMessageType().String()
 			severity = parseSeverity(logMessage.GetMessageType())
-			logMessageMap["message"] = message
-			payload["logMessage"] = logMessageMap
 
-			// Duplicate the message payload where stackdriver expects it
+			// Put the message payload where stackdriver expects it
 			payload["message"] = message
+
+			// Avoid duplication of the message
+			delete(logMessageMap, "message")
+
+			payload["logMessage"] = logMessageMap
 		}
 	case events.Envelope_Error:
 		errorMessage := envelope.GetError().GetMessage()

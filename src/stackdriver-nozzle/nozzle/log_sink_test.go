@@ -255,7 +255,6 @@ var _ = Describe("LogSink", func() {
 				"eventType": eventType.String(),
 				"logMessage": map[string]interface{}{
 					"message_type": "OUT",
-					"message":      "19400: Success: Go",
 				},
 				"message": "19400: Success: Go",
 				"serviceContext": map[string]interface{}{
@@ -336,7 +335,6 @@ var _ = Describe("LogSink", func() {
 			Expect(payload).To(HaveKeyWithValue("message", expectedMessage))
 			Expect(payload).To(HaveKeyWithValue("logMessage", map[string]interface{}{
 				"message_type": "OUT",
-				"message":      expectedMessage,
 			},
 			))
 		})
