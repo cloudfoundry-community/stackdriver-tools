@@ -205,7 +205,7 @@ var _ = Describe("MetricAdapter", func() {
 		callCount := 0
 		client.CreateMetricDescriptorFn = func(request *monitoringpb.CreateMetricDescriptorRequest) error {
 			mutex.Lock()
-			callCount += 1
+			callCount++
 			mutex.Unlock()
 
 			time.Sleep(100 * time.Millisecond)
@@ -229,8 +229,8 @@ var _ = Describe("MetricAdapter", func() {
 	It("returns the adapter even if we fail to list the metric descriptors", func() {
 		expectedErr := errors.New("fail")
 		client.ListErr = expectedErr
-		subject, err := NewMetricAdapter("my-awesome-project", client, 1, logger)
-		Expect(subject).To(Not(BeNil()))
+		subj, err := NewMetricAdapter("my-awesome-project", client, 1, logger)
+		Expect(subj).To(Not(BeNil()))
 		Expect(err).To(Equal(expectedErr))
 	})
 

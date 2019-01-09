@@ -102,7 +102,7 @@ var _ = Describe("TelemetrySink", func() {
 	})
 
 	Context("with many metrics", func() {
-		values := []*expvar.KeyValue{}
+		var values []*expvar.KeyValue
 		BeforeEach(func() {
 			for i := 0; i < 300; i++ {
 				value := &telemetry.Counter{}

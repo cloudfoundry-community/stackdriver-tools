@@ -40,16 +40,17 @@ func Run(ctx context.Context, a *App) {
 
 	blockTillInterrupt()
 
-	a.logger.Info("app", lager.Data{"cleanup": "exit recieved, attempting to flush buffers"})
+	a.logger.Info("app", lager.Data{"cleanup": "exit received, attempting to flush buffers"})
 	if err := consumer.Stop(); err != nil {
 		a.logger.Error("nozzle.stop", err)
 	}
 	cancel()
 
 	t := time.NewTimer(5 * time.Second)
+	ticker := time.NewTicker(500 * time.Millisecond)
 	for {
 		select {
-		case <-time.Tick(500 * time.Millisecond):
+		case <-ticker.C:
 			if a.bufferEmpty() {
 				a.logger.Info("app", lager.Data{"cleanup": "The metrics buffer was successfully flushed before shutdown"})
 				return

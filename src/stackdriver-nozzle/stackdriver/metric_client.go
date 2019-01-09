@@ -103,7 +103,7 @@ func (m *metricClient) CreateMetricDescriptor(request *monitoringpb.CreateMetric
 func (m *metricClient) ListMetricDescriptors(request *monitoringpb.ListMetricDescriptorsRequest) ([]*metricpb.MetricDescriptor, error) {
 	it := m.sdMetricClient.ListMetricDescriptors(m.ctx, request)
 
-	descriptors := []*metricpb.MetricDescriptor{}
+	var descriptors []*metricpb.MetricDescriptor
 	for {
 		metricDescriptor, err := it.Next()
 		if err == iterator.Done {

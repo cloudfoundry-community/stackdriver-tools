@@ -186,11 +186,11 @@ func getTags(envelope *events.Envelope) string {
 	}
 	sort.Strings(tagKeys)
 
-	tagElems := make([]string, len(tags))
+	tagElements := make([]string, len(tags))
 	for i, k := range tagKeys {
-		tagElems[i] = k + "=" + tags[k]
+		tagElements[i] = k + "=" + tags[k]
 	}
-	return strings.Join(tagElems, ",")
+	return strings.Join(tagElements, ",")
 }
 
 func formatUUID(uuid *events.UUID) string {

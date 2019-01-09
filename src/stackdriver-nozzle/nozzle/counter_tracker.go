@@ -160,7 +160,7 @@ func (t *CounterTracker) expire() {
 	defer t.mu.Unlock()
 
 	for name, counter := range t.counters {
-		if time.Now().Sub(counter.lastSeenTime) > t.ttl {
+		if time.Since(counter.lastSeenTime) > t.ttl {
 			t.logger.Info("CounterTracker", lager.Data{
 				"info":    "removing expired counter",
 				"name":    name,
