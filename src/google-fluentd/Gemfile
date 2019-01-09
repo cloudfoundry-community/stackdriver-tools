@@ -16,6 +16,6 @@
 
 source 'https://rubygems.org'
 
-gem 'fluent-plugin-google-cloud', '0.6.15'
 gem 'fluent-plugin-detect-exceptions', '0.0.9'
+gem 'fluent-plugin-google-cloud', '0.6.15'
 gem 'fluentd', '~> 0.12'

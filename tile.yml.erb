@@ -1,5 +1,5 @@
 <%
-["TILE_NAME", "TILE_LABEL", "RELEASE_PATH"].each do |var|
+%w(TILE_NAME TILE_LABEL RELEASE_PATH).each do |var|
   raise "#{var} env variable required" if ENV[var].to_s.empty?
 end
 %>
