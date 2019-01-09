@@ -4,3 +4,7 @@ applications:
     instances: 2
     memory: 512M
     buildpack: binary_buildpack
+    env:
+      GOVERSION: go1.11
+      GOOGLE_APPLICATION_CREDENTIALS: ./credentials.json
+      GOOGLE_PROJECT: <project-name>

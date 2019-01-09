@@ -1,1 +1,1 @@
-web: ./go-cloud-debug -sourcecontext=/home/vcap/app/source-context.json -appmodule=/home/vcap/app/cf-stackdriver-example -appversion=0.0.1 -- /home/vcap/app/cf-stackdriver-example
+web: ./go-cloud-debug -sourcecontext=./source-context.json -- ./cf-stackdriver-example
