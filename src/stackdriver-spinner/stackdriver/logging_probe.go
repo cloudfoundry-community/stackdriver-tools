@@ -31,7 +31,10 @@ type LoggingProbe struct {
 }
 
 func (lp *LoggingProbe) Find(start time.Time, needle string, count int) (int, error) {
-	timeBytes, _ := start.MarshalText()
+	timeBytes, err := start.MarshalText()
+	if err != nil {
+		return 0, fmt.Errorf("problem marshaling text: %v", err)
+	}
 
 	it := lp.client.Entries(context.Background(), logadmin.Filter(fmt.Sprintf("jsonPayload.eventType=\"LogMessage\" timestamp>=\"%s\" jsonPayload.message:\"%s\"", timeBytes, needle)))
 

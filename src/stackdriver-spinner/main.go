@@ -49,7 +49,9 @@ func main() {
 	go startSpinner(gcpProj, count, wait)
 
 	http.HandleFunc("/", func(res http.ResponseWriter, req *http.Request) {
-		fmt.Fprintf(res, "Johny 5 alive!")
+		if _, err := fmt.Fprintf(res, "Johny 5 alive!"); err != nil {
+			log.Fatal(err)
+		}
 	})
 	fmt.Println("listening...")
 
@@ -75,6 +77,9 @@ func startSpinner(proj string, count, wait int) {
 			continue
 		}
 		logger, err := stackdriver.NewLogger(proj)
+		if err != nil {
+			log.Fatal(err)
+		}
 
 		msg := stackdriver.Message{
 			GUID:             result.GUID,
