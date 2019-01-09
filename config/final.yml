@@ -3,4 +3,4 @@ final_name: stackdriver-tools
 blobstore:
   provider: gcs
   options:
-    bucket_name: stackdriver-tools-blobs
+    bucket_name: stackdriver-tools-blobstore

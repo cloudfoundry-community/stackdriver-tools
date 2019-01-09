@@ -45,9 +45,9 @@ type httpSink struct {
 	labelMaker LabelMaker
 }
 
-// NewHttpSink returns a Sink that can receive sonde HttpStartStop events
+// NewHTTPSink returns a Sink that can receive sonde HttpStartStop events
 // and generate per-application HTTP metrics from them.
-func NewHttpSink(logger lager.Logger, labelMaker LabelMaker) Sink {
+func NewHTTPSink(logger lager.Logger, labelMaker LabelMaker) Sink {
 	return &httpSink{
 		logger:     logger,
 		labelMaker: labelMaker,

@@ -14,18 +14,16 @@
  * limitations under the License.
  */
 
-package mocks
+package cloudfoundry
 
-import "github.com/cloudfoundry-community/stackdriver-tools/src/stackdriver-nozzle/messages"
+import (
+	"testing"
 
-type LogAdapter struct {
-	PostedLogs []messages.Log
-}
+	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/gomega"
+)
 
-func (la *LogAdapter) PostLog(log *messages.Log) {
-	la.PostedLogs = append(la.PostedLogs, *log)
-}
-
-func (la *LogAdapter) Flush() error {
-	return nil
+func TestConfig(t *testing.T) {
+	RegisterFailHandler(Fail)
+	RunSpecs(t, "App Suite")
 }

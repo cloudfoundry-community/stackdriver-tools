@@ -112,7 +112,7 @@ func (lm *labelMaker) LogLabels(envelope *events.Envelope) map[string]string {
 // The path hierarchy is /org/space/application, e.g.
 //     /system/autoscaling/autoscale
 func (lm *labelMaker) getApplicationPath(envelope *events.Envelope) string {
-	appID := getApplicationId(envelope)
+	appID := getApplicationID(envelope)
 	if appID == "" {
 		return ""
 	}
@@ -133,9 +133,9 @@ func makePath(app cloudfoundry.AppInfo) string {
 	return path.String()
 }
 
-// getApplicationId extracts the application UUID from the event contained
+// getApplicationID extracts the application UUID from the event contained
 // within the envelope, for those events that have application IDs.
-func getApplicationId(envelope *events.Envelope) string {
+func getApplicationID(envelope *events.Envelope) string {
 	switch envelope.GetEventType() {
 	case events.Envelope_HttpStartStop:
 		return formatUUID(envelope.GetHttpStartStop().GetApplicationId())

@@ -59,13 +59,22 @@ func NewConfig() (*Config, error) {
 type Config struct {
 	// Firehose config
 	APIEndpoint      string `envconfig:"firehose_endpoint" required:"true"`
+	SubscriptionID   string `envconfig:"firehose_subscription_id" required:"false"`
 	LoggingEvents    string `envconfig:"firehose_events_to_stackdriver_logging" required:"true"`
 	MonitoringEvents string `envconfig:"firehose_events_to_stackdriver_monitoring" required:"false"`
 	Username         string `envconfig:"firehose_username" default:"admin"`
 	Password         string `envconfig:"firehose_password" default:"admin"`
 	SkipSSL          bool   `envconfig:"firehose_skip_ssl" default:"false"`
-	SubscriptionID   string `envconfig:"firehose_subscription_id" required:"true"`
 	NewlineToken     string `envconfig:"firehose_newline_token"`
+
+	// Reverse Log Proxy (Firehose alternative) config
+	//TODO(evanbrown): Determine which flags should be required
+	RLPAddress           string `envconfig:"rlp_address_colon_port" required:"false"`
+  RLPCACertFile        string `envconfig:"rlp_ca_cert_file" required:"false"`
+  RLPCertFile          string `envconfig:"rlp_cert_file" required:"false"`
+  RLPKeyFile           string `envconfig:"rlp_key_file" required:"false"`
+	RLPShardID           string `envconfig:"rlp_shard_id" default:"stackdriver-nozzle"`
+	RLPDeterministicName string `envconfig:"rlp_deterministic_name"`
 
 	// Stackdriver config
 	ProjectID            string `envconfig:"gcp_project_id"`
@@ -80,7 +89,7 @@ type Config struct {
 	MetricPathPrefix      string `envconfig:"metric_path_prefix" default:"firehose"`
 	FoundationName        string `envconfig:"foundation_name" default:"cf"`
 	ResolveAppMetadata    bool   `envconfig:"resolve_app_metadata"`
-	NozzleId              string `envconfig:"nozzle_id" default:"local-nozzle"`
+	NozzleID              string `envconfig:"nozzle_id" default:"local-nozzle"`
 	NozzleName            string `envconfig:"nozzle_name" default:"local-nozzle"`
 	NozzleZone            string `envconfig:"nozzle_zone" default:"local-nozzle"`
 	DebugNozzle           bool   `envconfig:"debug_nozzle"`
@@ -93,7 +102,7 @@ type Config struct {
 	EnableCumulativeCounters bool `envconfig:"enable_cumulative_counters"`
 	// If enabled, the Nozzle will derive per-application HTTP metrics from
 	// HttpStartStop events and export them as counters to Stackdriver.
-	EnableAppHttpMetrics bool `envconfig:"enable_app_http_metrics"`
+	EnableAppHTTPMetrics bool `envconfig:"enable_app_http_metrics"`
 	// Expire internal counter state if a given counter has not been seen for this many seconds.
 	CounterTrackerTTL int `envconfig:"counter_tracker_ttl" default:"130"`
 
@@ -104,11 +113,8 @@ type Config struct {
 	EventFilterJSON *EventFilterJSON
 }
 
+//TODO(evanbrown): Validate configs for both Firehose and RLP modes
 func (c *Config) validate() error {
-	if c.SubscriptionID == "" {
-		return errors.New("FIREHOSE_SUBSCRIPTION_ID is empty")
-	}
-
 	if c.APIEndpoint == "" {
 		return errors.New("FIREHOSE_ENDPOINT is empty")
 	}
@@ -161,8 +167,12 @@ func (c *Config) maybeLoadFilterFile() error {
 	if err != nil {
 		return err
 	}
-	defer fh.Close()
-	return c.parseEventFilterJSON(fh)
+
+	if err := c.parseEventFilterJSON(fh); err != nil {
+		return err
+	}
+
+	return fh.Close()
 }
 
 func (c *Config) parseEventFilterJSON(r io.Reader) error {
@@ -175,10 +185,7 @@ func (c *Config) parseEventFilterJSON(r io.Reader) error {
 		return nil
 	}
 	c.EventFilterJSON = &EventFilterJSON{}
-	if err := json.Unmarshal(data, c.EventFilterJSON); err != nil {
-		return err
-	}
-	return nil
+	return json.Unmarshal(data, c.EventFilterJSON)
 }
 
 // If running on GCE, this will set the nozzle's ID, name, and zone to
@@ -186,7 +193,7 @@ func (c *Config) parseEventFilterJSON(r io.Reader) error {
 func (c *Config) setNozzleHostInfo() {
 	if metadata.OnGCE() {
 		if v, err := metadata.InstanceID(); err == nil {
-			c.NozzleId = v
+			c.NozzleID = v
 		}
 		if v, err := metadata.Zone(); err == nil {
 			c.NozzleZone = v

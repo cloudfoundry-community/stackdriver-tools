@@ -22,6 +22,10 @@ jobs:
   templates:
   - name: stackdriver-nozzle
     release: stackdriver-tools
+    consumes:
+      reverse_log_proxy:
+        from: reverse_log_proxy
+        deployment: cf
   - name: google-fluentd
     release: stackdriver-tools
   properties:

@@ -58,7 +58,7 @@ LoadPlugin "match_regex"
 <Plugin "write_gcm">
   PrettyPrintJSON false
   <% if_p('credentials.application_default_credentials') do %>
-  CredentialsJSON "/var/vcap/jobs/stackdriver-nozzle/config/application_default_credentials.json"
+  CredentialsJSON "/var/vcap/jobs/stackdriver-agent/config/application_default_credentials.json"
   <% end %>
 </Plugin>
 

@@ -8,7 +8,7 @@ import (
 )
 
 func ParseEvents(names []string) ([]events.Envelope_EventType, error) {
-	events := []events.Envelope_EventType{}
+	var parsedEvents []events.Envelope_EventType
 
 	for _, name := range names {
 		if name == "" {
@@ -19,15 +19,15 @@ func ParseEvents(names []string) ([]events.Envelope_EventType, error) {
 		if err != nil {
 			return nil, err
 		}
-		events = append(events, event)
+		parsedEvents = append(parsedEvents, event)
 	}
 
-	return events, nil
+	return parsedEvents, nil
 }
 
 func parseEventName(name string) (events.Envelope_EventType, error) {
-	if eventId, ok := events.Envelope_EventType_value[name]; ok {
-		return events.Envelope_EventType(eventId), nil
+	if eventID, ok := events.Envelope_EventType_value[name]; ok {
+		return events.Envelope_EventType(eventID), nil
 	}
 	return events.Envelope_Error, &invalidEvent{name: name}
 }
@@ -37,7 +37,7 @@ type invalidEvent struct {
 }
 
 func (ie *invalidEvent) Error() string {
-	eventNames := []string{}
+	var eventNames []string
 	for _, name := range events.Envelope_EventType_name {
 		eventNames = append(eventNames, name)
 	}

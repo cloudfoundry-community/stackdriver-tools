@@ -9,9 +9,9 @@ import (
 
 	"github.com/cloudfoundry/sonde-go/events"
 	"github.com/golang/protobuf/ptypes/timestamp"
-	labelpb "google.golang.org/genproto/googleapis/api/label"
-	metricpb "google.golang.org/genproto/googleapis/api/metric"
-	monitoringpb "google.golang.org/genproto/googleapis/monitoring/v3"
+	"google.golang.org/genproto/googleapis/api/label"
+	"google.golang.org/genproto/googleapis/api/metric"
+	"google.golang.org/genproto/googleapis/monitoring/v3"
 )
 
 // Metric represents one of the metrics contained in an events.Envelope.
@@ -34,18 +34,18 @@ func (m *Metric) metricType() string {
 	return path.Join("custom.googleapis.com", m.Name)
 }
 
-func (m *Metric) metricKind() metricpb.MetricDescriptor_MetricKind {
+func (m *Metric) metricKind() metric.MetricDescriptor_MetricKind {
 	if m.IsCumulative() {
-		return metricpb.MetricDescriptor_CUMULATIVE
+		return metric.MetricDescriptor_CUMULATIVE
 	}
-	return metricpb.MetricDescriptor_GAUGE
+	return metric.MetricDescriptor_GAUGE
 }
 
-func (m *Metric) valueType() metricpb.MetricDescriptor_ValueType {
+func (m *Metric) valueType() metric.MetricDescriptor_ValueType {
 	if m.IsCumulative() {
-		return metricpb.MetricDescriptor_INT64
+		return metric.MetricDescriptor_INT64
 	}
-	return metricpb.MetricDescriptor_DOUBLE
+	return metric.MetricDescriptor_DOUBLE
 }
 
 // NeedsMetricDescriptor determines whether a custom metric descriptor needs to be created for this metric in Stackdriver.
@@ -55,18 +55,18 @@ func (m *Metric) NeedsMetricDescriptor() bool {
 }
 
 // MetricDescriptor returns a Stackdriver MetricDescriptor proto for this metric.
-func (m *Metric) MetricDescriptor(projectName string) *metricpb.MetricDescriptor {
+func (m *Metric) MetricDescriptor(projectName string) *metric.MetricDescriptor {
 	metricType := m.metricType()
 
-	var labelDescriptors []*labelpb.LabelDescriptor
+	var labelDescriptors []*label.LabelDescriptor
 	for key := range m.Labels {
-		labelDescriptors = append(labelDescriptors, &labelpb.LabelDescriptor{
+		labelDescriptors = append(labelDescriptors, &label.LabelDescriptor{
 			Key:       key,
-			ValueType: labelpb.LabelDescriptor_STRING,
+			ValueType: label.LabelDescriptor_STRING,
 		})
 	}
 
-	return &metricpb.MetricDescriptor{
+	return &metric.MetricDescriptor{
 		Name:        path.Join(projectName, "metricDescriptors", metricType),
 		Type:        metricType,
 		Labels:      labelDescriptors,
@@ -79,29 +79,29 @@ func (m *Metric) MetricDescriptor(projectName string) *metricpb.MetricDescriptor
 }
 
 // TimeSeries returns a Stackdriver TimeSeries proto for this metric value.
-func (m *Metric) TimeSeries() *monitoringpb.TimeSeries {
-	var value *monitoringpb.TypedValue
+func (m *Metric) TimeSeries() *monitoring.TimeSeries {
+	var value *monitoring.TypedValue
 	if m.IsCumulative() {
-		value = &monitoringpb.TypedValue{Value: &monitoringpb.TypedValue_Int64Value{Int64Value: m.IntValue}}
+		value = &monitoring.TypedValue{Value: &monitoring.TypedValue_Int64Value{Int64Value: m.IntValue}}
 	} else {
-		value = &monitoringpb.TypedValue{Value: &monitoringpb.TypedValue_DoubleValue{DoubleValue: m.Value}}
+		value = &monitoring.TypedValue{Value: &monitoring.TypedValue_DoubleValue{DoubleValue: m.Value}}
 	}
 
-	point := &monitoringpb.Point{
-		Interval: &monitoringpb.TimeInterval{
+	point := &monitoring.Point{
+		Interval: &monitoring.TimeInterval{
 			EndTime:   &timestamp.Timestamp{Seconds: m.EventTime.Unix(), Nanos: int32(m.EventTime.Nanosecond())},
 			StartTime: &timestamp.Timestamp{Seconds: m.StartTime.Unix(), Nanos: int32(m.StartTime.Nanosecond())},
 		},
 		Value: value,
 	}
-	return &monitoringpb.TimeSeries{
+	return &monitoring.TimeSeries{
 		MetricKind: m.metricKind(),
 		ValueType:  m.valueType(),
-		Metric: &metricpb.Metric{
+		Metric: &metric.Metric{
 			Type:   m.metricType(),
 			Labels: m.Labels,
 		},
-		Points: []*monitoringpb.Point{point},
+		Points: []*monitoring.Point{point},
 	}
 }
 

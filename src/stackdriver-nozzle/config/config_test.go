@@ -64,18 +64,18 @@ var _ = Describe("Config", func() {
 		Expect(err).To(BeNil())
 		Expect(c.APIEndpoint).To(Equal("https://api.example.com"))
 
-		// Several config vals have defaults that can be overriden environment
-		// that can be overriden by GCE metadata. Check those.
-		funcs := []struct {
+		// Several config vals have defaults that can be overridden environment
+		// that can be overridden by GCE metadata. Check those.
+		functions := []struct {
 			configVal string
 			localFn   func() (string, error)
 			gceFn     func() (string, error)
 		}{
-			{c.NozzleId, func() (string, error) { return "local-nozzle", nil }, metadata.InstanceID},
+			{c.NozzleID, func() (string, error) { return "local-nozzle", nil }, metadata.InstanceID},
 			{c.NozzleName, func() (string, error) { return "local-nozzle", nil }, metadata.InstanceName},
 			{c.NozzleZone, func() (string, error) { return "local-nozzle", nil }, metadata.Zone},
 		}
-		for _, t := range funcs {
+		for _, t := range functions {
 			v, _ := t.localFn()
 			if metadata.OnGCE() {
 				v, _ = t.gceFn()
@@ -94,7 +94,6 @@ var _ = Describe("Config", func() {
 		Expect(err.Error()).To(ContainSubstring(envName))
 	},
 		Entry("FIREHOSE_ENDPOINT", "FIREHOSE_ENDPOINT"),
-		Entry("FIREHOSE_SUBSCRIPTION_ID", "FIREHOSE_SUBSCRIPTION_ID"),
 	)
 
 	Describe("event selection", func() {

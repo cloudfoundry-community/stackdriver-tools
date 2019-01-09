@@ -9,6 +9,14 @@ export FIREHOSE_SKIP_SSL=true
 export FIREHOSE_SUBSCRIPTION_ID=stackdriver-nozzle-dev
 export FIREHOSE_NEWLINE_TOKEN=∴
 
+export RLP_ADDRESS_COLON_PORT=
+export RLP_CA_CERT_FILE=
+export RLP_CERT_FILE=
+export RLP_KEY_FILE=
+#DeterministicName should be unique to each instance of the nozzle if you wish to
+#scale horizontally and ensure counter and gauge metrics are processed consistently.
+export RLP_DETERMINISTIC_NAME=0
+
 export GOOGLE_APPLICATION_CREDENTIALS=credentials.json
 export GCP_PROJECT_ID=some-project-id
 

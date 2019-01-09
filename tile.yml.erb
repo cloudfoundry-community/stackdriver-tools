@@ -20,15 +20,22 @@ packages:
     templates:
     - name: stackdriver-nozzle
       release: stackdriver-tools
+      consumes:
+        reverse_log_proxy: {from: reverse_log_proxy, deployment: "(( ..cf.deployment_name ))"}
     memory: 512
     ephemeral_disk: 4096
     cpu: 2
     dynamic_ip: 1
     static_ip: 0
-    singleton: true
+    singleton: false
+    instances: 1
     properties:
+      rlp:
+        ca_cert: (( $ops_manager.ca_certificate ))
+        cert: (( .properties.rlp_creds.cert_pem ))
+        key: (( .properties.rlp_creds.private_key_pem ))
       firehose:
-        endpoint: (( .properties.firehose_endpoint.value ))
+        endpoint: (( $runtime.system_api_url ))
         events_to_stackdriver_logging: (( .properties.firehose_events_to_stackdriver_logging.value ))
         events_to_stackdriver_monitoring: (( .properties.firehose_events_to_stackdriver_monitoring.value ))
         username: (( .properties.firehose_username.value || ..cf.uaa.stackdriver_nozzle_credentials.identity ))
@@ -58,10 +65,13 @@ forms:
   label: Nozzle Configuration
   description: Configure access properties for the Stackdriver Nozzle here
   properties:
-  - name: firehose_endpoint
-    type: string
-    label: Cloud Foundry API Endpoint
-    default: (( $runtime.system_api_url ))
+  - name: rlp_creds
+    type: rsa_cert_credentials
+    label: rlp_creds
+    configurable: false
+    default:
+      domains:
+        - 'stackdriver-nozzle'
   - name: firehose_events_to_stackdriver_logging
     type: string
     default: HttpStartStop,LogMessage,Error
@@ -306,5 +316,5 @@ forms:
         label: Stackdriver Monitoring
 
 requires_product_versions:
- - name: cf
-   version: '>= 1.9.29'
+- name: cf
+  version: '~> 2.3.0'

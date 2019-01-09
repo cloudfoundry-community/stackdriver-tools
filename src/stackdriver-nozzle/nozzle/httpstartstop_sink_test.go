@@ -122,10 +122,10 @@ var _ = Describe("HttpSink", func() {
 			air.AppInfoMap[app.GUID()] = app.AppInfo()
 		}
 		labelMaker = NewLabelMaker(air, foundation)
-		subject = NewHttpSink(&mocks.MockLogger{}, labelMaker)
+		subject = NewHTTPSink(&mocks.MockLogger{}, labelMaker)
 	})
 
-	It("increments counters for reqeusts", func() {
+	It("increments counters for requests", func() {
 		receive := func(es []*events.Envelope) {
 			for _, e := range es {
 				subject.Receive(e)

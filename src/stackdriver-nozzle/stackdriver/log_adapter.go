@@ -29,7 +29,7 @@ import (
 )
 
 const (
-	logId = "cf_logs"
+	logID = "cf_logs"
 )
 
 var (
@@ -42,7 +42,7 @@ func init() {
 
 type LogAdapter interface {
 	PostLog(*messages.Log)
-	Flush()
+	Flush() error
 }
 
 // NewLogAdapter returns a LogAdapter that can post to Stackdriver Logging.
@@ -58,7 +58,7 @@ func NewLogAdapter(projectID string, batchCount int, batchDuration time.Duration
 		errs <- err
 	}
 
-	sdLogger := loggingClient.Logger(logId,
+	sdLogger := loggingClient.Logger(logID,
 		logging.EntryCountThreshold(batchCount),
 		logging.DelayThreshold(batchDuration),
 		logging.ConcurrentWriteLimit(inFlight),
@@ -94,6 +94,6 @@ func (s *logAdapter) PostLog(log *messages.Log) {
 	s.sdLogger.Log(entry)
 }
 
-func (s *logAdapter) Flush() {
-	s.sdLogger.Flush()
+func (s *logAdapter) Flush() error {
+	return s.sdLogger.Flush()
 }

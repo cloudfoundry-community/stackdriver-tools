@@ -3,23 +3,23 @@ package mocks
 import (
 	"sync"
 
-	metricpb "google.golang.org/genproto/googleapis/api/metric"
-	monitoringpb "google.golang.org/genproto/googleapis/monitoring/v3"
+	"google.golang.org/genproto/googleapis/api/metric"
+	"google.golang.org/genproto/googleapis/monitoring/v3"
 )
 
 type MockClient struct {
 	Mutex          sync.Mutex
-	MetricReqs     []*monitoringpb.CreateTimeSeriesRequest
-	TimeSeries     []*monitoringpb.TimeSeries
-	DescriptorReqs []*monitoringpb.CreateMetricDescriptorRequest
+	MetricReqs     []*monitoring.CreateTimeSeriesRequest
+	TimeSeries     []*monitoring.TimeSeries
+	DescriptorReqs []*monitoring.CreateMetricDescriptorRequest
 	ListErr        error
 
-	CreateMetricDescriptorFn func(req *monitoringpb.CreateMetricDescriptorRequest) error
-	ListMetricDescriptorFn   func(request *monitoringpb.ListMetricDescriptorsRequest) ([]*metricpb.MetricDescriptor, error)
-	PostFn                   func(req *monitoringpb.CreateTimeSeriesRequest) error
+	CreateMetricDescriptorFn func(req *monitoring.CreateMetricDescriptorRequest) error
+	ListMetricDescriptorFn   func(request *monitoring.ListMetricDescriptorsRequest) ([]*metric.MetricDescriptor, error)
+	PostFn                   func(req *monitoring.CreateTimeSeriesRequest) error
 }
 
-func (mc *MockClient) Post(req *monitoringpb.CreateTimeSeriesRequest) error {
+func (mc *MockClient) Post(req *monitoring.CreateTimeSeriesRequest) error {
 	if mc.PostFn != nil {
 		return mc.PostFn(req)
 	}
@@ -32,7 +32,7 @@ func (mc *MockClient) Post(req *monitoringpb.CreateTimeSeriesRequest) error {
 	return nil
 }
 
-func (mc *MockClient) CreateMetricDescriptor(request *monitoringpb.CreateMetricDescriptorRequest) error {
+func (mc *MockClient) CreateMetricDescriptor(request *monitoring.CreateMetricDescriptorRequest) error {
 	if mc.CreateMetricDescriptorFn != nil {
 		return mc.CreateMetricDescriptorFn(request)
 	}
@@ -44,7 +44,7 @@ func (mc *MockClient) CreateMetricDescriptor(request *monitoringpb.CreateMetricD
 	return nil
 }
 
-func (mc *MockClient) ListMetricDescriptors(request *monitoringpb.ListMetricDescriptorsRequest) ([]*metricpb.MetricDescriptor, error) {
+func (mc *MockClient) ListMetricDescriptors(request *monitoring.ListMetricDescriptorsRequest) ([]*metric.MetricDescriptor, error) {
 	if mc.ListMetricDescriptorFn != nil {
 		return mc.ListMetricDescriptorFn(request)
 	}
@@ -52,7 +52,7 @@ func (mc *MockClient) ListMetricDescriptors(request *monitoringpb.ListMetricDesc
 	if mc.ListErr != nil {
 		return nil, mc.ListErr
 	}
-	return []*metricpb.MetricDescriptor{
+	return []*metric.MetricDescriptor{
 		{Name: "anExistingMetric"},
 	}, nil
 }

@@ -1,5 +1,5 @@
 /*
- * Copyright 2017 Google Inc.
+ * Copyright 2019 Google Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,18 +14,16 @@
  * limitations under the License.
  */
 
-package mocks
+package metricspipeline
 
-import "github.com/cloudfoundry-community/stackdriver-tools/src/stackdriver-nozzle/messages"
+import (
+	"testing"
 
-type LogAdapter struct {
-	PostedLogs []messages.Log
-}
+	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/gomega"
+)
 
-func (la *LogAdapter) PostLog(log *messages.Log) {
-	la.PostedLogs = append(la.PostedLogs, *log)
-}
-
-func (la *LogAdapter) Flush() error {
-	return nil
+func TestMetricsBuffer(t *testing.T) {
+	RegisterFailHandler(Fail)
+	RunSpecs(t, "MetricsPipeline Suite")
 }

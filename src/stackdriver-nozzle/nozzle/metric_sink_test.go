@@ -150,7 +150,7 @@ var _ = Describe("MetricSink", func() {
 		diskBytes := uint64(164634624)
 		memoryBytes := uint64(16601088)
 		memoryBytesQuota := uint64(33554432)
-		applicationId := "ee2aa52e-3c8a-4851-b505-0cb9fe24806e"
+		applicationID := "ee2aa52e-3c8a-4851-b505-0cb9fe24806e"
 		timeStamp := eventTime.UnixNano()
 
 		metricType := events.Envelope_ContainerMetric
@@ -161,7 +161,7 @@ var _ = Describe("MetricSink", func() {
 			DiskBytes:        &diskBytes,
 			MemoryBytes:      &memoryBytes,
 			MemoryBytesQuota: &memoryBytesQuota,
-			ApplicationId:    &applicationId,
+			ApplicationId:    &applicationID,
 		}
 
 		envelope := &events.Envelope{

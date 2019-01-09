@@ -4,12 +4,28 @@ templates:
   stackdriver-nozzle-ctl.erb: bin/stackdriver-nozzle-ctl
   application_default_credentials.json.erb: config/application_default_credentials.json
   event_filters.json.erb: config/event_filters.json
+  cacert.pem.erb: config/cacert.pem
+  cert.pem.erb: config/cert.pem
+  cert.key.erb: config/cert.key
 
 packages:
   - stackdriver-nozzle
   - common
 
+consumes:
+  - name: reverse_log_proxy
+    type: reverse_log_proxy
+
 properties:
+  rlp.address:
+    description: Address and port of the Reverse Log Proxy
+  rlp.ca_cert:
+    description: Location of Reverse Log Proxy's CA cert file
+  rlp.cert:
+    description: Location of Reverse Log Proxy's client cert file
+  rlp.key:
+    description: Location of Reverse Log Proxy's CA client key file
+
   firehose.endpoint:
     description: CF API endpoint
   firehose.username:

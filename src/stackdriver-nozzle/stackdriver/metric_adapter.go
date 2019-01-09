@@ -22,10 +22,10 @@ import (
 	"path"
 	"sync"
 
+	"code.cloudfoundry.org/lager"
 	"github.com/cloudfoundry-community/stackdriver-tools/src/stackdriver-nozzle/messages"
 	"github.com/cloudfoundry-community/stackdriver-tools/src/stackdriver-nozzle/telemetry"
-	"github.com/cloudfoundry/lager"
-	monitoringpb "google.golang.org/genproto/googleapis/monitoring/v3"
+	"google.golang.org/genproto/googleapis/monitoring/v3"
 )
 
 type MetricAdapter interface {
@@ -83,7 +83,7 @@ func (ma *metricAdapter) PostMetrics(metrics []*messages.Metric) {
 		}
 
 		timeSeriesReqs.Increment()
-		request := &monitoringpb.CreateTimeSeriesRequest{
+		request := &monitoring.CreateTimeSeriesRequest{
 			Name:       projectName,
 			TimeSeries: series[low:high],
 		}
@@ -92,12 +92,10 @@ func (ma *metricAdapter) PostMetrics(metrics []*messages.Metric) {
 			ma.logger.Error("metricAdapter.PostMetrics", err, lager.Data{"info": "Unexpected Error", "request": request})
 		}
 	}
-
-	return
 }
 
-func (ma *metricAdapter) buildTimeSeries(metrics []*messages.Metric) []*monitoringpb.TimeSeries {
-	var timeSerieses []*monitoringpb.TimeSeries
+func (ma *metricAdapter) buildTimeSeries(metrics []*messages.Metric) []*monitoring.TimeSeries {
+	var timeSerieses []*monitoring.TimeSeries
 
 	for _, metric := range metrics {
 		err := ma.ensureMetricDescriptor(metric)
@@ -116,7 +114,7 @@ func (ma *metricAdapter) buildTimeSeries(metrics []*messages.Metric) []*monitori
 func (ma *metricAdapter) CreateMetricDescriptor(metric *messages.Metric) error {
 	projectName := path.Join("projects", ma.projectID)
 
-	req := &monitoringpb.CreateMetricDescriptorRequest{
+	req := &monitoring.CreateMetricDescriptorRequest{
 		Name:             projectName,
 		MetricDescriptor: metric.MetricDescriptor(projectName),
 	}
@@ -125,7 +123,7 @@ func (ma *metricAdapter) CreateMetricDescriptor(metric *messages.Metric) error {
 }
 
 func (ma *metricAdapter) fetchMetricDescriptorNames() error {
-	req := &monitoringpb.ListMetricDescriptorsRequest{
+	req := &monitoring.ListMetricDescriptorsRequest{
 		Name:   fmt.Sprintf("projects/%s", ma.projectID),
 		Filter: `metric.type = starts_with("custom.googleapis.com/")`,
 	}

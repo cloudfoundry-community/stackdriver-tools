@@ -106,7 +106,7 @@ func (ms *metricSink) Receive(envelope *events.Envelope) {
 		containerMetric := envelope.GetContainerMetric()
 		metrics = []*messages.Metric{
 			{Name: metricPrefix + "diskBytesQuota", Value: float64(containerMetric.GetDiskBytesQuota())},
-			{Name: metricPrefix + "cpuPercentage", Value: float64(containerMetric.GetCpuPercentage())},
+			{Name: metricPrefix + "cpuPercentage", Value: containerMetric.GetCpuPercentage()},
 			{Name: metricPrefix + "diskBytes", Value: float64(containerMetric.GetDiskBytes())},
 			{Name: metricPrefix + "memoryBytes", Value: float64(containerMetric.GetMemoryBytes())},
 			{Name: metricPrefix + "memoryBytesQuota", Value: float64(containerMetric.GetMemoryBytesQuota())},

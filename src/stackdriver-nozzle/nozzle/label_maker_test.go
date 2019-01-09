@@ -114,10 +114,10 @@ var _ = Describe("LabelMaker", func() {
 
 	Context("Metadata", func() {
 		var (
-			appGuid = "f47ac10b-58cc-4372-a567-0e02b2c3d479"
+			appGUID = "f47ac10b-58cc-4372-a567-0e02b2c3d479"
 			low     = uint64(0x7243cc580bc17af4)
 			high    = uint64(0x79d4c3b2020e67a5)
-			appId   = events.UUID{Low: &low, High: &high}
+			appID   = events.UUID{Low: &low, High: &high}
 		)
 
 		Context("application metadata", func() {
@@ -137,15 +137,15 @@ var _ = Describe("LabelMaker", func() {
 					eventType    = events.Envelope_LogMessage
 					event        *events.LogMessage
 					envelope     *events.Envelope
-					spaceGuid    = "2ab560c3-3f21-45e0-9452-d748ff3a15e9"
-					orgGuid      = "b494fb47-3c44-4a98-9a08-d839ec5c799b"
-					instanceGuid = "301f96f1-97f8-42f8-aa98-6f13ea1f0b87"
+					spaceGUID    = "2ab560c3-3f21-45e0-9452-d748ff3a15e9"
+					orgGUID      = "b494fb47-3c44-4a98-9a08-d839ec5c799b"
+					instanceGUID = "301f96f1-97f8-42f8-aa98-6f13ea1f0b87"
 				)
 
 				BeforeEach(func() {
 					event = &events.LogMessage{
-						AppId:          &appGuid,
-						SourceInstance: &instanceGuid,
+						AppId:          &appGUID,
+						SourceInstance: &instanceGUID,
 					}
 					envelope = &events.Envelope{
 						EventType:  &eventType,
@@ -157,19 +157,19 @@ var _ = Describe("LabelMaker", func() {
 					app := cloudfoundry.AppInfo{
 						AppName:   "MyApp",
 						SpaceName: "MySpace",
-						SpaceGUID: spaceGuid,
+						SpaceGUID: spaceGUID,
 						OrgName:   "MyOrg",
-						OrgGUID:   orgGuid,
+						OrgGUID:   orgGUID,
 					}
 
-					appInfoRepository.AppInfoMap[appGuid] = app
+					appInfoRepository.AppInfoMap[appGUID] = app
 
 					labels := subject.MetricLabels(envelope, false)
 
 					Expect(labels).To(HaveKeyWithValue("applicationPath",
 						"/MyOrg/MySpace/MyApp"))
 					Expect(labels).To(HaveKeyWithValue("instanceIndex",
-						instanceGuid))
+						instanceGUID))
 				})
 
 				It("doesn't add fields for an unresolved app", func() {
@@ -183,17 +183,17 @@ var _ = Describe("LabelMaker", func() {
 					eventType    = events.Envelope_HttpStartStop
 					event        *events.HttpStartStop
 					envelope     *events.Envelope
-					spaceGuid    = "2ab560c3-3f21-45e0-9452-d748ff3a15e9"
-					orgGuid      = "b494fb47-3c44-4a98-9a08-d839ec5c799b"
+					spaceGUID    = "2ab560c3-3f21-45e0-9452-d748ff3a15e9"
+					orgGUID      = "b494fb47-3c44-4a98-9a08-d839ec5c799b"
 					instanceIdx  = int32(1)
-					instanceGuid = "485a10c1-917f-4d89-a98f-dc539ba14dfd"
+					instanceGUID = "485a10c1-917f-4d89-a98f-dc539ba14dfd"
 				)
 
 				BeforeEach(func() {
 					event = &events.HttpStartStop{
-						ApplicationId: &appId,
+						ApplicationId: &appID,
 						InstanceIndex: &instanceIdx,
-						InstanceId:    &instanceGuid,
+						InstanceId:    &instanceGUID,
 					}
 					envelope = &events.Envelope{
 						EventType:     &eventType,
@@ -205,12 +205,12 @@ var _ = Describe("LabelMaker", func() {
 					app := cloudfoundry.AppInfo{
 						AppName:   "MyApp",
 						SpaceName: "MySpace",
-						SpaceGUID: spaceGuid,
+						SpaceGUID: spaceGUID,
 						OrgName:   "MyOrg",
-						OrgGUID:   orgGuid,
+						OrgGUID:   orgGUID,
 					}
 
-					appInfoRepository.AppInfoMap[appGuid] = app
+					appInfoRepository.AppInfoMap[appGUID] = app
 
 					labels := subject.MetricLabels(envelope, false)
 
@@ -223,19 +223,19 @@ var _ = Describe("LabelMaker", func() {
 					app := cloudfoundry.AppInfo{
 						AppName:   "MyApp",
 						SpaceName: "MySpace",
-						SpaceGUID: spaceGuid,
+						SpaceGUID: spaceGUID,
 						OrgName:   "MyOrg",
-						OrgGUID:   orgGuid,
+						OrgGUID:   orgGUID,
 					}
 
-					appInfoRepository.AppInfoMap[appGuid] = app
+					appInfoRepository.AppInfoMap[appGUID] = app
 
 					envelope.HttpStartStop.InstanceIndex = nil
 					labels := subject.MetricLabels(envelope, false)
 
 					Expect(labels).To(HaveKeyWithValue("applicationPath",
 						"/MyOrg/MySpace/MyApp"))
-					Expect(labels).To(HaveKeyWithValue("instanceIndex", instanceGuid))
+					Expect(labels).To(HaveKeyWithValue("instanceIndex", instanceGUID))
 				})
 
 				It("doesn't add fields for an unresolved app", func() {

@@ -13,7 +13,7 @@ import (
 	"github.com/cloudfoundry-community/go-cfclient"
 	"github.com/cloudfoundry-community/stackdriver-tools/src/stackdriver-nozzle/cloudfoundry"
 	"github.com/cloudfoundry-community/stackdriver-tools/src/stackdriver-nozzle/config"
-	"github.com/cloudfoundry-community/stackdriver-tools/src/stackdriver-nozzle/metrics_pipeline"
+	"github.com/cloudfoundry-community/stackdriver-tools/src/stackdriver-nozzle/metricspipeline"
 	"github.com/cloudfoundry-community/stackdriver-tools/src/stackdriver-nozzle/nozzle"
 	"github.com/cloudfoundry-community/stackdriver-tools/src/stackdriver-nozzle/stackdriver"
 	"github.com/cloudfoundry-community/stackdriver-tools/src/stackdriver-nozzle/telemetry"
@@ -26,6 +26,7 @@ type App struct {
 	c           *config.Config
 	cfConfig    *cfclient.Config
 	cfClient    *cfclient.Client
+	rlpConfig   *cloudfoundry.ReverseLogProxyConfig
 	labelMaker  nozzle.LabelMaker
 	bufferEmpty func() bool
 }
@@ -52,17 +53,34 @@ func New(c *config.Config, logger lager.Logger) *App {
 	}
 	labelMaker := nozzle.NewLabelMaker(appInfoRepository, c.FoundationName)
 
+	tlsConfig, err := loggregator.NewEgressTLSConfig(
+		c.RLPCACertFile,
+		c.RLPCertFile,
+		c.RLPKeyFile,
+	)
+	if err != nil {
+		logger.Fatal("could not create TLS config", err)
+	}
+
+	rlpConfig := &cloudfoundry.ReverseLogProxyConfig{
+		Address:           c.RLPAddress,
+		ShardID:           c.RLPShardID,
+		DeterministicName: c.RLPDeterministicName,
+		TLSConfig:         tlsConfig,
+	}
+
 	return &App{
 		logger:     logger,
 		c:          c,
 		cfConfig:   cfConfig,
 		cfClient:   cfClient,
+		rlpConfig:  rlpConfig,
 		labelMaker: labelMaker,
 	}
 }
 
-func (a *App) newProducer() cloudfoundry.Firehose {
-	return cloudfoundry.NewFirehose(a.cfConfig, a.cfClient, a.c.SubscriptionID)
+func (a *App) newProducer() cloudfoundry.ReverseLogProxy {
+	return cloudfoundry.NewReverseLogProxy(a.rlpConfig, a.logger)
 }
 
 func (a *App) newConsumer(ctx context.Context) (nozzle.Nozzle, error) {
@@ -81,10 +99,10 @@ func (a *App) newConsumer(ctx context.Context) (nozzle.Nozzle, error) {
 		return nil, err
 	}
 
-	sinks := []nozzle.Sink{}
+	var sinks []nozzle.Sink
 	logAdapter := a.newLogAdapter()
 	filteredLogSink, err := nozzle.NewFilterSink(logEvents, lbl, lwl,
-		nozzle.NewLogSink(a.labelMaker, logAdapter, a.c.NewlineToken))
+		nozzle.NewLogSink(a.labelMaker, logAdapter, a.c.NewlineToken, a.logger))
 	if err != nil {
 		return nil, err
 	}
@@ -93,7 +111,7 @@ func (a *App) newConsumer(ctx context.Context) (nozzle.Nozzle, error) {
 	// Destination for metrics
 	metricAdapter := a.newMetricAdapter()
 	// Routes metrics to Stackdriver Logging/Stackdriver Monitoring
-	metricRouter := metrics_pipeline.NewRouter(metricAdapter, metricEvents, logAdapter, logEvents)
+	metricRouter := metricspipeline.NewRouter(metricAdapter, metricEvents, logAdapter, logEvents)
 	// Handles and translates Firehose events. Performs buffering/culling.
 	metricSink, err := a.newMetricSink(ctx, metricRouter)
 	if err != nil {
@@ -106,13 +124,13 @@ func (a *App) newConsumer(ctx context.Context) (nozzle.Nozzle, error) {
 	}
 	sinks = append(sinks, filteredMetricSink)
 
-	if a.c.EnableAppHttpMetrics {
-		httpSink := nozzle.NewHttpSink(a.logger, a.labelMaker)
-		filteredHttpSink, err := nozzle.NewFilterSink([]events.Envelope_EventType{events.Envelope_HttpStartStop}, nil, nil, httpSink)
+	if a.c.EnableAppHTTPMetrics {
+		httpSink := nozzle.NewHTTPSink(a.logger, a.labelMaker)
+		filteredHTTPSink, err := nozzle.NewFilterSink([]events.Envelope_EventType{events.Envelope_HttpStartStop}, nil, nil, httpSink)
 		if err != nil {
 			return nil, err
 		}
-		sinks = append(sinks, filteredHttpSink)
+		sinks = append(sinks, filteredHTTPSink)
 	}
 
 	return nozzle.NewNozzle(a.logger, sinks...), nil
@@ -148,7 +166,7 @@ func (a *App) newMetricAdapter() stackdriver.MetricAdapter {
 }
 
 func (a *App) newMetricSink(ctx context.Context, metricAdapter stackdriver.MetricAdapter) (nozzle.Sink, error) {
-	metricBuffer := metrics_pipeline.NewAutoCulledMetricsBuffer(ctx, a.logger, time.Duration(a.c.MetricsBufferDuration)*time.Second, metricAdapter)
+	metricBuffer := metricspipeline.NewAutoCulledMetricsBuffer(ctx, a.logger, time.Duration(a.c.MetricsBufferDuration)*time.Second, metricAdapter)
 	a.bufferEmpty = metricBuffer.IsEmpty
 
 	var counterTracker *nozzle.CounterTracker

@@ -23,11 +23,19 @@ instance_groups:
   jobs:
   - name: stackdriver-nozzle
     release: stackdriver-tools
+    consumes:
+      reverse_log_proxy:
+        from: reverse_log_proxy
+        deployment: cf
   - name: google-fluentd
     release: stackdriver-tools
   - name: stackdriver-agent
     release: stackdriver-tools
   properties:
+    rlp:
+      ca_cert: ((/bosh-stackdriver-tools/cf/loggregator_ca.certificate))
+      cert: ((stackdriver_nozzle.certificate))
+      key: ((stackdriver_nozzle.private_key))
     firehose:
       endpoint: ((firehose_endpoint))
       username: ((firehose_username))
@@ -47,3 +55,12 @@ update:
   canary_watch_time: 1000-60000
   update_watch_time: 1000-60000
 
+variables:
+  - name: stackdriver_nozzle
+    type: certificate
+    options:
+      ca: /bosh-stackdriver-tools/cf/loggregator_ca
+      common_name: stackdriver-nozzle
+      extended_key_usage:
+        - client_auth
+        - server_auth

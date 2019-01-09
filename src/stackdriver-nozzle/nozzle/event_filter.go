@@ -53,7 +53,7 @@ type EventFilter struct {
 func (ef *EventFilter) Add(mt, re string) error {
 	ef.mu.Lock()
 	defer ef.mu.Unlock()
-	matchfunc, ok := matchTypes[mt]
+	matchFunc, ok := matchTypes[mt]
 	if !ok {
 		return fmt.Errorf("unrecognized match type %q", mt)
 	}
@@ -62,7 +62,7 @@ func (ef *EventFilter) Add(mt, re string) error {
 		return err
 	}
 	ef.matchers = append(ef.matchers, func(event *events.Envelope) bool {
-		return matchfunc(event, compiled)
+		return matchFunc(event, compiled)
 	})
 	return nil
 }

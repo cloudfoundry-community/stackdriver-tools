@@ -18,8 +18,15 @@ case $1 in
     chown -R vcap:vcap $RUN_DIR
     chown -R vcap:vcap .
 
-    mkdir -p $LOG_DIR
-    chown -R vcap:vcap $LOG_DIR
+    mkdir -p ${LOG_DIR}
+    chown -R vcap:vcap ${LOG_DIR}
+
+    export RLP_ADDRESS_COLON_PORT=<%= link('reverse_log_proxy').address %>:<%= link('reverse_log_proxy').p('egress.port', 8082) %>
+    export RLP_CA_CERT_FILE=${JOB_DIR}/config/cacert.pem
+    export RLP_CERT_FILE=${JOB_DIR}/config/cert.pem
+    export RLP_KEY_FILE=${JOB_DIR}/config/cert.key
+    export RLP_SHARD_ID=<%= spec.deployment %>
+    export RLP_DETERMINISTIC_NAME=<%= spec.id %>
 
     export FIREHOSE_ENDPOINT=<%= p('firehose.endpoint') %>
     export FIREHOSE_USERNAME=<%= p('firehose.username') %>

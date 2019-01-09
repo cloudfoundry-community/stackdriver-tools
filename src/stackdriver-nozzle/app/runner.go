@@ -97,7 +97,9 @@ func handleFatalError(a *App, cancel context.CancelFunc) {
 		// were issues re-using the one that the nozzle uses.
 		logAdapter := a.newLogAdapter()
 		logAdapter.PostLog(log)
-		logAdapter.Flush()
+		if err := logAdapter.Flush(); err != nil {
+			fmt.Printf("error flushing when handling fatal error: %v", err)
+		}
 
 		// Re-throw the error, we want to ensure it's logged directly to
 		// stackdriver but we are not in a recoverable state.
