@@ -52,8 +52,8 @@ func ListRangeHandler(rw http.ResponseWriter, req *http.Request) {
 		panic(err)
 	}
 
-	membersJSON := HandleError(json.MarshalIndent(entries, "", "  ")).([]byte)
-	rw.Write(membersJSON)
+	membersJSON := PanicOnError(json.MarshalIndent(entries, "", "  ")).([]byte)
+	PanicOnError(rw.Write(membersJSON))
 }
 
 func ListPushHandler(rw http.ResponseWriter, req *http.Request) {
@@ -75,7 +75,10 @@ func ListPushHandler(rw http.ResponseWriter, req *http.Request) {
 	}
 
 	datastoreKey := datastore.IncompleteKey(key, nil)
-	datastoreClient.Put(context.Background(), datastoreKey, newEntry)
+	_, err := datastoreClient.Put(context.Background(), datastoreKey, newEntry)
+	if err != nil {
+		panic(err)
+	}
 
 	ListRangeHandler(rw, req)
 }
@@ -92,16 +95,17 @@ func EnvHandler(rw http.ResponseWriter, req *http.Request) {
 		environment[key] = val
 	}
 
-	rw.Write([]byte("Environment:\n"))
-	envJSON := HandleError(json.MarshalIndent(environment, "", "  ")).([]byte)
-	rw.Write(envJSON)
-
-	rw.Write([]byte("\nRequest:\n"))
-	reqJSON := HandleError(json.MarshalIndent(req.Header, "", "  ")).([]byte)
-	rw.Write(reqJSON)
+	var output []byte
+	output = append(output, []byte("Environment:\n")...)
+	envJSON := PanicOnError(json.MarshalIndent(environment, "", "  ")).([]byte)
+	output = append(output, envJSON...)
+	output = append(output, []byte("\nRequest:\n")...)
+	reqJSON := PanicOnError(json.MarshalIndent(req.Header, "", "  ")).([]byte)
+	output = append(output, reqJSON...)
+	PanicOnError(rw.Write(output))
 }
 
-func HandleError(result interface{}, err error) (r interface{}) {
+func PanicOnError(result interface{}, err error) (r interface{}) {
 	if err != nil {
 		panic(err)
 	}
@@ -126,9 +130,10 @@ func main() {
 	}
 
 	ctx := context.Background()
-	errorsClient = HandleError(errors.NewClient(ctx, projectID, "cf-stackdriver-example", "0.0.1", true)).(*errors.Client)
+	errorsClient = PanicOnError(errors.NewClient(ctx, projectID, "cf-stackdriver-example", "0.0.1", true)).(*errors.Client)
 
-	datastoreClient, err := datastore.NewClient(context.Background(), projectID)
+	var err error
+	datastoreClient, err = datastore.NewClient(context.Background(), projectID)
 	if err != nil {
 		panic("error connecting to the Google Cloud Datastore. Does this project have an App Engine App? see: https://cloud.google.com/datastore/docs/activate")
 	}
@@ -146,5 +151,8 @@ func main() {
 	if port == "" {
 		port = "3000"
 	}
-	http.ListenAndServe(":"+port, n)
+
+	if err := http.ListenAndServe(":"+port, n); err != nil {
+		panic(err)
+	}
 }
