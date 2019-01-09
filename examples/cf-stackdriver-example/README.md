@@ -2,22 +2,22 @@
 
 A Cloud Foundry application written in Go that reports errors to [Stackdriver Error Reporting](https://cloud.google.com/error-reporting/) and can be debugged with the [Stackdriver Debugger](https://cloud.google.com/debugger/).
 
-Based on the [Kubernetes Guestbook App](https://github.com/kubernetes/kubernetes/tree/master/examples/guestbook-go). This is ***not*** an offical Google product.
+Based on the [Kubernetes Guestbook App](https://github.com/kubernetes/kubernetes/tree/master/examples/guestbook-go). This is ***not*** an official Google product.
 
 ## Prerequisites
 
 - [Cloud Foundry](https://cloud.google.com/solutions/cloud-foundry-on-gcp) with the CLI signed in and targeting a Cloud Foundry you have push access to
 - A Google project with the following APIs enabled:
-  - [Stackdriver Erorr Reporting API](https://console.cloud.google.com/apis/api/clouderrorreporting.googleapis.com/overview)
+  - [Stackdriver Error Reporting API](https://console.cloud.google.com/apis/api/clouderrorreporting.googleapis.com/overview)
   - [Stackdriver Debugger API](https://console.cloud.google.com/apis/api/clouddebugger.googleapis.com/overview)
-  - [Cloud Datstore API](https://console.cloud.google.com/apis/api/datastore.googleapis.com/overview)
+  - [Cloud Datastore API](https://console.cloud.google.com/apis/api/datastore.googleapis.com/overview)
 - To test the database, the Google project must have an existing App Engine project. [More info](https://cloud.google.com/datastore/docs/activate).
 - [Go 1.7](https://golang.org/)
 - [Cloud SDK](https://cloud.google.com/sdk/downloads)
 
 ## Deploying the application
 
-The application requires the GOOGLE_PROJECT environment variable to start. The following snippet will create the app, set the variable, and restage the app at which time it should start.
+The application requires the GOOGLE_PROJECT environment variable to start. The following snippet will create the app, set the variable, and re-stage the app at which time it should start.
 
 ```
 cf push
