@@ -18,11 +18,9 @@ package stackdriver
 
 import (
 	"errors"
-	"time"
-
-	"sync"
-
 	"strconv"
+	"sync"
+	"time"
 
 	"github.com/cloudfoundry-community/stackdriver-tools/src/stackdriver-nozzle/messages"
 	"github.com/cloudfoundry-community/stackdriver-tools/src/stackdriver-nozzle/mocks"

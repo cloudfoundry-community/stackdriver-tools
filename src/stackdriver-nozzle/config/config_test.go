@@ -20,11 +20,10 @@ import (
 	"bytes"
 	"os"
 
+	"cloud.google.com/go/compute/metadata"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/ginkgo/extensions/table"
 	. "github.com/onsi/gomega"
-
-	"cloud.google.com/go/compute/metadata"
 )
 
 // Hoisted to top level because it's (even more) horrible inline.

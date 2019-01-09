@@ -2,14 +2,11 @@ package app
 
 import (
 	"context"
-	_ "expvar"
 	"fmt"
 	"net/http"
-	_ "net/http/pprof"
 	"os"
 	"os/signal"
 	"runtime"
-
 	"time"
 
 	"cloud.google.com/go/logging"

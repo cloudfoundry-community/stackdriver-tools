@@ -18,7 +18,6 @@ package nozzle
 
 import (
 	"github.com/cloudfoundry-community/stackdriver-tools/src/stackdriver-nozzle/mocks"
-
 	"github.com/cloudfoundry/sonde-go/events"
 	"github.com/golang/protobuf/proto"
 	. "github.com/onsi/ginkgo"
