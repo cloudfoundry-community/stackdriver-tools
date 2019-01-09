@@ -36,5 +36,3 @@ go build -ldflags "-X github.com/cloudfoundry-community/stackdriver-tools/src/st
 # Copy BOSH Google CPI package
 mkdir -p ${BOSH_INSTALL_TARGET}/bin
 cp -a ${NOZZLE_PATH}/stackdriver-nozzle/out/stackdriver-nozzle ${BOSH_INSTALL_TARGET}/bin/
-
-

@@ -4,7 +4,7 @@ RUN_DIR=/var/vcap/sys/run/stackdriver-nozzle
 LOG_DIR=/var/vcap/sys/log/stackdriver-nozzle
 JOB_DIR=/var/vcap/jobs/stackdriver-nozzle
 PKG_DIR=/var/vcap/packages/stackdriver-nozzle
-PIDFILE=$RUN_DIR/stackdriver-nozzle.pid
+PIDFILE=${RUN_DIR}/stackdriver-nozzle.pid
 
 source /var/vcap/packages/common/utils.sh
 
@@ -12,10 +12,10 @@ case $1 in
 
   start)
 
-    pid_guard $PIDFILE stackdriver-nozzle
+    pid_guard ${PIDFILE} stackdriver-nozzle
 
-    mkdir -p $RUN_DIR
-    chown -R vcap:vcap $RUN_DIR
+    mkdir -p ${RUN_DIR}
+    chown -R vcap:vcap ${RUN_DIR}
     chown -R vcap:vcap .
 
     mkdir -p ${LOG_DIR}
@@ -53,23 +53,23 @@ case $1 in
     export GCP_PROJECT_ID=<%= prop %>
     <% end %>
     <% if_p('credentials.application_default_credentials') do |prop| %>
-    export GOOGLE_APPLICATION_CREDENTIALS=$JOB_DIR/config/application_default_credentials.json
+    export GOOGLE_APPLICATION_CREDENTIALS=${JOB_DIR}/config/application_default_credentials.json
     <% end %>
     <% if_p('nozzle.event_filters.blacklist', 'nozzle.event_filters.whitelist') do |_,_| %>
-    export EVENT_FILTER_FILE=$JOB_DIR/config/event_filters.json
+    export EVENT_FILTER_FILE=${JOB_DIR}/config/event_filters.json
     <% end %>
 
-    echo $$ > $PIDFILE
+    echo $$ > ${PIDFILE}
 
-    exec chpst -u vcap:vcap $PKG_DIR/bin/stackdriver-nozzle \
-      >>$LOG_DIR/stackdriver-nozzle.stdout.log \
-      2>>$LOG_DIR/stackdriver-nozzle.stderr.log
+    exec chpst -u vcap:vcap ${PKG_DIR}/bin/stackdriver-nozzle \
+      >>${LOG_DIR}/stackdriver-nozzle.stdout.log \
+      2>>${LOG_DIR}/stackdriver-nozzle.stderr.log
 
     ;;
 
   stop)
 
-    kill_and_wait $PIDFILE
+    kill_and_wait ${PIDFILE}
 
     ;;
 
