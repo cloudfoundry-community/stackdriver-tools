@@ -10,7 +10,7 @@ to Stackdriver Logging.
 1. stackdriver-spinner logs `SPINNER_COUNT` number of logs with the payload being a unique GUID. These logs will then eventually make it to Stackdriver via loggregator->Stackdriver nozzle.
 1. It waits for `SPINNER_WAIT` time. This wait is to give time to nozzle to process and ship the logs to Stackdriver.
 1. It then polls the Stackdriver logging API for the unique GUID and counts the number of these logs. The expectation is that logs are in Stackdriver within `SPINNER_WAIT` time.
-1. It then calculate the loss by `(SPINNER_COUNT - count of received logs) / SPINNER_COUNT`
+1. It then calculates the loss by `(SPINNER_COUNT - count of received logs) / SPINNER_COUNT`
 1. The loss is sent directly to Stackdriver via the logging API. This can be used to setup log based metrics and alerts.
 
 `SPINNER_COUNT` and `SPINNER_WAIT` default to `999` and `300` seconds respectively. They
