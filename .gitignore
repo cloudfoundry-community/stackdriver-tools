@@ -16,5 +16,9 @@ releases/**/*.tgz
 *~
 *#
 #*
+build/
 product/
 **/credentials.json
+tile.yml
+tile-history.yml
+src/stackdriver-nozzle/release

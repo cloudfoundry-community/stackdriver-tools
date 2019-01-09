@@ -1,5 +1,20 @@
 #! /bin/bash
 #
+# Copyright 2019 Google Inc.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#    http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+#
 # This script can be used to build the current working tree into a custom tile
 # using the cfplatformeng/tile-generator image from Docker Hub.
 #
@@ -50,9 +65,20 @@ ENV VERSION="${VERSION}" GOPATH="${TMP_GOPATH}" PATH="${PATH}:${TMP_GOPATH}/bin"
 COPY . .
 RUN scripts/build-custom-tile-docker.sh
 __DOCKERFILE__
+
+  # remove previous custom tiles
+  rm -f stackdriver-nozzle-custom*
+
+  # remove previous tile containers and image (safely)
+  docker ps -a | awk '{ if ($2 == "tile") print $1 }' | xargs -r docker rm
+  docker images | cut -d ' ' -f 1 | grep -x tile | xargs -r docker rmi
+
   docker build -t tile . && rm Dockerfile
-  docker run --rm -v "${PWD}:/mnt" tile cp "/tmp/stackdriver-tools/product/stackdriver-nozzle-custom-${VERSION}.pivotal" /mnt
-  docker rmi tile
+
+  TILE_DIR=/tmp/stackdriver-tools/product/
+  TILE=stackdriver-nozzle-custom-${VERSION}.pivotal
+
+  docker run -v "${PWD}:/mnt" tile sh -c "cp ${TILE_DIR}/${TILE} /mnt && chown ${UID} /mnt/${TILE}"
 }
 
 clean() {
@@ -70,7 +96,7 @@ case "$1" in
   # custom-tile build uses the customized tile-generator image
   # to build the stackdriver-tools BOSH release and the custom tile.
   IMAGE="$(docker images -q tile-generator:latest)"
-  if test -z "$IMAGE"; then
+  if test -z "${IMAGE}"; then
     echo "Custom tile generator image not found, running setup."
     setup
   fi

@@ -1,3 +1,4 @@
+#!/usr/bin/env bash
 #
 # Copyright 2019 Google Inc.
 #
@@ -14,17 +15,21 @@
 # limitations under the License.
 #
 
----
-platform: linux
-image_resource:
-  type: docker-image
-  source:
-    repository: m0pt0pmatt/tile-generator
-inputs:
-  - name: stackdriver-tools-source
-outputs:
-  - name: tile-out
-run:
-  dir: stackdriver-tools-source
-  path: sh
-  args: [-c, "apk add --no-cache make git ruby && make tile && cp product/stackdriver-nozzle*.pivotal* ../tile-out/"]
+set -e
+
+# Create a workspace for a GOPATH
+gopath_prefix=/tmp/src/github.com/cloudfoundry-community
+mkdir -p ${gopath_prefix}
+
+# Link to the source repo
+rm -f ${gopath_prefix}/stackdriver-tools
+ln -s ${PWD} ${gopath_prefix}/stackdriver-tools
+
+# Configure GOPATH
+export GOPATH=/tmp
+export PATH=${GOPATH}/bin:${PATH}
+
+# Run tests
+cd ${gopath_prefix}/stackdriver-tools/
+
+"$@"

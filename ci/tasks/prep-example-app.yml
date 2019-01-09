@@ -19,12 +19,16 @@ platform: linux
 image_resource:
   type: docker-image
   source:
-    repository: m0pt0pmatt/tile-generator
+    repository: golang
+params:
+  GCP_PROJECT: replace-me
+  GOOGLE_PROJECT: replace-me
+  GOOGLE_APPLICATION_CREDENTIALS: replace-me
+  STACKDRIVER_TOOLS_SOURCE_URI: replace-me
+run:
+  path: stackdriver-tools-source-ci/ci/tasks/prep-example-app.sh
 inputs:
   - name: stackdriver-tools-source
+  - name: stackdriver-tools-source-ci
 outputs:
-  - name: tile-out
-run:
-  dir: stackdriver-tools-source
-  path: sh
-  args: [-c, "apk add --no-cache make git ruby && make tile && cp product/stackdriver-nozzle*.pivotal* ../tile-out/"]
+  - name: prepped_source

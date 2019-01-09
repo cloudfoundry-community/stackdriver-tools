@@ -1,3 +1,4 @@
+#!/usr/bin/env sh
 #
 # Copyright 2019 Google Inc.
 #
@@ -14,17 +15,21 @@
 # limitations under the License.
 #
 
----
-platform: linux
-image_resource:
-  type: docker-image
-  source:
-    repository: m0pt0pmatt/tile-generator
-inputs:
-  - name: stackdriver-tools-source
-outputs:
-  - name: tile-out
-run:
-  dir: stackdriver-tools-source
-  path: sh
-  args: [-c, "apk add --no-cache make git ruby && make tile && cp product/stackdriver-nozzle*.pivotal* ../tile-out/"]
+set -e
+
+cp -R stackdriver-tools-source/* prepped_source/
+echo "${GOOGLE_APPLICATION_CREDENTIALS}" > prepped_source/examples/cf-stackdriver-example/credentials.json
+cd stackdriver-tools-source
+
+cat <<EOF > ../prepped_source/examples/cf-stackdriver-example/source-context.json
+
+{
+  "git": {
+    "revisionId": "$(git rev-parse HEAD)",
+    "url": "${STACKDRIVER_TOOLS_SOURCE_URI}"
+  }
+}
+EOF
+
+cd ../prepped_source/examples/cf-stackdriver-example/
+go build

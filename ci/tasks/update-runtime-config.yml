@@ -19,12 +19,11 @@ platform: linux
 image_resource:
   type: docker-image
   source:
-    repository: m0pt0pmatt/tile-generator
+    repository: pivotalcfreleng/bbl
 inputs:
+  - name: bbl-state
   - name: stackdriver-tools-source
-outputs:
-  - name: tile-out
 run:
-  dir: stackdriver-tools-source
+  dir: bbl-state
   path: sh
-  args: [-c, "apk add --no-cache make git ruby && make tile && cp product/stackdriver-nozzle*.pivotal* ../tile-out/"]
+  args: [-c, "eval \"$(bbl print-env)\" && bosh --non-interactive update-runtime-config ../stackdriver-tools-source/ci/runtime-config.yml"]

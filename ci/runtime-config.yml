@@ -1,0 +1,27 @@
+releases:
+  - name: "bosh-dns"
+    version: "1.10.0"
+    url: "https://bosh.io/d/github.com/cloudfoundry/bosh-dns-release?v=1.10.0"
+    sha1: "d1aadbda5d60c44dec4a429cda872cf64f6d8d0b"
+
+addons:
+  - name: bosh-dns
+    jobs:
+      - name: bosh-dns
+        release: bosh-dns
+        properties:
+          cache:
+            enabled: true
+          health:
+            enabled: true
+            server:
+              tls: ((/dns_healthcheck_server_tls))
+            client:
+              tls: ((/dns_healthcheck_client_tls))
+          api:
+            server:
+              tls: ((/dns_api_server_tls))
+            client:
+              tls: ((/dns_api_client_tls))
+    include:
+      deployments: [stackdriver-nozzle]
