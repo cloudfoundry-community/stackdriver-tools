@@ -34,13 +34,12 @@ If you're using the `stackdriver-tools` BOSH release, run: `bosh -d <your deploy
 ## 4. Clear Metric Descriptors
 Enter the directory with the clear-metrics-descriptors tool:
 ```bash
-cd $(go env GOPATH)/src/github.com/cloudfoundry-community/stackdriver-tools/src/stackdriver-nozzle/cmd
+cd $(go env GOPATH)/src/github.com/cloudfoundry-community/stackdriver-tools/src/stackdriver-nozzle/cmd/clear-metrics-descriptors
 ```
 
 Fill in your GCP Project in the following command and execute the tool:
 ```bash
-go run ./clear-metrics-descriptors.go --project-id <your GCP project, eg cf-prod-logs>
+go run ./clear-metrics-descriptors.go --project-id "your GCP project, eg cf-prod-logs"
 ```
-
 
 Your project should now be clear of all custom metric descriptors. You can proceed with upgrading the nozzle.

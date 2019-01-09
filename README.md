@@ -327,7 +327,7 @@ property, which should be filled in with the contents of a [Google service accou
 [google-service-account-key]: https://cloud.google.com/compute/docs/access/create-enable-service-accounts-for-instances
 
 ## Contributing
-For detailes on how to contribute to this project - including filing bug reports
+For details on how to contribute to this project - including filing bug reports
 and contributing code changes - please see [CONTRIBUTING.md].
 
 ## Copyright

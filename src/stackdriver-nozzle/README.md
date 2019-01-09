@@ -96,7 +96,7 @@ An example filter file:
     ],
     "whitelist": [
         {"sink": "monitoring", "type": "name", "regexp": "^gorouter\\..*requests"},
-        ...
+        "etc..."
     ]
 }
 ```
@@ -122,10 +122,10 @@ When running on GCP, `stackdriver-nozzle` will [automatically configure][dts]
 the required credentials and project ID, but they will need to be provided
 manually through environment variables (see above) when running locally. You
 can get the credentials JSON file by following [Google's instructions
-here][goog-creds] from the [credentials console][cred-console].
+here][google-creds] from the [credentials console][cred-console].
 
 [dts]: https://godoc.org/golang.org/x/oauth2/google#DefaultTokenSource
-[goog-creds]: https://developers.google.com/identity/protocols/application-default-credentials
+[google-creds]: https://developers.google.com/identity/protocols/application-default-credentials
 [cred-console]: https://console.developers.google.com/project/_/apis/credentials
 
 [Ginkgo][ginkgo] is used for testing.
