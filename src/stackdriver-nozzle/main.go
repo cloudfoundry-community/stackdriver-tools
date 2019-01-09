@@ -5,9 +5,9 @@ import (
 	_ "net/http/pprof"
 	"os"
 
+	"code.cloudfoundry.org/lager"
 	"github.com/cloudfoundry-community/stackdriver-tools/src/stackdriver-nozzle/app"
 	"github.com/cloudfoundry-community/stackdriver-tools/src/stackdriver-nozzle/config"
-	"github.com/cloudfoundry/lager"
 )
 
 func main() {

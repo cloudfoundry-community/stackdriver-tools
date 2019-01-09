@@ -23,8 +23,8 @@ import (
 	"sync"
 	"time"
 
+	"code.cloudfoundry.org/lager"
 	"github.com/cloudfoundry-community/stackdriver-tools/src/stackdriver-nozzle/telemetry"
-	"github.com/cloudfoundry/lager"
 )
 
 const maxExpirePeriod = 10 * time.Second

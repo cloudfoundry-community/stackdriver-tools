@@ -19,7 +19,7 @@ package mocks
 import (
 	"sync"
 
-	"github.com/cloudfoundry/lager"
+	"code.cloudfoundry.org/lager"
 )
 
 type MockLogger struct {

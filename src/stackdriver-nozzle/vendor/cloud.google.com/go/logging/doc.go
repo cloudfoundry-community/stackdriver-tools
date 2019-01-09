@@ -1,4 +1,4 @@
-// Copyright 2016 Google Inc. All Rights Reserved.
+// Copyright 2016 Google LLC
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -107,11 +107,28 @@ An Entry may have one of a number of severity levels associated with it.
 Viewing Logs
 
 You can view Stackdriver logs for projects at
-https://console.cloud.google.com/logs/viewer. From the dropdown at the top left,
-select "Google Project" and then the project ID. Logs for organizations, folders and
-billing accounts can be viewed on the command line with the "gcloud logging read"
-command.
+https://console.cloud.google.com/logs/viewer. Use the dropdown at the top left. When
+running from a Google Cloud Platform VM, select "GCE VM Instance". Otherwise, select
+"Google Project" and then the project ID. Logs for organizations, folders and billing
+accounts can be viewed on the command line with the "gcloud logging read" command.
 
 
+Grouping Logs by Request
+
+To group all the log entries written during a single HTTP request, create two
+Loggers, a "parent" and a "child," with different log IDs. Both should be in the same
+project, and have the same MonitoredResouce type and labels.
+
+- Parent entries must have HTTPRequest.Request populated. (Strictly speaking, only the URL is necessary.)
+
+- A child entry's timestamp must be within the time interval covered by the parent request (i.e., older
+than parent.Timestamp, and newer than parent.Timestamp - parent.HTTPRequest.Latency, assuming the
+parent timestamp marks the end of the request.
+
+- The trace field must be populated in all of the entries and match exactly.
+
+You should observe the child log entries grouped under the parent on the console. The
+parent entry will not inherit the severity of its children; you must update the
+parent severity yourself.
 */
 package logging // import "cloud.google.com/go/logging"

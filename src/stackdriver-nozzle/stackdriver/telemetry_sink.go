@@ -22,8 +22,8 @@ import (
 	"time"
 
 	"cloud.google.com/go/compute/metadata"
+	"code.cloudfoundry.org/lager"
 	"github.com/cloudfoundry-community/stackdriver-tools/src/stackdriver-nozzle/telemetry"
-	"github.com/cloudfoundry/lager"
 	"github.com/golang/protobuf/ptypes/timestamp"
 	labelpb "google.golang.org/genproto/googleapis/api/label"
 	metricpb "google.golang.org/genproto/googleapis/api/metric"

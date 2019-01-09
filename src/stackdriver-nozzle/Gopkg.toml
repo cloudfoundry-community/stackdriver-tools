@@ -1,0 +1,79 @@
+# Refer to https://golang.github.io/dep/docs/Gopkg.toml.html
+# for detailed Gopkg.toml documentation.
+
+
+[[constraint]]
+  name = "cloud.google.com/go"
+  version = "0.34.0"
+
+[[constraint]]
+  name = "code.cloudfoundry.org/go-diodes"
+  branch = "master"
+
+[[constraint]]
+  name = "code.cloudfoundry.org/go-loggregator"
+  version = "^7.0.0"
+
+[[constraint]]
+  name = "code.cloudfoundry.org/loggregator"
+  branch = "master"
+
+[[constraint]]
+  name = "github.com/cloudfoundry-community/go-cfclient"
+  branch = "master"
+
+[[constraint]]
+  name = "code.cloudfoundry.org/lager"
+  branch = "master"
+
+[[constraint]]
+  name = "github.com/cloudfoundry/noaa"
+  version = "^2.0.0"
+
+[[constraint]]
+  branch = "master"
+  name = "github.com/cloudfoundry/sonde-go"
+
+[[constraint]]
+  name = "github.com/golang/protobuf"
+  version = "^1.0.0"
+
+[[constraint]]
+  name = "github.com/gorilla/websocket"
+  version = "^1.0.0"
+
+[[constraint]]
+  name = "github.com/kelseyhightower/envconfig"
+  version = "^1.0.0"
+
+[[constraint]]
+  name = "github.com/onsi/ginkgo"
+  version = "^1.0.0"
+
+[[constraint]]
+  name = "github.com/onsi/gomega"
+  version = "^1.0.0"
+
+[[constraint]]
+  name = "github.com/pkg/errors"
+  version = "0.8.0"
+
+[[constraint]]
+  branch = "master"
+  name = "golang.org/x/net"
+
+[[constraint]]
+  branch = "master"
+  name = "google.golang.org/api"
+
+[[constraint]]
+  branch = "master"
+  name = "google.golang.org/genproto"
+
+[[override]]
+  name = "gopkg.in/fsnotify.v1"
+  source = "gopkg.in/fsnotify/fsnotify.v1"
+
+[prune]
+  go-tests = true
+  unused-packages = true

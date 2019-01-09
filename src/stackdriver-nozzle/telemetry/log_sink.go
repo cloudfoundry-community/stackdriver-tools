@@ -18,10 +18,9 @@ package telemetry
 
 import (
 	"expvar"
-
 	"fmt"
 
-	"github.com/cloudfoundry/lager"
+	"code.cloudfoundry.org/lager"
 )
 
 // NewLogSink provides a Sink that writes Reports to a lager.Logger

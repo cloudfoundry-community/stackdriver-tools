@@ -24,7 +24,7 @@ import (
 	"os"
 
 	"cloud.google.com/go/compute/metadata"
-	"github.com/cloudfoundry/lager"
+	"code.cloudfoundry.org/lager"
 	"github.com/kelseyhightower/envconfig"
 	"github.com/pkg/errors"
 )
