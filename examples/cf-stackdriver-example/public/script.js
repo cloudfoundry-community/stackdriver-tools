@@ -11,17 +11,17 @@ $(document).ready(function() {
     $.each(data, function(key, val) {
       entriesElement.append("<p>" + val.Value + "</p>");
     });
-  }
+  };
 
   var handleSubmission = function(e) {
     e.preventDefault();
-    var entryValue = entryContentElement.val()
+    var entryValue = entryContentElement.val();
     if (entryValue.length > 0) {
       entriesElement.append("<p>...</p>");
       $.getJSON("rpush/guestbook/" + entryValue, appendGuestbookEntries);
     }
     return false;
-  }
+  };
 
   // colors = purple, blue, red, green, yellow
   var colors = ["#549", "#18d", "#d31", "#2a4", "#db1"];
