@@ -65,7 +65,7 @@ iaas_settings:
   - cloud_properties: {}
     name: nozzle_network
   stemcell:
-    name: bosh-warden-boshlite-ubuntu-trusty-go_agent
+    name: bosh-warden-boshlite-ubuntu-xenial-go_agent
     version: latest
   subnet_configs:
   - name: nozzle_network
@@ -91,7 +91,7 @@ resource_pools:
   name: nozzle_pool
   network: nozzle_network
   stemcell:
-    name: bosh-warden-boshlite-ubuntu-trusty-go_agent
+    name: bosh-warden-boshlite-ubuntu-xenial-go_agent
     version: latest
 
 update:

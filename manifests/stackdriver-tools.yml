@@ -8,7 +8,7 @@ releases:
 # This block does not belong in here or needs to be specialized for GCP in a different way
 stemcells:
 - alias: default
-  name: bosh-google-kvm-ubuntu-trusty-go_agent
+  name: bosh-google-kvm-ubuntu-xenial-go_agent
   version: latest
 
 instance_groups:
