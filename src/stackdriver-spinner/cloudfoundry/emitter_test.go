@@ -60,7 +60,7 @@ var _ = Describe("Emitter", func() {
 
 	It("returns zero when no logs are emitted", func() {
 		mockWriter := fakes.FailingWriter{}
-		mockWriter.Err = errors.New("Fail!!")
+		mockWriter.Err = errors.New("fail")
 
 		writer := cloudfoundry.NewEmitter(&mockWriter, 10, 0)
 		count, _ := writer.Emit("something")

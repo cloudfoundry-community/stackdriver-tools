@@ -61,8 +61,8 @@ func (lp *LoggingProbe) Find(start time.Time, needle string, count int) (int, er
 	return len(entries), nil
 }
 
-func NewLoggingProbe(projectId string) (*LoggingProbe, error) {
-	client, err := logadmin.NewClient(context.Background(), projectId)
+func NewLoggingProbe(projectID string) (*LoggingProbe, error) {
+	client, err := logadmin.NewClient(context.Background(), projectID)
 	if err != nil {
 		return nil, fmt.Errorf("creating client: %v", err)
 	}

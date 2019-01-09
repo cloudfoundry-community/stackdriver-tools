@@ -38,14 +38,13 @@ type Message struct {
 func (lg *Logger) Publish(message Message) {
 	lg.client.Logger("stackdriver-spinner-logs").Log(logging.Entry{Payload: message})
 
-
-	if err := lg.client.Close() ; err != nil {
-		fmt.Errorf("Failed to close client: %v", err)
+	if err := lg.client.Close(); err != nil {
+		fmt.Println(fmt.Errorf("failed to close client: %v", err))
 	}
 }
 
-func NewLogger(projectId string) (*Logger, error) {
-	client, err := logging.NewClient(context.Background(), projectId)
+func NewLogger(projectID string) (*Logger, error) {
+	client, err := logging.NewClient(context.Background(), projectID)
 	if err != nil {
 		return nil, fmt.Errorf("creating client: %v", err)
 	}
