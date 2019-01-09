@@ -83,7 +83,7 @@ func ListPushHandler(rw http.ResponseWriter, req *http.Request) {
 	ListRangeHandler(rw, req)
 }
 
-func InfoHandler(rw http.ResponseWriter, req *http.Request) {
+func InfoHandler(_ http.ResponseWriter, _ *http.Request) {
 }
 
 func EnvHandler(rw http.ResponseWriter, req *http.Request) {
