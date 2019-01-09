@@ -1,5 +1,5 @@
 /*
-Copyright 2017 Google Inc. All Rights Reserved.
+Copyright 2017 Google LLC
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -17,23 +17,25 @@ limitations under the License.
 package spanner
 
 import (
+	"bytes"
 	"container/heap"
+	"context"
+	"fmt"
 	"math/rand"
-	"reflect"
 	"sync"
 	"testing"
 	"time"
 
-	"golang.org/x/net/context"
-
 	"cloud.google.com/go/spanner/internal/testutil"
 	sppb "google.golang.org/genproto/googleapis/spanner/v1"
-	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 )
 
 // setup prepares test environment for regular session pool tests.
-func setup(t *testing.T, spc SessionPoolConfig) (sp *sessionPool, sc *testutil.MockCloudSpannerClient, cancel func()) {
+//
+// Note: be sure to call cleanup!
+func setup(t *testing.T, spc SessionPoolConfig) (sp *sessionPool, sc *testutil.MockCloudSpannerClient, cleanup func()) {
 	sc = testutil.NewMockCloudSpannerClient(t)
 	spc.getRPCClient = func() (sppb.SpannerClient, error) {
 		return sc, nil
@@ -44,22 +46,53 @@ func setup(t *testing.T, spc SessionPoolConfig) (sp *sessionPool, sc *testutil.M
 	if spc.healthCheckSampleInterval == 0 {
 		spc.healthCheckSampleInterval = 10 * time.Millisecond
 	}
-	spc.healthCheckMaintainerEnabled = true
 	sp, err := newSessionPool("mockdb", spc, nil)
 	if err != nil {
 		t.Fatalf("cannot create session pool: %v", err)
 	}
-	cancel = func() {
+	cleanup = func() {
+		sp.hc.close()
 		sp.close()
 	}
 	return
 }
 
+// TestSessionPoolConfigValidation tests session pool config validation.
+func TestSessionPoolConfigValidation(t *testing.T) {
+	t.Parallel()
+	sc := testutil.NewMockCloudSpannerClient(t)
+	for _, test := range []struct {
+		spc SessionPoolConfig
+		err error
+	}{
+		{
+			SessionPoolConfig{},
+			errNoRPCGetter(),
+		},
+		{
+			SessionPoolConfig{
+				getRPCClient: func() (sppb.SpannerClient, error) {
+					return sc, nil
+				},
+				MinOpened: 10,
+				MaxOpened: 5,
+			},
+			errMinOpenedGTMaxOpened(5, 10),
+		},
+	} {
+		if _, err := newSessionPool("mockdb", test.spc, nil); !testEqual(err, test.err) {
+			t.Errorf("want %v, got %v", test.err, err)
+		}
+	}
+}
+
 // TestSessionCreation tests session creation during sessionPool.Take().
 func TestSessionCreation(t *testing.T) {
 	t.Parallel()
-	sp, sc, cancel := setup(t, SessionPoolConfig{})
-	defer cancel()
+
+	sp, sc, cleanup := setup(t, SessionPoolConfig{})
+	defer cleanup()
+
 	// Take three sessions from session pool, this should trigger session pool to create three new sessions.
 	shs := make([]*sessionHandle, 3)
 	// gotDs holds the unique sessions taken from session pool.
@@ -75,7 +108,7 @@ func TestSessionCreation(t *testing.T) {
 	if len(gotDs) != len(shs) {
 		t.Errorf("session pool created %v sessions, want %v", len(gotDs), len(shs))
 	}
-	if wantDs := sc.DumpSessions(); !reflect.DeepEqual(gotDs, wantDs) {
+	if wantDs := sc.DumpSessions(); !testEqual(gotDs, wantDs) {
 		t.Errorf("session pool creates sessions %v, want %v", gotDs, wantDs)
 	}
 	// Verify that created sessions are recorded correctly in session pool.
@@ -104,8 +137,10 @@ func TestSessionCreation(t *testing.T) {
 // TestTakeFromIdleList tests taking sessions from session pool's idle list.
 func TestTakeFromIdleList(t *testing.T) {
 	t.Parallel()
-	sp, sc, cancel := setup(t, SessionPoolConfig{MaxIdle: 10}) // make sure maintainer keeps the idle sessions
-	defer cancel()
+
+	sp, sc, cleanup := setup(t, SessionPoolConfig{MaxIdle: 10}) // make sure maintainer keeps the idle sessions
+	defer cleanup()
+
 	// Take ten sessions from session pool and recycle them.
 	shs := make([]*sessionHandle, 10)
 	for i := 0; i < len(shs); i++ {
@@ -134,7 +169,7 @@ func TestTakeFromIdleList(t *testing.T) {
 	if len(gotSessions) != 10 {
 		t.Errorf("got %v unique sessions, want 10", len(gotSessions))
 	}
-	if !reflect.DeepEqual(gotSessions, wantSessions) {
+	if !testEqual(gotSessions, wantSessions) {
 		t.Errorf("got sessions: %v, want %v", gotSessions, wantSessions)
 	}
 }
@@ -142,12 +177,13 @@ func TestTakeFromIdleList(t *testing.T) {
 // TesttakeWriteSessionFromIdleList tests taking write sessions from session pool's idle list.
 func TestTakeWriteSessionFromIdleList(t *testing.T) {
 	t.Parallel()
-	sp, sc, cancel := setup(t, SessionPoolConfig{MaxIdle: 20}) // make sure maintainer keeps the idle sessions
-	defer cancel()
-	act := testutil.NewAction("Begin", nil)
+
+	sp, sc, cleanup := setup(t, SessionPoolConfig{MaxIdle: 20}) // make sure maintainer keeps the idle sessions
+	defer cleanup()
+
 	acts := make([]testutil.Action, 20)
 	for i := 0; i < len(acts); i++ {
-		acts[i] = act
+		acts[i] = testutil.Action{"BeginTransaction", nil}
 	}
 	sc.SetActions(acts...)
 	// Take ten sessions from session pool and recycle them.
@@ -178,7 +214,7 @@ func TestTakeWriteSessionFromIdleList(t *testing.T) {
 	if len(gotSessions) != 10 {
 		t.Errorf("got %v unique sessions, want 10", len(gotSessions))
 	}
-	if !reflect.DeepEqual(gotSessions, wantSessions) {
+	if !testEqual(gotSessions, wantSessions) {
 		t.Errorf("got sessions: %v, want %v", gotSessions, wantSessions)
 	}
 }
@@ -189,8 +225,10 @@ func TestTakeFromIdleListChecked(t *testing.T) {
 	if testing.Short() {
 		t.SkipNow()
 	}
-	sp, sc, cancel := setup(t, SessionPoolConfig{MaxIdle: 1}) // make sure maintainer keeps the idle sessions
-	defer cancel()
+
+	sp, sc, cleanup := setup(t, SessionPoolConfig{MaxIdle: 1}) // make sure maintainer keeps the idle sessions
+	defer cleanup()
+
 	// Stop healthcheck workers to simulate slow pings.
 	sp.hc.close()
 	// Create a session and recycle it.
@@ -216,14 +254,14 @@ func TestTakeFromIdleListChecked(t *testing.T) {
 		}
 		// The two back-to-back session requests shouldn't trigger any session pings because sessionPool.Take
 		// reschedules the next healthcheck.
-		if got, want := sc.DumpPings(), ([]string{wantSid}); !reflect.DeepEqual(got, want) {
+		if got, want := sc.DumpPings(), ([]string{wantSid}); !testEqual(got, want) {
 			t.Errorf("%v - got ping session requests: %v, want %v", i, got, want)
 		}
 		sh.recycle()
 	}
 	// Inject session error to mockclient, and take the session from the session pool, the old session should be destroyed and
 	// the session pool will create a new session.
-	sc.InjectError("GetSession", grpc.Errorf(codes.NotFound, "Session not found:"))
+	sc.InjectError("GetSession", status.Errorf(codes.NotFound, "Session not found:"))
 	// Delay to trigger sessionPool.Take to ping the session.
 	<-time.After(time.Second)
 	sh, err = sp.take(context.Background())
@@ -245,8 +283,10 @@ func TestTakeFromIdleWriteListChecked(t *testing.T) {
 	if testing.Short() {
 		t.SkipNow()
 	}
-	sp, sc, cancel := setup(t, SessionPoolConfig{MaxIdle: 1}) // make sure maintainer keeps the idle sessions
-	defer cancel()
+
+	sp, sc, cleanup := setup(t, SessionPoolConfig{MaxIdle: 1}) // make sure maintainer keeps the idle sessions
+	defer cleanup()
+
 	sc.MakeNice()
 	// Stop healthcheck workers to simulate slow pings.
 	sp.hc.close()
@@ -273,14 +313,14 @@ func TestTakeFromIdleWriteListChecked(t *testing.T) {
 		}
 		// The two back-to-back session requests shouldn't trigger any session pings because sessionPool.Take
 		// reschedules the next healthcheck.
-		if got, want := sc.DumpPings(), ([]string{wantSid}); !reflect.DeepEqual(got, want) {
+		if got, want := sc.DumpPings(), ([]string{wantSid}); !testEqual(got, want) {
 			t.Errorf("%v - got ping session requests: %v, want %v", i, got, want)
 		}
 		sh.recycle()
 	}
 	// Inject session error to mockclient, and take the session from the session pool, the old session should be destroyed and
 	// the session pool will create a new session.
-	sc.InjectError("GetSession", grpc.Errorf(codes.NotFound, "Session not found:"))
+	sc.InjectError("GetSession", status.Errorf(codes.NotFound, "Session not found:"))
 	// Delay to trigger sessionPool.Take to ping the session.
 	<-time.After(time.Second)
 	sh, err = sp.takeWriteSession(context.Background())
@@ -302,8 +342,10 @@ func TestMaxOpenedSessions(t *testing.T) {
 	if testing.Short() {
 		t.SkipNow()
 	}
-	sp, _, cancel := setup(t, SessionPoolConfig{MaxOpened: 1})
-	defer cancel()
+
+	sp, _, cleanup := setup(t, SessionPoolConfig{MaxOpened: 1})
+	defer cleanup()
+
 	sh1, err := sp.take(context.Background())
 	if err != nil {
 		t.Errorf("cannot take session from session pool: %v", err)
@@ -311,8 +353,8 @@ func TestMaxOpenedSessions(t *testing.T) {
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
 	defer cancel()
 	// Session request will timeout due to the max open sessions constraint.
-	sh2, gotErr := sp.take(ctx)
-	if wantErr := errGetSessionTimeout(); !reflect.DeepEqual(gotErr, wantErr) {
+	_, gotErr := sp.take(ctx)
+	if wantErr := errGetSessionTimeout(); !testEqual(gotErr, wantErr) {
 		t.Errorf("the second session retrival returns error %v, want %v", gotErr, wantErr)
 	}
 	go func() {
@@ -321,7 +363,7 @@ func TestMaxOpenedSessions(t *testing.T) {
 		sh1.destroy()
 	}()
 	// Now session request can be processed because the first session will be destroyed.
-	sh2, err = sp.take(context.Background())
+	sh2, err := sp.take(context.Background())
 	if err != nil {
 		t.Errorf("after the first session is destroyed, session retrival still returns error %v, want nil", err)
 	}
@@ -332,8 +374,9 @@ func TestMaxOpenedSessions(t *testing.T) {
 
 // TestMinOpenedSessions tests min open session constraint.
 func TestMinOpenedSessions(t *testing.T) {
-	sp, _, cancel := setup(t, SessionPoolConfig{MinOpened: 1})
-	defer cancel()
+	sp, _, cleanup := setup(t, SessionPoolConfig{MinOpened: 1})
+	defer cleanup()
+
 	// Take ten sessions from session pool and recycle them.
 	var ss []*session
 	var shs []*sessionHandle
@@ -367,10 +410,12 @@ func TestMaxBurst(t *testing.T) {
 	if testing.Short() {
 		t.SkipNow()
 	}
-	sp, sc, cancel := setup(t, SessionPoolConfig{MaxBurst: 1})
-	defer cancel()
+
+	sp, sc, cleanup := setup(t, SessionPoolConfig{MaxBurst: 1})
+	defer cleanup()
+
 	// Will cause session creation RPC to be retried forever.
-	sc.InjectError("CreateSession", grpc.Errorf(codes.Unavailable, "try later"))
+	sc.InjectError("CreateSession", status.Errorf(codes.Unavailable, "try later"))
 	// This session request will never finish until the injected error is cleared.
 	go sp.take(context.Background())
 	// Poll for the execution of the first session request.
@@ -387,9 +432,9 @@ func TestMaxBurst(t *testing.T) {
 	}
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
 	defer cancel()
-	sh, gotErr := sp.take(ctx)
+	_, gotErr := sp.take(ctx)
 	// Since MaxBurst == 1, the second session request should block.
-	if wantErr := errGetSessionTimeout(); !reflect.DeepEqual(gotErr, wantErr) {
+	if wantErr := errGetSessionTimeout(); !testEqual(gotErr, wantErr) {
 		t.Errorf("session retrival returns error %v, want %v", gotErr, wantErr)
 	}
 	// Let the first session request succeed.
@@ -410,11 +455,10 @@ func TestSessionRecycle(t *testing.T) {
 	if testing.Short() {
 		t.SkipNow()
 	}
-	sp, _, cancel := setup(t, SessionPoolConfig{maxSessionAge: 100 * time.Millisecond, MinOpened: 1, MaxIdle: 2})
+
 	// Set MaxIdle to ensure shs[0] is not destroyed from scale down.
-	// Healthcheck is explicitly turned off in this test because it might aggressively expire sessions in idle list.
-	sp.hc.close()
-	defer cancel()
+	sp, _, cleanup := setup(t, SessionPoolConfig{MinOpened: 1, MaxIdle: 2})
+	defer cleanup()
 
 	// Test session is correctly recycled and reused.
 	for i := 0; i < 20; i++ {
@@ -427,38 +471,18 @@ func TestSessionRecycle(t *testing.T) {
 	if sp.numOpened != 1 {
 		t.Errorf("Expect session pool size %d, got %d", 1, sp.numOpened)
 	}
-
-	// Test recycling expired session.
-	var ss []*session
-	shs := make([]*sessionHandle, 2)
-	for i := 0; i < len(shs); i++ {
-		var err error
-		shs[i], err = sp.take(context.Background())
-		if err != nil {
-			t.Errorf("cannot get the session %v: %v", i, err)
-		}
-		ss = append(ss, shs[i].session)
-	}
-	// recycle the first session immediately.
-	shs[0].recycle()
-	// Let the second session expire.
-	<-time.After(time.Second)
-	// recycle the second session.
-	shs[1].recycle()
-	// Now the first session should be still valid, but the second session should have been destroyed.
-	if !ss[0].isValid() {
-		t.Errorf("the first session (%v) is invalid, want it to be valid", ss[0])
-	}
-	if ss[1].isValid() {
-		t.Errorf("the second session (%v) is valid, want it to be invalid", ss[1])
-	}
 }
 
+// TODO(deklerk) Investigate why s.destroy(true) is flakey.
 // TestSessionDestroy tests destroying sessions.
 func TestSessionDestroy(t *testing.T) {
+	t.Skip("s.destroy(true) is flakey")
 	t.Parallel()
-	sp, _, cancel := setup(t, SessionPoolConfig{MinOpened: 1})
-	defer cancel()
+
+	sp, _, cleanup := setup(t, SessionPoolConfig{MinOpened: 1})
+	defer cleanup()
+
+	<-time.After(10 * time.Millisecond) // maintainer will create one session, we wait for it create session to avoid flakiness in test
 	sh, err := sp.take(context.Background())
 	if err != nil {
 		t.Errorf("cannot get session from session pool: %v", err)
@@ -467,29 +491,29 @@ func TestSessionDestroy(t *testing.T) {
 	sh.recycle()
 	if d := s.destroy(true); d || !s.isValid() {
 		// Session should be remaining because of min open sessions constraint.
-		t.Errorf("session %v was destroyed in expiration mode, want it to stay alive", s)
+		t.Errorf("session %s invalid, want it to stay alive. (destroy in expiration mode, success: %v)", s.id, d)
 	}
 	if d := s.destroy(false); !d || s.isValid() {
 		// Session should be destroyed.
-		t.Errorf("failed to destroy session %s", s)
+		t.Errorf("failed to destroy session %s. (destroy in default mode, success: %v)", s.id, d)
 	}
 }
 
 // TestHcHeap tests heap operation on top of hcHeap.
 func TestHcHeap(t *testing.T) {
 	in := []*session{
-		&session{nextCheck: time.Unix(10, 0)},
-		&session{nextCheck: time.Unix(0, 5)},
-		&session{nextCheck: time.Unix(1, 8)},
-		&session{nextCheck: time.Unix(11, 7)},
-		&session{nextCheck: time.Unix(6, 3)},
+		{nextCheck: time.Unix(10, 0)},
+		{nextCheck: time.Unix(0, 5)},
+		{nextCheck: time.Unix(1, 8)},
+		{nextCheck: time.Unix(11, 7)},
+		{nextCheck: time.Unix(6, 3)},
 	}
 	want := []*session{
-		&session{nextCheck: time.Unix(1, 8), hcIndex: 0},
-		&session{nextCheck: time.Unix(6, 3), hcIndex: 1},
-		&session{nextCheck: time.Unix(8, 2), hcIndex: 2},
-		&session{nextCheck: time.Unix(10, 0), hcIndex: 3},
-		&session{nextCheck: time.Unix(11, 7), hcIndex: 4},
+		{nextCheck: time.Unix(1, 8), hcIndex: 0},
+		{nextCheck: time.Unix(6, 3), hcIndex: 1},
+		{nextCheck: time.Unix(8, 2), hcIndex: 2},
+		{nextCheck: time.Unix(10, 0), hcIndex: 3},
+		{nextCheck: time.Unix(11, 7), hcIndex: 4},
 	}
 	hh := hcHeap{}
 	for _, s := range in {
@@ -501,43 +525,49 @@ func TestHcHeap(t *testing.T) {
 	for idx := 0; hh.Len() > 0; idx++ {
 		got := heap.Pop(&hh).(*session)
 		want[idx].hcIndex = -1
-		if !reflect.DeepEqual(got, want[idx]) {
+		if !testEqual(got, want[idx]) {
 			t.Errorf("%v: heap.Pop returns %v, want %v", idx, got, want[idx])
 		}
 	}
 }
 
-// TestHealthCheckScheduler tests if healthcheck workers can schedule and perform healthchecks properly.
+// TestHealthCheckScheduler tests if healthcheck workers can schedule and
+// perform healthchecks properly.
 func TestHealthCheckScheduler(t *testing.T) {
 	t.Parallel()
 	if testing.Short() {
 		t.SkipNow()
 	}
-	sp, sc, cancel := setup(t, SessionPoolConfig{})
-	defer cancel()
+
+	sp, sc, cleanup := setup(t, SessionPoolConfig{})
+	defer cleanup()
+
 	// Create 50 sessions.
 	ss := []string{}
 	for i := 0; i < 50; i++ {
 		sh, err := sp.take(context.Background())
 		if err != nil {
-			t.Errorf("cannot get session from session pool: %v", err)
+			t.Fatalf("cannot get session from session pool: %v", err)
 		}
 		ss = append(ss, sh.getID())
 	}
-	// Sleep for 1s, allowing healthcheck workers to perform some session pings.
-	<-time.After(time.Second)
-	dp := sc.DumpPings()
-	gotPings := map[string]int64{}
-	for _, p := range dp {
-		gotPings[p]++
-	}
-	for _, s := range ss {
-		// The average ping interval is 50ms.
-		want := int64(time.Second) / int64(50*time.Millisecond)
-		if got := gotPings[s]; got < want/2 || got > want+want/2 {
-			t.Errorf("got %v healthchecks on session %v, want it between (%v, %v)", got, s, want/2, want+want/2)
+
+	// Wait for 10-30 pings per session.
+	waitFor(t, func() error {
+		dp := sc.DumpPings()
+		gotPings := map[string]int64{}
+		for _, p := range dp {
+			gotPings[p]++
 		}
-	}
+		for _, s := range ss {
+			want := int64(20)
+			if got := gotPings[s]; got < want/2 || got > want+want/2 {
+				// This is an unnacceptable amount of pings.
+				return fmt.Errorf("got %v healthchecks on session %v, want it between (%v, %v)", got, s, want/2, want+want/2)
+			}
+		}
+		return nil
+	})
 }
 
 // Tests that a fractions of sessions are prepared for write by health checker.
@@ -545,9 +575,11 @@ func TestWriteSessionsPrepared(t *testing.T) {
 	if testing.Short() {
 		t.SkipNow()
 	}
-	sp, sc, cancel := setup(t, SessionPoolConfig{WriteSessions: 0.5, MaxIdle: 20})
+
+	sp, sc, cleanup := setup(t, SessionPoolConfig{WriteSessions: 0.5, MaxIdle: 20})
+	defer cleanup()
+
 	sc.MakeNice()
-	defer cancel()
 	shs := make([]*sessionHandle, 10)
 	var err error
 	for i := 0; i < 10; i++ {
@@ -600,9 +632,11 @@ func TestTakeFromWriteQueue(t *testing.T) {
 	if testing.Short() {
 		t.SkipNow()
 	}
-	sp, sc, cancel := setup(t, SessionPoolConfig{MaxOpened: 1, WriteSessions: 1.0, MaxIdle: 1})
+
+	sp, sc, cleanup := setup(t, SessionPoolConfig{MaxOpened: 1, WriteSessions: 1.0, MaxIdle: 1})
+	defer cleanup()
+
 	sc.MakeNice()
-	defer cancel()
 	sh, err := sp.take(context.Background())
 	if err != nil {
 		t.Errorf("cannot get session from session pool: %v", err)
@@ -629,34 +663,32 @@ func TestSessionHealthCheck(t *testing.T) {
 	if testing.Short() {
 		t.SkipNow()
 	}
-	sp, sc, cancel := setup(t, SessionPoolConfig{maxSessionAge: 2 * time.Second})
-	defer cancel()
+
+	sp, sc, cleanup := setup(t, SessionPoolConfig{})
+	defer cleanup()
+
 	// Test pinging sessions.
 	sh, err := sp.take(context.Background())
 	if err != nil {
 		t.Errorf("cannot get session from session pool: %v", err)
 	}
-	<-time.After(time.Second)
-	pings := sc.DumpPings()
-	if len(pings) == 0 || pings[0] != sh.getID() {
-		t.Errorf("healthchecker didn't send any ping to session %v", sh.getID())
-	}
-	// Test expiring sessions.
-	s := sh.session
-	sh.recycle()
-	// Sleep enough long for session in idle list to expire.
-	<-time.After(2 * time.Second)
-	if s.isValid() {
-		t.Errorf("session(%v) is still alive, want it to expire", s)
-	}
+	// Wait for healthchecker to send pings to session.
+	waitFor(t, func() error {
+		pings := sc.DumpPings()
+		if len(pings) == 0 || pings[0] != sh.getID() {
+			return fmt.Errorf("healthchecker didn't send any ping to session %v", sh.getID())
+		}
+		return nil
+	})
 	// Test broken session detection.
 	sh, err = sp.take(context.Background())
 	if err != nil {
 		t.Errorf("cannot get session from session pool: %v", err)
 	}
-	sc.InjectError("GetSession", grpc.Errorf(codes.NotFound, "Session not found:"))
+	sc.InjectError("GetSession", status.Errorf(codes.NotFound, "Session not found:"))
 	// Wait for healthcheck workers to find the broken session and tear it down.
 	<-time.After(1 * time.Second)
+	s := sh.session
 	if sh.session.isValid() {
 		t.Errorf("session(%v) is still alive, want it to be dropped by healthcheck workers", s)
 	}
@@ -670,43 +702,20 @@ func TestSessionHealthCheck(t *testing.T) {
 	if sh.session.isValid() {
 		t.Errorf("session(%v) is still alive, want it to be garbage collected", s)
 	}
-	// Test session id refresh.
-	// Recreate the session pool with min open sessions constraint.
-	sp, err = newSessionPool("mockdb", SessionPoolConfig{
-		maxSessionAge: time.Second,
-		MinOpened:     1,
-		getRPCClient: func() (sppb.SpannerClient, error) {
-			return sc, nil
-		},
-		HealthCheckInterval: 50 * time.Millisecond,
-	}, nil)
-	sh, err = sp.take(context.Background())
-	if err != nil {
-		t.Errorf("cannot get session from session pool: %v", err)
-	}
-	oid := sh.getID()
-	s = sh.session
-	sh.recycle()
-	<-time.After(2 * time.Second)
-	nid := s.getID()
-	if nid == "" || nid == oid {
-		t.Errorf("healthcheck workers failed to refresh session: oid=%v, nid=%v", oid, nid)
-	}
-	if gotDs, wantDs := sc.DumpSessions(), (map[string]bool{nid: true}); !reflect.DeepEqual(gotDs, wantDs) {
-		t.Errorf("sessions in mockclient: %v, want %v", gotDs, wantDs)
-	}
 }
 
 // TestStressSessionPool does stress test on session pool by the following concurrent operations:
 //	1) Test worker gets a session from the pool.
 //	2) Test worker turns a session back into the pool.
 //	3) Test worker destroys a session got from the pool.
-//	4) Healthcheck retires an old session from the pool's idlelist by refreshing its session id.
-//	5) Healthcheck destroys a broken session (because a worker has already destroyed it).
-//	6) Test worker closes the session pool.
+//	4) Healthcheck destroys a broken session (because a worker has already destroyed it).
+//	5) Test worker closes the session pool.
 //
-// During the test, it is expected that all sessions that are taken from session pool remains valid and
-// when all test workers and healthcheck workers exit, mockclient, session pool and healthchecker should be in consistent state.
+// During the test, the session pool maintainer maintains the number of sessions,
+// and it is expected that all sessions that are taken from session pool remains valid.
+// When all test workers and healthcheck workers exit, mockclient, session pool
+// and healthchecker should be in consistent state.
+
 func TestStressSessionPool(t *testing.T) {
 	t.Parallel()
 	// Use concurrent workers to test different session pool built from different configurations.
@@ -714,12 +723,11 @@ func TestStressSessionPool(t *testing.T) {
 		t.SkipNow()
 	}
 	for ti, cfg := range []SessionPoolConfig{
-		SessionPoolConfig{},
-		SessionPoolConfig{maxSessionAge: 20 * time.Millisecond},
-		SessionPoolConfig{MinOpened: 10, MaxOpened: 100},
-		SessionPoolConfig{MaxBurst: 50},
-		SessionPoolConfig{maxSessionAge: 20 * time.Millisecond, MinOpened: 10, MaxOpened: 200, MaxBurst: 5},
-		SessionPoolConfig{maxSessionAge: 20 * time.Millisecond, MinOpened: 10, MaxOpened: 200, MaxBurst: 5, WriteSessions: 0.2},
+		{},
+		{MinOpened: 10, MaxOpened: 100},
+		{MaxBurst: 50},
+		{MinOpened: 10, MaxOpened: 200, MaxBurst: 5},
+		{MinOpened: 10, MaxOpened: 200, MaxBurst: 5, WriteSessions: 0.2},
 	} {
 		var wg sync.WaitGroup
 		// Create a more aggressive session healthchecker to increase test concurrency.
@@ -732,6 +740,9 @@ func TestStressSessionPool(t *testing.T) {
 			return sc, nil
 		}
 		sp, _ := newSessionPool("mockdb", cfg, nil)
+		defer sp.hc.close()
+		defer sp.close()
+
 		for i := 0; i < 100; i++ {
 			wg.Add(1)
 			// Schedule a test worker.
@@ -758,7 +769,7 @@ func TestStressSessionPool(t *testing.T) {
 						if pool.isValid() {
 							t.Errorf("%v.%v: pool.take returns error when pool is still valid: %v", ti, idx, gotErr)
 						}
-						if wantErr := errInvalidSessionPool(); !reflect.DeepEqual(gotErr, wantErr) {
+						if wantErr := errInvalidSessionPool(); !testEqual(gotErr, wantErr) {
 							t.Errorf("%v.%v: got error when pool is closed: %v, want %v", ti, idx, gotErr, wantErr)
 						}
 						continue
@@ -771,9 +782,9 @@ func TestStressSessionPool(t *testing.T) {
 					if takeWrite && sh.getTransactionID() == nil {
 						t.Errorf("%v.%v: pool.takeWriteSession returns session %v without transaction", ti, idx, sh.session)
 					}
-					if int64(cfg.maxSessionAge) > 0 && rand.Intn(100) < idx {
+					if rand.Intn(100) < idx {
 						// Random sleep before destroying/recycling the session, to give healthcheck worker a chance to step in.
-						<-time.After(time.Duration(rand.Int63n(int64(cfg.maxSessionAge))))
+						<-time.After(time.Duration(rand.Int63n(int64(cfg.HealthCheckInterval))))
 					}
 					if rand.Intn(100) < idx {
 						// destroy the session.
@@ -823,10 +834,10 @@ func TestStressSessionPool(t *testing.T) {
 		sp.mu.Unlock()
 
 		// Verify that idleSessions == hcSessions == mockSessions.
-		if !reflect.DeepEqual(idleSessions, hcSessions) {
+		if !testEqual(idleSessions, hcSessions) {
 			t.Errorf("%v: sessions in idle list (%v) != sessions in healthcheck queue (%v)", ti, idleSessions, hcSessions)
 		}
-		if !reflect.DeepEqual(hcSessions, mockSessions) {
+		if !testEqual(hcSessions, mockSessions) {
 			t.Errorf("%v: sessions in healthcheck queue (%v) != sessions in mockclient (%v)", ti, hcSessions, mockSessions)
 		}
 		sp.close()
@@ -837,11 +848,15 @@ func TestStressSessionPool(t *testing.T) {
 	}
 }
 
+// TODO(deklerk) Investigate why this test is flakey, even with waitFor. Example
+// flakey failure: session_test.go:946: after 15s waiting, got Scale down. Expect 5 open, got 6
+//
 // TestMaintainer checks the session pool maintainer maintains the number of sessions in the following cases
 // 1. On initialization of session pool, replenish session pool to meet MinOpened or MaxIdle.
 // 2. On increased session usage, provision extra MaxIdle sessions.
 // 3. After the surge passes, scale down the session pool accordingly.
 func TestMaintainer(t *testing.T) {
+	t.Skip("asserting session state seems flakey")
 	t.Parallel()
 	if testing.Short() {
 		t.SkipNow()
@@ -850,19 +865,24 @@ func TestMaintainer(t *testing.T) {
 		minOpened uint64 = 5
 		maxIdle   uint64 = 4
 	)
-	sp, _, cancel := setup(t, SessionPoolConfig{MinOpened: minOpened, MaxIdle: maxIdle})
+
+	sp, _, cleanup := setup(t, SessionPoolConfig{MinOpened: minOpened, MaxIdle: maxIdle})
+	defer cleanup()
+
 	sampleInterval := sp.SessionPoolConfig.healthCheckSampleInterval
-	hcInterval := sp.SessionPoolConfig.HealthCheckInterval
-	defer cancel()
 
-	<-time.After(sampleInterval * 1)
-	sp.mu.Lock()
-	if sp.numOpened != 5 {
-		t.Errorf("Replenish. Expect %d open, got %d", sp.MinOpened, sp.numOpened)
-	}
-	sp.mu.Unlock()
+	waitFor(t, func() error {
+		sp.mu.Lock()
+		defer sp.mu.Unlock()
+		if sp.numOpened != 5 {
+			return fmt.Errorf("Replenish. Expect %d open, got %d", sp.MinOpened, sp.numOpened)
+		}
+		return nil
+	})
 
-	// To save test time, we are not creating many sessions, because the time to create sessions will have impact on the decision on sessionsToKeep. We also parallelize the take and recycle process.
+	// To save test time, we are not creating many sessions, because the time
+	// to create sessions will have impact on the decision on sessionsToKeep.
+	// We also parallelize the take and recycle process.
 	shs := make([]*sessionHandle, 10)
 	for i := 0; i < len(shs); i++ {
 		var err error
@@ -882,20 +902,62 @@ func TestMaintainer(t *testing.T) {
 		sh.recycle()
 	}
 
-	<-time.After(sampleInterval * 2)
-	sp.mu.Lock()
-	if sp.numOpened != 7 {
-		t.Errorf("Keep extra MaxIdle sessions. Expect %d open, got %d", 7, sp.numOpened)
-	}
-	sp.mu.Unlock()
+	waitFor(t, func() error {
+		sp.mu.Lock()
+		defer sp.mu.Unlock()
+		if sp.numOpened != 7 {
+			return fmt.Errorf("Keep extra MaxIdle sessions. Expect %d open, got %d", 7, sp.numOpened)
+		}
+		return nil
+	})
 
 	for _, sh := range shs[7:] {
 		sh.recycle()
 	}
-	<-time.After(sampleInterval*10 + hcInterval)
-	sp.mu.Lock()
-	if sp.numOpened != minOpened {
-		t.Errorf("Scale down. Expect %d open, got %d", minOpened, sp.numOpened)
+	waitFor(t, func() error {
+		sp.mu.Lock()
+		defer sp.mu.Unlock()
+		if sp.numOpened != minOpened {
+			return fmt.Errorf("Scale down. Expect %d open, got %d", minOpened, sp.numOpened)
+		}
+		return nil
+	})
+}
+
+func (s1 *session) Equal(s2 *session) bool {
+	return s1.client == s2.client &&
+		s1.id == s2.id &&
+		s1.pool == s2.pool &&
+		s1.createTime == s2.createTime &&
+		s1.valid == s2.valid &&
+		s1.hcIndex == s2.hcIndex &&
+		s1.idleList == s2.idleList &&
+		s1.nextCheck.Equal(s2.nextCheck) &&
+		s1.checkingHealth == s2.checkingHealth &&
+		testEqual(s1.md, s2.md) &&
+		bytes.Equal(s1.tx, s2.tx)
+}
+
+func waitFor(t *testing.T, assert func() error) {
+	timeout := 15 * time.Second
+	ta := time.After(timeout)
+
+	for {
+		select {
+		case <-ta:
+			if err := assert(); err != nil {
+				t.Fatalf("after %v waiting, got %v", timeout, err)
+			}
+			return
+		default:
+		}
+
+		if err := assert(); err != nil {
+			// Fail. Let's pause and retry.
+			time.Sleep(10 * time.Millisecond)
+			continue
+		}
+
+		return
 	}
-	sp.mu.Unlock()
 }

@@ -6,7 +6,7 @@ import (
 	"time"
 
 	"cloud.google.com/go/logging"
-	"cloud.google.com/go/logging/logadmin/logging/logadmin"
+	"cloud.google.com/go/logging/logadmin"
 	"google.golang.org/api/iterator"
 )
 
