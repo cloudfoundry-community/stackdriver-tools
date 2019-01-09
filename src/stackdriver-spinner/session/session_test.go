@@ -1,14 +1,12 @@
 package session_test
 
 import (
+	"errors"
+	"time"
+
 	"github.com/cloudfoundry-community/stackdriver-tools/src/stackdriver-spinner/cloudfoundry"
 	"github.com/cloudfoundry-community/stackdriver-tools/src/stackdriver-spinner/fakes"
 	"github.com/cloudfoundry-community/stackdriver-tools/src/stackdriver-spinner/session"
-
-	"time"
-
-	"errors"
-
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 )

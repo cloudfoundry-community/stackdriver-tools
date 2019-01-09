@@ -1,10 +1,10 @@
 package cloudfoundry_test
 
 import (
+	"testing"
+
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
-
-	"testing"
 )
 
 func TestCloudfoundry(t *testing.T) {
