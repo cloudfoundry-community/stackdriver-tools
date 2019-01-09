@@ -17,28 +17,16 @@
 package main
 
 import (
+	"errors"
+	"log"
 	"os"
-	"time"
+	"os/signal"
 
 	"github.com/cloudfoundry-community/go-cfclient"
 	"github.com/cloudfoundry-community/stackdriver-tools/src/stackdriver-nozzle/cloudfoundry"
-	"github.com/cloudfoundry-community/stackdriver-tools/src/stackdriver-nozzle/telemetry"
-	"github.com/cloudfoundry/lager"
-	"golang.org/x/net/context"
 )
 
-const cmdName = "firehose-rate-script"
-
-var counter *telemetry.Counter
-
-func init() {
-	counter := telemetry.NewCounter(telemetry.MetricPrefix(cmdName), "message_count")
-}
-
 func main() {
-	logger := lager.NewLogger(cmdName)
-	logger.RegisterSink(lager.NewWriterSink(os.Stdout, lager.DEBUG))
-
 	apiEndpoint := os.Getenv("FIREHOSE_ENDPOINT")
 	username := os.Getenv("FIREHOSE_USERNAME")
 	password := os.Getenv("FIREHOSE_PASSWORD")
@@ -52,18 +40,39 @@ func main() {
 
 	cfClient, err := cfclient.NewClient(cfConfig)
 	if err != nil {
-		logger.Fatal("NewClient", err)
+		panic(err)
 	}
-	client := cloudfoundry.NewFirehose(cfConfig, cfClient, cmdName)
 
-	logSink := telemetry.NewLogSink(logger)
-	reporter := telemetry.NewReporter(5*time.Second, logSink)
-	reporter.Start(context.Background())
+	client := cloudfoundry.NewFirehose(cfConfig, cfClient, "")
 
-	messages, _ := client.Connect()
+	firehose, errorhose := client.Connect()
+	if firehose == nil {
+		panic(errors.New("firehose was nil"))
+	} else if errorhose == nil {
+		panic(errors.New("errorhose was nil"))
+	}
 
-	period := time.Duration(1 * time.Second)
-	for _ = range messages {
-		counter.Increment()
+	exitSignal := make(chan os.Signal, 1)
+	signal.Notify(exitSignal, os.Interrupt)
+
+	errorLog := log.New(os.Stderr, "", 0)
+
+	for {
+		select {
+		case envelope := <-firehose:
+			if envelope == nil {
+				errorLog.Println("received nil envelope")
+			} else {
+				println(envelope.String())
+			}
+		case err := <-errorhose:
+			if err == nil {
+				errorLog.Println("received nil envelope")
+			} else {
+				errorLog.Println(err)
+			}
+		case <-exitSignal:
+			os.Exit(0)
+		}
 	}
 }

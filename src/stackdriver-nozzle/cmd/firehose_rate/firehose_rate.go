@@ -17,13 +17,28 @@
 package main
 
 import (
+	"os"
+	"time"
+
+	"code.cloudfoundry.org/lager"
 	"github.com/cloudfoundry-community/go-cfclient"
 	"github.com/cloudfoundry-community/stackdriver-tools/src/stackdriver-nozzle/cloudfoundry"
-	"github.com/cloudfoundry/sonde-go/events"
-	"os"
+	"github.com/cloudfoundry-community/stackdriver-tools/src/stackdriver-nozzle/telemetry"
+	"golang.org/x/net/context"
 )
 
+const cmdName = "firehose-rate-script"
+
+var counter *telemetry.Counter
+
+func init() {
+	counter = telemetry.NewCounter(telemetry.MetricPrefix(cmdName), "message_count")
+}
+
 func main() {
+	logger := lager.NewLogger(cmdName)
+	logger.RegisterSink(lager.NewWriterSink(os.Stdout, lager.DEBUG))
+
 	apiEndpoint := os.Getenv("FIREHOSE_ENDPOINT")
 	username := os.Getenv("FIREHOSE_USERNAME")
 	password := os.Getenv("FIREHOSE_PASSWORD")
@@ -35,19 +50,19 @@ func main() {
 		Password:          password,
 		SkipSslValidation: skipSSLValidation}
 
-	cfClient := cfclient.NewClient(cfConfig)
-
-	client := cloudfoundry.NewFirehose(cfConfig, cfClient, nil)
-
-	err := client.StartListening(&StdOut{})
+	cfClient, err := cfclient.NewClient(cfConfig)
 	if err != nil {
-		panic(err)
+		logger.Fatal("NewClient", err)
 	}
-}
+	client := cloudfoundry.NewFirehose(cfConfig, cfClient, cmdName)
 
-type StdOut struct{}
+	logSink := telemetry.NewLogSink(logger)
+	reporter := telemetry.NewReporter(5*time.Second, logSink)
+	reporter.Start(context.Background())
 
-func (so *StdOut) HandleEvent(envelope *events.Envelope) error {
-	println(envelope.String())
-	return nil
+	messages, _ := client.Connect()
+
+	for range messages {
+		counter.Increment()
+	}
 }
