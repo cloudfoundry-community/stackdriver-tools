@@ -18,7 +18,9 @@
 set -e # exit immediately if a simple command exits with a non-zero status
 set -u # report the usage of uninitialized variables
 
-tar xzvf ${BOSH_COMPILE_TARGET}/golang/go1.9.linux-amd64.tar.gz
+GO_VERSION=1.11.4
+
+tar xzvf ${BOSH_COMPILE_TARGET}/golang/go${GO_VERSION}.linux-amd64.tar.gz
 
 mkdir -p ${BOSH_INSTALL_TARGET}/bin
 cp -a ${BOSH_COMPILE_TARGET}/go/* ${BOSH_INSTALL_TARGET}
