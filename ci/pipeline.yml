@@ -128,14 +128,14 @@ jobs:
         file: stackdriver-tools-source-ci/ci/tasks/echo-to-file.yml
         params:
           TEXT: ((load_balancer_cert))
-          FILE: "lb_cert/cert.pem"
+          FILE: "directory/cert.pem"
         output_mapping:
           directory: lb_cert
       - task: write-key
         file: stackdriver-tools-source-ci/ci/tasks/echo-to-file.yml
         params:
           TEXT: ((load_balancer_key))
-          FILE: "lb_cert/cert.pem"
+          FILE: "directory/key.pem"
         output_mapping:
           directory: lb_key
       # Deploys the BOSH director via `bbl up`
