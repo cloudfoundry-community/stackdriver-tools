@@ -7,7 +7,7 @@ blobs
 .dev_builds
 .idea
 .ash_history
-.bosh
+.boshr bu
 .final_builds/jobs/**/*.tgz
 .final_builds/packages/**/*.tgz
 releases/**/*.tgz
