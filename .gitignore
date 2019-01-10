@@ -6,6 +6,8 @@ blobs
 .blobs
 .dev_builds
 .idea
+.ash_history
+.bosh
 .final_builds/jobs/**/*.tgz
 .final_builds/packages/**/*.tgz
 releases/**/*.tgz

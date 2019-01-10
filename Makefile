@@ -10,7 +10,7 @@ RELEASE_TARBALL := stackdriver-tools-release-$(VERSION).tar.gz
 RELEASE_SHA256 := $(RELEASE_TARBALL).sha256
 RELEASE_BUILD_DIR := build
 TILE_BUILD_DIR := product
-RELEASE_PATH := $(PWD)/$(RELEASE_BUILD_DIR)/$(RELEASE_TARBALL)
+RELEASE_PATH := $(RELEASE_BUILD_DIR)/$(RELEASE_TARBALL)
 
 build:
 	go build -v ./...
@@ -48,6 +48,7 @@ bosh-release:
 tile: bosh-release
 	erb tile.yml.erb > tile.yml
 	mkdir -p $(TILE_BUILD_DIR)
+	echo $(RELEASE_PATH)
 	tile build $(VERSION)
 	sha256sum $(TILE_BUILD_DIR)/$(TILE_FILENAME) | cut -d' ' -f 1 > $(TILE_BUILD_DIR)/$(TILE_SHA256)
 
