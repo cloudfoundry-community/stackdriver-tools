@@ -2,6 +2,10 @@ golang/go1.11.4.linux-amd64.tar.gz:
   size: 126643341
   object_id: 45bef95a-4ab8-46cb-43da-17acb22a64da
   sha: 52bd8eb353a39138a2ddf053857a0fd13f1f176c
+google-fluentd-vendor/google-fluentd-vendor-1.3.3-plugin-0.1.0.tgz:
+  size: 3590708
+  object_id: 647ae5b8-02b4-4c01-5362-c91348fd8c20
+  sha: 6632ff6dd8d2b46fb5cef0ba2620a23bb312060e
 libtool/libtool-2.4.2.tar.gz:
   size: 2632347
   object_id: a72448bd-9ae1-482a-54f3-a73f6820c2c4
@@ -26,22 +30,22 @@ python/setuptools-20.4.tar.gz:
   size: 675976
   object_id: ff2e938d-6ce7-4514-4d9f-a7197564f7af
   sha: b9ffbf5e29765c4a786c7242be1b03bfe08ad1c0
-ruby/bundler-1.10.6.gem:
-  size: 251392
-  object_id: 810385aa-b9c4-4bb0-6f3b-446772507496
-  sha: 55a37fccd1c0cb5542d468e35d3be46dd0667f73
-ruby/ruby-2.3.0.tar.gz:
-  size: 17648682
-  object_id: 6b96ba17-ffbe-4d9a-7726-c695c1f4efc4
-  sha: 2dfcf7f33bda4078efca30ae28cb89cd0e36ddc4
-ruby/rubygems-2.6.2.tgz:
-  size: 478660
-  object_id: 90ddc55c-9119-42c7-5c8d-cc610dc5c6d8
-  sha: 5960628b1f90f4a05ed69c0ad59c59cb10b79e5f
-ruby/yaml-0.1.6.tar.gz:
-  size: 503012
-  object_id: fbd1083b-6f50-40d8-452a-d0c351326e40
-  sha: f3d404e11bec3c4efcddfd14c42d46f1aabe0b5d
+ruby/bundler-2.0.1.gem:
+  size: 364032
+  object_id: 79e8d531-a422-43b4-4a63-b9ea587206ae
+  sha: d20822ff1d6bcbe069c3e709dd39e83da341d675
+ruby/ruby-2.4.5.tar.gz:
+  size: 14232887
+  object_id: 1ff142dd-9b88-4320-4178-1b55f1527e46
+  sha: 4d650f302f1ec00256450b112bb023644b6ab6dd
+ruby/rubygems-3.0.2.tgz:
+  size: 937558
+  object_id: e291d5ff-308b-4186-401f-8b0f42e1a622
+  sha: e5e056ae02db08481eef4090751bf7a89311edd3
+ruby/yaml-0.2.1.tar.gz:
+  size: 599727
+  object_id: f262c4c6-fbfb-4e44-74c0-da72811270c9
+  sha: 125a3113681f06320dcdfde48bab47cba9031263
 stackdriver-agent/stackdriver-agent_5.5.2-379.sdl.tgz:
   size: 1121897
   object_id: 7b4dfc20-9362-4cd5-4c2d-7e49f20a080f
