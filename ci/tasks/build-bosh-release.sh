@@ -1,3 +1,4 @@
+#!/usr/bin/env sh
 #
 # Copyright 2019 Google Inc.
 #
@@ -14,19 +15,10 @@
 # limitations under the License.
 #
 
----
-platform: linux
-image_resource:
-  type: docker-image
-  source:
-    # TODO mattysweeps: https://github.com/cloudfoundry-community/stackdriver-tools/issues/223
-    repository: m0pt0pmatt/tile-generator
-inputs:
-  - name: stackdriver-tools-source
-  - name: stackdriver-tools-source-ci
-outputs:
-  - name: bosh-release-out
-run:
-  dir: stackdriver-tools-source
-  path: stackdriver-tools-source-ci/ci/tasks/build-bosh-release.sh
+set -e # exit immediately if a simple command exits with a non-zero status
+set -u # report the usage of uninitialized variables
+
+apk add --no-cache make git
+make bosh-release
+cp build/stackdriver-tools-release-*.tar.gz* ../bosh-release-out/
 

@@ -23,9 +23,10 @@ image_resource:
     repository: m0pt0pmatt/tile-generator
 inputs:
   - name: stackdriver-tools-source
+  - name: stackdriver-tools-source-ci
 outputs:
   - name: tile-out
 run:
   dir: stackdriver-tools-source
-  path: sh
-  args: [-c, "apk add --no-cache make git ruby && make tile && cp product/stackdriver-nozzle*.pivotal* ../tile-out/"]
+  path: stackdriver-tools-source-ci/ci/tasks/build-tile.sh
+

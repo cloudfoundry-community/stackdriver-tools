@@ -25,7 +25,8 @@ params:
   FILE: file
   DASH_E: true
 run:
-  path: sh
-  args: ["-c", "echo $([[ \"${DASH_E}\" == \"true\" ]] && echo '-e') \"${TEXT}\" > ${FILE}"]
+  path: stackdriver-tools-source-ci/ci/tasks/echo-to-file.sh
+inputs:
+  - name: stackdriver-tools-source-ci
 outputs:
   - name: directory

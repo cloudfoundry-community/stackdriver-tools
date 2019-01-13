@@ -23,8 +23,9 @@ image_resource:
 inputs:
   - name: cf-deployment-source
   - name: gcp-xenial-stemcells
+  - name: stackdriver-tools-source-ci
 outputs:
   - name: edited-manifest
 run:
-  path: sh
-  args: ["-c", "mkdir -p edited-manifest && yq w cf-deployment-source/cf-deployment.yml stemcells[0].version \"$(cat gcp-xenial-stemcells/version)\" > edited-manifest/cf-deployment.yml"]
+  path: stackdriver-tools-source-ci/ci/tasks/update-manifest.sh
+

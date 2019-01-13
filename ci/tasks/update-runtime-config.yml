@@ -23,7 +23,8 @@ image_resource:
 inputs:
   - name: bbl-state
   - name: stackdriver-tools-source
+  - name: stackdriver-tools-source-ci
 run:
   dir: bbl-state
-  path: sh
-  args: [-c, "eval \"$(bbl print-env)\" && bosh --non-interactive update-runtime-config ../stackdriver-tools-source/ci/runtime-config.yml"]
+  path: stackdriver-tools-source-ci/ci/tasks/update-runtime-config.sh
+

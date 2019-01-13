@@ -15,7 +15,8 @@
 # limitations under the License.
 #
 
-set -e
+set -e # exit immediately if a simple command exits with a non-zero status
+set -u # report the usage of uninitialized variables
 
 cp -R stackdriver-tools-source/* prepped_source/
 echo "${GOOGLE_APPLICATION_CREDENTIALS}" > prepped_source/examples/cf-stackdriver-example/credentials.json

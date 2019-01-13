@@ -22,7 +22,8 @@ image_resource:
     repository: golang
 inputs:
   - name: stackdriver-tools-source
+  - name: stackdriver-tools-source-ci
 run:
   dir: stackdriver-tools-source
-  path: ./ci/setup-gopath.sh
-  args: [make, get-deps, lint, test, build]
+  path: stackdriver-tools-source-ci/ci/tasks/unit-test.sh
+
