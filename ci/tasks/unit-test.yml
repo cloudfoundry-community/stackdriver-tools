@@ -25,5 +25,5 @@ inputs:
   - name: stackdriver-tools-source-ci
 run:
   dir: stackdriver-tools-source
-  path: stackdriver-tools-source-ci/ci/tasks/unit-test.sh
+  path: ../stackdriver-tools-source-ci/ci/tasks/unit-test.sh
 
