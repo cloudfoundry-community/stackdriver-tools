@@ -2,8 +2,8 @@
 COMMIT_HASH := $(shell git rev-parse HEAD)
 TIMESTAMP := $(shell date +%s)
 VERSION ?= $(shell git describe --tags --exact-match `git rev-parse HEAD` 2>/dev/null || echo 0.0.$(TIMESTAMP)-custom.$(COMMIT_HASH))
-TILE_NAME ?= $(shell if [ `echo $(VERSION) | grep -o custom` ]; then echo stackdriver-nozzle-custom; else echo stackdriver-nozzle; fi)
-TILE_LABEL ?= $(shell if [ `echo $(VERSION) | grep -o custom` ]; then echo "Stackdriver Nozzle (custom build)"; else echo Stackdriver Nozzle; fi)
+TILE_NAME ?= $(shell if [ `echo $(VERSION) | grep -o custom` ]; then echo stackdriver-nozzle-$(shell git rev-parse --abbrev-ref HEAD); else echo stackdriver-nozzle; fi)
+TILE_LABEL ?= $(shell if [ `echo $(VERSION) | grep -o custom` ]; then echo "Stackdriver Nozzle $(shell git rev-parse --abbrev-ref HEAD)"; else echo Stackdriver Nozzle; fi)
 TILE_FILENAME := $(TILE_NAME)-$(VERSION).pivotal
 TILE_SHA256 := $(TILE_FILENAME).sha256
 RELEASE_TARBALL := stackdriver-tools-release-$(VERSION).tar.gz
