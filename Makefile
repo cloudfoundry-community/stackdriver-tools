@@ -11,6 +11,8 @@ RELEASE_SHA256 := $(RELEASE_TARBALL).sha256
 RELEASE_BUILD_DIR := build
 TILE_BUILD_DIR := product
 RELEASE_PATH := $(RELEASE_BUILD_DIR)/$(RELEASE_TARBALL)
+METAGOLINTER_COMMIT := 102ac984005d45456a7e3ae6dc94ebcd95c2bb19
+METALINTER_TAG := v2.0.12
 
 build:
 	go build -v ./...
@@ -28,7 +30,7 @@ lint:
 
 get-deps:
 	# For gometalinter linting
-	cd $(GOPATH) && wget -q -O - https://git.io/vp6lP | sh
+	cd $(GOPATH) && wget -q -O - https://raw.githubusercontent.com/alecthomas/gometalinter/$(METAGOLINTER_COMMIT)/scripts/install.sh | sh -s -- $(METALINTER_TAG)
 
 	# Simplify cross-compiling
 	go get github.com/mitchellh/gox
