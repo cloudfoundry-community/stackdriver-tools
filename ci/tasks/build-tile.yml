@@ -27,6 +27,4 @@ inputs:
 outputs:
   - name: tile-out
 run:
-  dir: stackdriver-tools-source
-  path: ../stackdriver-tools-source-ci/ci/tasks/build-tile.sh
-
+  path: stackdriver-tools-source-ci/ci/tasks/build-tile.sh

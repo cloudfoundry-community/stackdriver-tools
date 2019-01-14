@@ -18,6 +18,7 @@
 set -e # exit immediately if a simple command exits with a non-zero status
 set -u # report the usage of uninitialized variables
 
+cd bbl-state
+
 eval "$(bbl print-env)"
 bosh --non-interactive update-runtime-config ../stackdriver-tools-source/ci/runtime-config.yml
-

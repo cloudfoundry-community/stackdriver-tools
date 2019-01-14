@@ -19,5 +19,4 @@ set -e # exit immediately if a simple command exits with a non-zero status
 set -u # report the usage of uninitialized variables
 
 mkdir -p edited-manifest
-yq w cf-deployment-source/cf-deployment.yml stemcells[0].version "$(cat gcp-xenial-stemcells/version)" > edited-manifest/cf-deployment.yml"
-
+yq w cf-deployment-source/cf-deployment.yml stemcells[0].version "$(cat gcp-xenial-stemcells/version)" > edited-manifest/cf-deployment.yml

@@ -28,4 +28,3 @@ outputs:
   - name: edited-manifest
 run:
   path: stackdriver-tools-source-ci/ci/tasks/update-manifest.sh
-

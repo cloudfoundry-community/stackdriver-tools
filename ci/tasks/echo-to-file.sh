@@ -18,5 +18,4 @@
 set -e # exit immediately if a simple command exits with a non-zero status
 set -u # report the usage of uninitialized variables
 
-echo $([[ "${DASH_E}" == "true" ]] && echo '-e') "${TEXT}" > ${FILE}"
-
+echo $([[ "${DASH_E}" == "true" ]] && echo '-e') "${TEXT}" > ${FILE}

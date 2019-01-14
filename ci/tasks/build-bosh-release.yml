@@ -27,6 +27,4 @@ inputs:
 outputs:
   - name: bosh-release-out
 run:
-  dir: stackdriver-tools-source
-  path: ../stackdriver-tools-source-ci/ci/tasks/build-bosh-release.sh
-
+  path: stackdriver-tools-source-ci/ci/tasks/build-bosh-release.sh

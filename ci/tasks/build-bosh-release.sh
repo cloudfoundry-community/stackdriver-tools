@@ -18,7 +18,8 @@
 set -e # exit immediately if a simple command exits with a non-zero status
 set -u # report the usage of uninitialized variables
 
+cd stackdriver-tools-source
+
 apk add --no-cache make git
 make bosh-release
 cp build/stackdriver-tools-release-*.tar.gz* ../bosh-release-out/
-

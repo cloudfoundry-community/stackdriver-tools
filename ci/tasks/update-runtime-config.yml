@@ -25,6 +25,4 @@ inputs:
   - name: stackdriver-tools-source
   - name: stackdriver-tools-source-ci
 run:
-  dir: bbl-state
   path: stackdriver-tools-source-ci/ci/tasks/update-runtime-config.sh
-

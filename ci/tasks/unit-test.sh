@@ -18,6 +18,7 @@
 set -e # exit immediately if a simple command exits with a non-zero status
 set -u # report the usage of uninitialized variables
 
+cd stackdriver-tools-source
+
 source ../stackdriver-tools-source-ci/ci/setup-gopath.sh
 make get-deps lint test build
-
