@@ -40,7 +40,7 @@ func (lg *Logger) Publish(message Message) {
 	lg.client.Logger("stackdriver-spinner-logs").Log(logging.Entry{Payload: message, Labels: map[string]string{"foundation": lg.foundation}})
 
 	if err := lg.client.Close(); err != nil {
-		fmt.Errorf("Failed to close client: %v", err)
+		panic(fmt.Errorf("Failed to close client: %v", err))
 	}
 }
 
