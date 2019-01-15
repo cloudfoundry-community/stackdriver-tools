@@ -46,7 +46,7 @@ ruby/yaml-0.2.1.tar.gz:
   size: 599727
   object_id: f262c4c6-fbfb-4e44-74c0-da72811270c9
   sha: 125a3113681f06320dcdfde48bab47cba9031263
-stackdriver-agent/stackdriver-agent_5.5.2-379.sdl.tgz:
-  size: 1121897
-  object_id: 7b4dfc20-9362-4cd5-4c2d-7e49f20a080f
-  sha: 2dcca5209f6a708487f3d89e0db63fa914ef5230
+stackdriver-agent/stackdriver-agent_5.5.2-383.sdl.tgz:
+  size: 1135498
+  object_id: 42a624e0-678e-4083-5cfe-ec169093bbff
+  sha: 5604752f3baddfbf4819e7084de4a6e49d869764
