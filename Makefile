@@ -26,8 +26,8 @@ lint:
 	# Disabling gosec for https://github.com/securego/gosec/issues/267
 	# Disabling vetshadow for https://github.com/golang/go/issues/19490
 	# Disabling maligned because it also affect the config struct. TODO(mattysweeps) re-enable maligned
-	# Ignoring missing comments for now TODO(mattysweeps) fix godoc
-	[ -z "$$($(GOPATH)/bin/gometalinter --deadline=300s --disable gosec --disable vetshadow --disable maligned --vendor ./... | grep -v exported)" ]
+	# Disabling golint due to missing comments for now TODO(mattysweeps) fix godoc
+	$(GOPATH)/bin/gometalinter --deadline=300s --disable gosec --disable vetshadow --disable maligned --disable golint --vendor ./...
 
 get-deps:
 	# For gometalinter linting
