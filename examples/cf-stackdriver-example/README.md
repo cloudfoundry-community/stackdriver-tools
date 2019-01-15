@@ -12,7 +12,7 @@ Based on the [Kubernetes Guestbook App](https://github.com/kubernetes/kubernetes
   - [Stackdriver Debugger API](https://console.cloud.google.com/apis/api/clouddebugger.googleapis.com/overview)
   - [Cloud Datastore API](https://console.cloud.google.com/apis/api/datastore.googleapis.com/overview)
 - To test the database, the Google project must have an existing App Engine project. [More info](https://cloud.google.com/datastore/docs/activate).
-- [Go 1.7](https://golang.org/)
+- [Go 1.11](https://golang.org/)
 - [Cloud SDK](https://cloud.google.com/sdk/downloads)
 
 ## Deploying the application
