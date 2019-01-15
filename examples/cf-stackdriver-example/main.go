@@ -22,7 +22,6 @@ import (
 	"encoding/json"
 	"net/http"
 	"os"
-	"strings"
 	"time"
 
 	"cloud.google.com/go/datastore"
@@ -86,25 +85,6 @@ func ListPushHandler(rw http.ResponseWriter, req *http.Request) {
 func InfoHandler(_ http.ResponseWriter, _ *http.Request) {
 }
 
-func EnvHandler(rw http.ResponseWriter, req *http.Request) {
-	environment := make(map[string]string)
-	for _, item := range os.Environ() {
-		splits := strings.Split(item, "=")
-		key := splits[0]
-		val := strings.Join(splits[1:], "=")
-		environment[key] = val
-	}
-
-	var output []byte
-	output = append(output, []byte("Environment:\n")...)
-	envJSON := PanicOnError(json.MarshalIndent(environment, "", "  ")).([]byte)
-	output = append(output, envJSON...)
-	output = append(output, []byte("\nRequest:\n")...)
-	reqJSON := PanicOnError(json.MarshalIndent(req.Header, "", "  ")).([]byte)
-	output = append(output, reqJSON...)
-	PanicOnError(rw.Write(output))
-}
-
 func PanicOnError(result interface{}, err error) (r interface{}) {
 	if err != nil {
 		panic(err)
@@ -142,7 +122,6 @@ func main() {
 	r.Path("/lrange/{key}").Methods("GET").HandlerFunc(ListRangeHandler)
 	r.Path("/rpush/{key}/{value}").Methods("GET").HandlerFunc(ListPushHandler)
 	r.Path("/info").Methods("GET").HandlerFunc(InfoHandler)
-	r.Path("/env").Methods("GET").HandlerFunc(EnvHandler)
 
 	n := negroni.Classic()
 	n.Use(&ErrorsMiddleware{})
