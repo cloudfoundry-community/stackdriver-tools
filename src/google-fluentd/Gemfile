@@ -21,3 +21,5 @@ gem 'fluent-plugin-google-cloud'
 
 # TODO:mattysweeps ruby version conflict with GRPC
 gem 'fluentd', '~> 1'
+# Fixes multiline bug: https://github.com/googleapis/google-api-ruby-client/pull/648
+gem 'google-api-client', '~> 0.20'
