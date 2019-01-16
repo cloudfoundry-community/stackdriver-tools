@@ -2,7 +2,7 @@
 COMMIT_HASH := $(shell git rev-parse HEAD)
 TIMESTAMP := $(shell date +%s)
 GIT_BRANCH := $(shell git rev-parse --abbrev-ref HEAD)
-VERSION ?= $(shell git describe --tags --exact-match `git rev-parse HEAD` 2>/dev/null || echo 0.0.$(TIMESTAMP)-custom.$(COMMIT_HASH))
+VERSION ?= $(shell git describe --tags --exact-match `git rev-parse HEAD` 2>/dev/null | sed 's/^v//' || echo 0.0.$(TIMESTAMP)-custom.$(COMMIT_HASH))
 TILE_NAME ?= $(shell if [ `echo $(VERSION) | grep -o custom` ]; then echo stackdriver-nozzle-$(GIT_BRANCH); else echo stackdriver-nozzle; fi)
 TILE_LABEL ?= $(shell if [ `echo $(VERSION) | grep -o custom` ]; then echo "Stackdriver Nozzle $(GIT_BRANCH)"; else echo Stackdriver Nozzle; fi)
 TILE_FILENAME := $(TILE_NAME)-$(VERSION).pivotal
