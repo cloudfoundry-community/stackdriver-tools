@@ -1,13 +1,19 @@
 .EXPORT_ALL_VARIABLES:
-COMMIT_HASH := $(shell git rev-parse HEAD)
 TIMESTAMP := $(shell date +%s)
+
 GIT_BRANCH := $(shell git rev-parse --abbrev-ref HEAD)
+GIT_TAG := $(shell git describe --tags --exact-match `git rev-parse HEAD` 2>/dev/null || echo custom)
+COMMIT_HASH := $(shell git rev-parse HEAD)
+
+VERSION ?= $(shell if [ "custom" = "$(GIT_TAG)" ]; then echo 0.0.$(TIMESTAMP)-custom.$(COMMIT_HASH); else echo $(GIT_TAG) | sed 's/^v//'; fi)
+
 CUSTOM_TILE_QUALIFIER ?= $(GIT_BRANCH)
-VERSION ?= $(shell git describe --tags --exact-match `git rev-parse HEAD` 2>/dev/null | sed 's/^v//' || echo 0.0.$(TIMESTAMP)-custom.$(COMMIT_HASH))
+TILE_VERSION := $(shell if [ "custom" = "$(GIT_TAG)" ]; then echo custom; fi)
 TILE_NAME ?= $(shell if [ `echo $(VERSION) | grep -o custom` ]; then echo stackdriver-nozzle-$(CUSTOM_TILE_QUALIFIER); else echo stackdriver-nozzle; fi)
 TILE_LABEL ?= $(shell if [ `echo $(VERSION) | grep -o custom` ]; then echo "Stackdriver Nozzle $(CUSTOM_TILE_QUALIFIER)"; else echo Stackdriver Nozzle; fi)
 TILE_FILENAME := $(TILE_NAME)-$(VERSION).pivotal
 TILE_SHA256 := $(TILE_FILENAME).sha256
+
 RELEASE_TARBALL := stackdriver-tools-release-$(VERSION).tar.gz
 RELEASE_SHA256 := $(RELEASE_TARBALL).sha256
 RELEASE_BUILD_DIR := build
