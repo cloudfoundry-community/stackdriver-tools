@@ -190,6 +190,8 @@ jobs:
         passed: [unit-test]
       - task: tile
         file: stackdriver-tools-source-ci/ci/tasks/build-tile.yml
+        params:
+          CUSTOM_TILE_QUALIFIER: custom
       - put: stackdriver-nozzle-tile
         params: {file: tile-out/*.pivotal}
       - put: stackdriver-nozzle-tile-sha256
