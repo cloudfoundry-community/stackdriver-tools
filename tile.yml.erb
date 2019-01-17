@@ -98,7 +98,7 @@ forms:
   - name: service_account
     type: text
     label: Service Account Credentials
-    description: JSON string credentials for a Service Account with logging.logWriter and logging.configWriter permissions
+    description: JSON string credentials for the service account used by the nozzle. The service account should have both the `logging.admin` and `monitoring.admin` roles.
   - name: project_id
     type: string
     label: Google Project ID
