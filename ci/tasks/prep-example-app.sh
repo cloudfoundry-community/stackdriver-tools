@@ -42,4 +42,4 @@ pushd ${GOPATH}/src/cloud.google.com/go/cmd/go-cloud-debug-agent/
     CGO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo -o ${OLD_DIR}/go-cloud-debug
 popd
 
-../../../stackdriver-tools-source-ci/ci/setup-gopath.sh CGO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo -o ./cf-stackdriver-example -gcflags=all='-N -l'
+CGO_ENABLED=0 GOOS=linux ../../../stackdriver-tools-source-ci/ci/setup-gopath.sh go build -a -installsuffix cgo -o ./cf-stackdriver-example -gcflags=all='-N -l'
