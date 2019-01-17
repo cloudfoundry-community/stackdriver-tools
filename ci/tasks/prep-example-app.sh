@@ -33,4 +33,10 @@ cat <<EOF > ../prepped_source/examples/cf-stackdriver-example/source-context.jso
 EOF
 
 cd ../prepped_source/examples/cf-stackdriver-example/
+
+# Update the debug agent binary
+# This ensures it's compiled with the same version of go as the example app.
+go get -u cloud.google.com/go/cmd/go-cloud-debug-agent
+mv ${GOPATH}/bin/go-cloud-debug-agent ./go-cloud-debug
+
 ../../../stackdriver-tools-source-ci/ci/setup-gopath.sh go build -o ./cf-stackdriver-example -gcflags=all='-N -l'
