@@ -20,7 +20,7 @@ image_resource:
   type: docker-image
   source:
     # TODO mattysweeps: https://github.com/cloudfoundry-community/stackdriver-tools/issues/223
-    repository: m0pt0pmatt/tile-generator
+    repository: cfplatformeng/tile-generator
 inputs:
   - name: stackdriver-tools-source
   - name: stackdriver-tools-source-ci

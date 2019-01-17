@@ -16,7 +16,7 @@
 # Dockerfile for building BOSH release and PCF Tile
 
 # TODO mattysweeps: https://github.com/cloudfoundry-community/stackdriver-tools/issues/223
-FROM m0pt0pmatt/tile-generator:latest
+FROM cfplatformeng/tile-generator:latest
 
 # musl-dev needed for ld: https://bugs.alpinelinux.org/issues/6628
 RUN apk --no-cache add go ruby musl-dev coreutils make
