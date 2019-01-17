@@ -33,4 +33,4 @@ cat <<EOF > ../prepped_source/examples/cf-stackdriver-example/source-context.jso
 EOF
 
 cd ../prepped_source/examples/cf-stackdriver-example/
-../../../stackdriver-tools-source-ci/ci/setup-gopath.sh go build -o ./cf-stackdriver-example
+../../../stackdriver-tools-source-ci/ci/setup-gopath.sh go build -o ./cf-stackdriver-example -gcflags=all='-N -l'
