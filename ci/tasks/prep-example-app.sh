@@ -1,4 +1,4 @@
-#!/usr/bin/env sh
+#!/usr/bin/env bash
 #
 # Copyright 2019 Google Inc.
 #
@@ -19,7 +19,7 @@ set -e # exit immediately if a simple command exits with a non-zero status
 set -u # report the usage of uninitialized variables
 
 cp -R stackdriver-tools-source/* prepped_source/
-echo "${GOOGLE_APPLICATION_CREDENTIALS}" > prepped_source/examples/cf-stackdriver-example/credentials.json
+echo ${GOOGLE_APPLICATION_CREDENTIALS} > prepped_source/examples/cf-stackdriver-example/credentials.json
 cd stackdriver-tools-source
 
 cat <<EOF > ../prepped_source/examples/cf-stackdriver-example/source-context.json
