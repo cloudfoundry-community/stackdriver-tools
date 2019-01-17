@@ -1,24 +1,31 @@
 .EXPORT_ALL_VARIABLES:
 TIMESTAMP := $(shell date +%s)
 
+# Git
+# tags are expecetd to be semver versions (example v1.2.3)
 GIT_BRANCH := $(shell git rev-parse --abbrev-ref HEAD)
 GIT_TAG := $(shell git describe --tags --exact-match `git rev-parse HEAD` 2>/dev/null || echo custom)
 COMMIT_HASH := $(shell git rev-parse HEAD)
 
+# create a pseudo version based on the timestamp for easy dev releases
 VERSION ?= $(shell if [ "custom" = "$(GIT_TAG)" ]; then echo 0.0.$(TIMESTAMP)-custom.$(COMMIT_HASH); else echo $(GIT_TAG) | sed 's/^v//'; fi)
 
+# BOSH release
+RELEASE_TARBALL := stackdriver-tools-release-$(VERSION).tar.gz
+RELEASE_SHA256 := $(RELEASE_TARBALL).sha256
+RELEASE_BUILD_DIR := build
+RELEASE_PATH := $(RELEASE_BUILD_DIR)/$(RELEASE_TARBALL)
+
+# Tile
 CUSTOM_TILE_QUALIFIER ?= $(GIT_BRANCH)
 TILE_VERSION := $(shell if [ "custom" = "$(GIT_TAG)" ]; then echo custom; fi)
 TILE_NAME ?= $(shell if [ `echo $(VERSION) | grep -o custom` ]; then echo stackdriver-nozzle-$(CUSTOM_TILE_QUALIFIER); else echo stackdriver-nozzle; fi)
 TILE_LABEL ?= $(shell if [ `echo $(VERSION) | grep -o custom` ]; then echo "Stackdriver Nozzle $(CUSTOM_TILE_QUALIFIER)"; else echo Stackdriver Nozzle; fi)
 TILE_FILENAME := $(TILE_NAME)-$(VERSION).pivotal
 TILE_SHA256 := $(TILE_FILENAME).sha256
-
-RELEASE_TARBALL := stackdriver-tools-release-$(VERSION).tar.gz
-RELEASE_SHA256 := $(RELEASE_TARBALL).sha256
-RELEASE_BUILD_DIR := build
 TILE_BUILD_DIR := product
-RELEASE_PATH := $(RELEASE_BUILD_DIR)/$(RELEASE_TARBALL)
+
+# linting
 METAGOLINTER_COMMIT := 102ac984005d45456a7e3ae6dc94ebcd95c2bb19
 METALINTER_TAG := v2.0.12
 
