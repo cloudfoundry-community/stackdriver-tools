@@ -4,11 +4,11 @@ TIMESTAMP := $(shell date +%s)
 # Git
 # tags are expecetd to be semver versions (example v1.2.3)
 GIT_BRANCH := $(shell git rev-parse --abbrev-ref HEAD)
-GIT_TAG := $(shell git describe --tags --exact-match `git rev-parse HEAD` 2>/dev/null || echo custom)
+GIT_TAG ?= $(shell git describe --tags --exact-match `git rev-parse HEAD` 2>/dev/null || echo custom)
 COMMIT_HASH := $(shell git rev-parse HEAD)
 
 # create a pseudo version based on the timestamp for easy dev releases
-VERSION ?= $(shell if [ "custom" = "$(GIT_TAG)" ]; then echo 0.0.$(TIMESTAMP)-custom.$(COMMIT_HASH); else echo $(GIT_TAG) | sed 's/^v//'; fi)
+VERSION ?= $(shell if [ "custom" = "$(GIT_TAG)" ]; then echo 0.0.$(TIMESTAMP)-custom.$(COMMIT_HASH); else echo $(GIT_TAG) | egrep -o '[0-9]+\.[0-9]+\.[]0-9]+'; fi)
 
 # BOSH release
 RELEASE_TARBALL := stackdriver-tools-release-$(VERSION).tar.gz
