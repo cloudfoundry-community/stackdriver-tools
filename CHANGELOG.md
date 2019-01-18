@@ -15,4 +15,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
  - Stackdriver Nozzle and Spinner Go dependencies have been updated
  - Various lint fixes were applied across source code and packaged scripts
  - Stackdriver Nozzle utilizes Loggregator’s Reverse Log Proxy API instead of the Firehose API
+ - Add foundation lable to Stackdriver Spinner result log
+ - Add a syslog endpoint to the fluentd BOSH job
+ - Remove the duplication of the log message field in forwarded CF application logs
 
