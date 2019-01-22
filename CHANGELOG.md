@@ -8,7 +8,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 
 ### Changed
 
- - Stackdriver Nozzle PCF Tile requires PCF version >= 2.3 < 2.4
+ - Stackdriver Nozzle PCF Tile requires PCF version >= 2.3.0
  - Stemcell updated from Trusty to Xenial 170.13
  - Stackdriver Nozzle and Spinner updated to use Go 1.11
  - Stackdriver Nozzle and Spinner use dep 
