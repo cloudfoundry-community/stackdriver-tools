@@ -25,11 +25,10 @@ import (
 	"github.com/cloudfoundry/sonde-go/events"
 )
 
-type FirehoseHandler interface {
-	HandleEvent(*events.Envelope) error
-}
-
+// Firehose is a connection to Loggregator's Firehose API
 type Firehose interface {
+
+	// Connect creates a channel for reading Firehose events.
 	Connect() (<-chan *events.Envelope, <-chan error)
 }
 
@@ -39,6 +38,7 @@ type firehose struct {
 	subscriptionID string
 }
 
+// NewFirehose constructs a new Firehose.
 func NewFirehose(cfConfig *cfclient.Config, cfClient *cfclient.Client, subscriptionID string) Firehose {
 	return &firehose{cfConfig, cfClient, subscriptionID}
 }
@@ -60,6 +60,7 @@ type cfClientTokenRefresh struct {
 	cfClient *cfclient.Client
 }
 
+// RefreshAuthToken refreshes the CF token used to connect to the Firehose.
 func (ct *cfClientTokenRefresh) RefreshAuthToken() (token string, err error) {
 	return ct.cfClient.GetToken()
 }

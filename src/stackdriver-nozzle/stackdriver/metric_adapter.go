@@ -28,7 +28,10 @@ import (
 	"google.golang.org/genproto/googleapis/monitoring/v3"
 )
 
+// MetricAdapter is an adapter to the Stackdriver metrics API.
 type MetricAdapter interface {
+
+	// PostMetrics posts metrics to Stackdriver.
 	PostMetrics([]*messages.Metric)
 }
 
@@ -49,7 +52,7 @@ type metricAdapter struct {
 	logger                lager.Logger
 }
 
-// NewMetricAdapter returns a MetricAdapater that can write to Stackdriver Monitoring
+// NewMetricAdapter returns a MetricAdapter for posting metrics to Stackdriver Monitoring.
 func NewMetricAdapter(projectID string, client MetricClient, batchSize int, logger lager.Logger) (MetricAdapter, error) {
 	ma := &metricAdapter{
 		projectID:             projectID,

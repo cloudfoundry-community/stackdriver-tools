@@ -18,6 +18,7 @@ package messages
 
 import "cloud.google.com/go/logging"
 
+// Log represents a Stackdriver log message.
 type Log struct {
 	Payload  interface{}
 	Labels   map[string]string

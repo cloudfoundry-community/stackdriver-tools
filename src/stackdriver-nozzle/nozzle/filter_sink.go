@@ -39,6 +39,7 @@ type filter struct {
 	destination          Sink
 }
 
+// NewFilterSink creates a Sink which filters events for another Sink.
 func NewFilterSink(eventNames []events.Envelope_EventType, blacklist, whitelist *EventFilter, destination Sink) (Sink, error) {
 	if destination == nil {
 		return nil, errors.New("missing destinationSink")

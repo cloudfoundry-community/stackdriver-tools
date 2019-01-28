@@ -40,8 +40,13 @@ func init() {
 	logsCount = telemetry.NewCounter(telemetry.Nozzle, "logs.count")
 }
 
+// LogAdapter represents a connection to the Stackdriver Logging API.
 type LogAdapter interface {
+
+	// PostLog sends a log to Stackdriver.
 	PostLog(*messages.Log)
+
+	// Flush performs a flush of all cached logs.
 	Flush() error
 }
 
@@ -82,7 +87,6 @@ type logAdapter struct {
 	resource *mrpb.MonitoredResource
 }
 
-// PostLog sends a single message to Stackdriver Logging
 func (s *logAdapter) PostLog(log *messages.Log) {
 	logsCount.Increment()
 	entry := logging.Entry{

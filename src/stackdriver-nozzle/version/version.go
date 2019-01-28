@@ -16,6 +16,7 @@
 
 package version
 
+// Name is the string label for the stackdriver-nozzle.
 const Name = "cf-stackdriver-nozzle"
 
 var release string
@@ -27,10 +28,13 @@ func init() {
 	}
 }
 
+// Release returns the version of the BOSH release.
 func Release() string {
 	return release
 }
 
+// UserAgent returns the user agent string to use for identifying connections to Stackdriver
+// from the nozzle.
 func UserAgent() string {
 	return Name + "/" + release
 }

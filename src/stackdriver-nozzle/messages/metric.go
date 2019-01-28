@@ -42,7 +42,7 @@ type Metric struct {
 	Type      events.Envelope_EventType `json:"-"`
 }
 
-func (m *Metric) IsCumulative() bool {
+func (m *Metric) isCumulative() bool {
 	return m.Type == events.Envelope_CounterEvent
 }
 
@@ -51,14 +51,14 @@ func (m *Metric) metricType() string {
 }
 
 func (m *Metric) metricKind() metric.MetricDescriptor_MetricKind {
-	if m.IsCumulative() {
+	if m.isCumulative() {
 		return metric.MetricDescriptor_CUMULATIVE
 	}
 	return metric.MetricDescriptor_GAUGE
 }
 
 func (m *Metric) valueType() metric.MetricDescriptor_ValueType {
-	if m.IsCumulative() {
+	if m.isCumulative() {
 		return metric.MetricDescriptor_INT64
 	}
 	return metric.MetricDescriptor_DOUBLE
@@ -67,7 +67,7 @@ func (m *Metric) valueType() metric.MetricDescriptor_ValueType {
 // NeedsMetricDescriptor determines whether a custom metric descriptor needs to be created for this metric in Stackdriver.
 // We do that if we need to set a custom unit, or mark metric as a cumulative.
 func (m *Metric) NeedsMetricDescriptor() bool {
-	return m.Unit != "" || m.IsCumulative()
+	return m.Unit != "" || m.isCumulative()
 }
 
 // MetricDescriptor returns a Stackdriver MetricDescriptor proto for this metric.
@@ -97,7 +97,7 @@ func (m *Metric) MetricDescriptor(projectName string) *metric.MetricDescriptor {
 // TimeSeries returns a Stackdriver TimeSeries proto for this metric value.
 func (m *Metric) TimeSeries() *monitoring.TimeSeries {
 	var value *monitoring.TypedValue
-	if m.IsCumulative() {
+	if m.isCumulative() {
 		value = &monitoring.TypedValue{Value: &monitoring.TypedValue_Int64Value{Int64Value: m.IntValue}}
 	} else {
 		value = &monitoring.TypedValue{Value: &monitoring.TypedValue_DoubleValue{DoubleValue: m.Value}}
@@ -121,6 +121,7 @@ func (m *Metric) TimeSeries() *monitoring.TimeSeries {
 	}
 }
 
+// Hash returns a string identifier for a metric.
 func (m *Metric) Hash() string {
 	var b bytes.Buffer
 

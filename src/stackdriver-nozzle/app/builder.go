@@ -37,6 +37,7 @@ import (
 	"github.com/cloudfoundry/sonde-go/events"
 )
 
+// App is an instance of the stackdriver-nozzle app.
 type App struct {
 	logger      lager.Logger
 	c           *config.Config
@@ -47,6 +48,7 @@ type App struct {
 	bufferEmpty func() bool
 }
 
+// New constructs a new stackdriver-nozzle app instance.
 func New(c *config.Config, logger lager.Logger) *App {
 	logger.Info("version", lager.Data{"name": version.Name, "release": version.Release(), "user_agent": version.UserAgent()})
 	logger.Info("arguments", c.ToData())

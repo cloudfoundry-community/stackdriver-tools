@@ -18,10 +18,14 @@ package cloudfoundry
 
 import "github.com/cloudfoundry-community/go-cfclient"
 
+// AppInfoRepository represents a Cloud Foundry application's information.
 type AppInfoRepository interface {
+
+	// GetAppInfo gets the basic information for a CF application.
 	GetAppInfo(string) AppInfo
 }
 
+// AppInfo is the basic information for a CF application.
 type AppInfo struct {
 	AppName   string
 	SpaceGUID string
@@ -30,10 +34,12 @@ type AppInfo struct {
 	OrgName   string
 }
 
+// NewAppInfoRepository creates a new AppInfoRepository given a CF client.
 func NewAppInfoRepository(cfClient *cfclient.Client) AppInfoRepository {
 	return &appInfoRepository{cfClient, map[string]AppInfo{}}
 }
 
+// NullAppInfoRepository creates a new AppInfoRepository with Go default values.
 func NullAppInfoRepository() AppInfoRepository {
 	return &nullAppInfoRepository{}
 }

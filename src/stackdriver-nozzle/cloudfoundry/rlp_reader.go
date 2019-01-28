@@ -27,6 +27,7 @@ import (
 	"github.com/cloudfoundry/sonde-go/events"
 )
 
+// ReverseLogProxyConfig is the config needed to connect to the Reverse Log Proxy.
 type ReverseLogProxyConfig struct {
 	Address           string
 	ShardID           string
@@ -55,10 +56,7 @@ func (l loggerWrapper) Printf(s string, d ...interface{}) {
 	l.Info(s, data)
 }
 
-type ReverseLogProxyHandler interface {
-	HandleEvent(*events.Envelope) error
-}
-
+// ReverseLogProxy is a connection to Loggregator's Reverse Log Proxy API.
 type ReverseLogProxy interface {
 	Connect() (<-chan *events.Envelope, <-chan error)
 }
@@ -96,6 +94,7 @@ var allSelectors = []*loggregator_v2.Selector{
 	},
 }
 
+// NewReverseLogProxy constructs a new ReverseLogProxy.
 func NewReverseLogProxy(config *ReverseLogProxyConfig, logger lager.Logger) ReverseLogProxy {
 	wrapper := loggerWrapper{Logger: logger}
 	streamConnector := loggregator.NewEnvelopeStreamConnector(

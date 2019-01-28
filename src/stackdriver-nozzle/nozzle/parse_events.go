@@ -23,6 +23,7 @@ import (
 	"github.com/cloudfoundry/sonde-go/events"
 )
 
+// ParseEvents creates Envelope_EventType from a list of sonde event types.
 func ParseEvents(names []string) ([]events.Envelope_EventType, error) {
 	var parsedEvents []events.Envelope_EventType
 

@@ -18,6 +18,9 @@ package nozzle
 
 import "github.com/cloudfoundry/sonde-go/events"
 
+// Sink handles sonde events.
 type Sink interface {
+
+	// Receive handles a single sonde event.
 	Receive(*events.Envelope)
 }

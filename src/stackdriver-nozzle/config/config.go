@@ -29,6 +29,7 @@ import (
 	"github.com/pkg/errors"
 )
 
+// NewConfig constructs the configuration struct for the nozzle.
 func NewConfig() (*Config, error) {
 	var c Config
 	err := envconfig.Process("", &c)
@@ -56,6 +57,8 @@ func NewConfig() (*Config, error) {
 	return &c, nil
 }
 
+// Config is the configuration struct for the nozzle.
+// It contains information needed for connecting to CF and Stackdriver endpoints.
 type Config struct {
 	// Firehose config
 	APIEndpoint      string `envconfig:"firehose_endpoint" required:"true"`
@@ -154,6 +157,7 @@ func (r EventFilterRule) String() string {
 	return fmt.Sprintf("%s.%s matches %q", r.Sink, r.Type, r.Regexp)
 }
 
+// EventFilterJSON are a collection of EventFilterRules for a firehose connection.
 type EventFilterJSON struct {
 	Blacklist []EventFilterRule `json:"blacklist,omitempty"`
 	Whitelist []EventFilterRule `json:"whitelist,omitempty"`
@@ -204,6 +208,7 @@ func (c *Config) setNozzleHostInfo() {
 	}
 }
 
+// ToData converts a Config to a lager.Data.
 func (c *Config) ToData() lager.Data {
 	return lager.Data{
 		"APIEndpoint":                   c.APIEndpoint,
