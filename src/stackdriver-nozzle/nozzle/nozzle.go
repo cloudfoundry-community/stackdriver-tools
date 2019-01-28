@@ -31,8 +31,13 @@ import (
 
 const bufferSize = 30000 // 1k messages/second * 30 seconds
 
+// Nozzle forwards CF logs and metrics to Stackdriver.
 type Nozzle interface {
+
+	// Start starts the nozzle.
 	Start(rlp cloudfoundry.ReverseLogProxy)
+
+	// Stop stops the nozzle.
 	Stop() error
 }
 
@@ -76,6 +81,7 @@ type state struct {
 	running bool
 }
 
+// NewNozzle creates a new Nozzle.
 func NewNozzle(logger lager.Logger, sinks ...Sink) Nozzle {
 	return &nozzle{
 		sinks:  sinks,

@@ -27,11 +27,13 @@ import (
 	"github.com/cloudfoundry/sonde-go/events"
 )
 
+// LabelMaker creates Stackdriver labels for logs or metrics.
 type LabelMaker interface {
 	MetricLabels(*events.Envelope, bool) map[string]string
 	LogLabels(*events.Envelope) map[string]string
 }
 
+// NewLabelMaker constructs a new LabelMaker.
 func NewLabelMaker(appInfoRepository cloudfoundry.AppInfoRepository, foundationName string) LabelMaker {
 	return &labelMaker{
 		appInfoRepository: appInfoRepository,

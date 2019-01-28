@@ -51,12 +51,20 @@ func init() {
 	descriptorErrs = telemetry.NewCounter(telemetry.Nozzle, "metrics.descriptor.errors")
 }
 
+// MetricClient is a connection to Stackdriver Metrics.
 type MetricClient interface {
+
+	// Post posts a time series point to Stackdriver.
 	Post(*monitoringpb.CreateTimeSeriesRequest) error
+
+	// CreateMetricDescriptor creates a custom metric descriptor.
 	CreateMetricDescriptor(*monitoringpb.CreateMetricDescriptorRequest) error
+
+	// ListMetricDescriptors lists the metric descriptors for a Stackdriver project.
 	ListMetricDescriptors(*monitoringpb.ListMetricDescriptorsRequest) ([]*metricpb.MetricDescriptor, error)
 }
 
+// NewMetricClient constructs a new MetricClient.
 func NewMetricClient() (MetricClient, error) {
 	ctx := context.Background()
 	sdMetricClient, err := monitoring.NewMetricClient(ctx, option.WithScopes("https://www.googleapis.com/auth/monitoring.write"), option.WithUserAgent(version.UserAgent()))

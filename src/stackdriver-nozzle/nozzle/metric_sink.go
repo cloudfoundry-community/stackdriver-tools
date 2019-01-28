@@ -28,7 +28,7 @@ import (
 	"github.com/cloudfoundry/sonde-go/events"
 )
 
-// NewLogSink returns a Sink that can receive sonde Events, translate them and send them to a stackdriver.MetricAdapter
+// NewMetricSink returns a Sink that can receive sonde Events, translate them and send them to a stackdriver.MetricAdapter
 func NewMetricSink(logger lager.Logger, pathPrefix string, labelMaker LabelMaker, metricAdapter stackdriver.MetricAdapter, ct *CounterTracker, unitParser UnitParser, runtimeMetricRegex string) (Sink, error) {
 	r, err := regexp.Compile(runtimeMetricRegex)
 	if err != nil {

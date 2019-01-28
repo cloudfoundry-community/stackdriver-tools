@@ -31,6 +31,7 @@ import (
 	"github.com/cloudfoundry-community/stackdriver-tools/src/stackdriver-nozzle/version"
 )
 
+// Run starts the app.
 func Run(ctx context.Context, a *App) {
 	ctx, cancel := context.WithCancel(ctx)
 

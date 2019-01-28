@@ -18,7 +18,10 @@ package metricspipeline
 
 import "github.com/cloudfoundry-community/stackdriver-tools/src/stackdriver-nozzle/stackdriver"
 
+// MetricsBuffer is a buffered MetricAdapter.
 type MetricsBuffer interface {
 	stackdriver.MetricAdapter
+
+	// IsEmpty checks if the buffer is empty.
 	IsEmpty() bool
 }

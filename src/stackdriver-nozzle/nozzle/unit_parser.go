@@ -37,10 +37,14 @@ Component = [ PREFIX ] UNIT [ Annotation ]
 Annotation = "{" NAME "}" ;
 */
 
+// UnitParser parses Sonde metric unit strings to their Stackdriver equivalents.
 type UnitParser interface {
+
+	// Parse converts a Sonde metric unit to a Stackdriver metric unit.
 	Parse(string) string
 }
 
+// NewUnitParser constructs a new UnitParser.
 func NewUnitParser() UnitParser {
 	componentRegex := regexp.MustCompile(fmt.Sprintf("^(%s)?(%s)$", prefixRegex, unitRegex))
 	annotationRegex := regexp.MustCompile("[{}]")
