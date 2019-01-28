@@ -1,5 +1,8 @@
 # stackdriver-tools release for BOSH
 
+[![License](https://img.shields.io/badge/license-Apache%202.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)
+[![Go Report Card](https://goreportcard.com/badge/github.com/cloudfoundry-community/stackdriver-tools)](https://goreportcard.com/report/github.com/cloudfoundry-community/stackdriver-tools)
+
 This release provides Cloud Foundry and BOSH integration with Google Cloud
 Platform's [Stackdriver Logging](https://cloud.google.com/logging/) and
 [Monitoring](https://cloud.google.com/monitoring/).
