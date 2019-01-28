@@ -30,6 +30,7 @@ import (
 	"github.com/gorilla/mux"
 )
 
+// Entry represents an entry in the guestbook.
 type Entry struct {
 	Value   string    `datastore:"value"`
 	Created time.Time `datastore:"created"`
@@ -40,7 +41,8 @@ var (
 	projectID       string
 )
 
-func ListRangeHandler(rw http.ResponseWriter, req *http.Request) {
+// GetGuestbookEntriesHandler is an HTTP handler function which returns guestbook entries by their key.
+func GetGuestbookEntriesHandler(rw http.ResponseWriter, req *http.Request) {
 	key := mux.Vars(req)["key"]
 
 	var entries []*Entry
@@ -55,7 +57,8 @@ func ListRangeHandler(rw http.ResponseWriter, req *http.Request) {
 	PanicOnError(rw.Write(membersJSON))
 }
 
-func ListPushHandler(rw http.ResponseWriter, req *http.Request) {
+// PutGuestbookEntryHandler is an HTTP handler function which puts a new entry into the guestbook.
+func PutGuestbookEntryHandler(rw http.ResponseWriter, req *http.Request) {
 	vars := mux.Vars(req)
 	// Bug:
 	key := vars["k"]
@@ -79,12 +82,10 @@ func ListPushHandler(rw http.ResponseWriter, req *http.Request) {
 		panic(err)
 	}
 
-	ListRangeHandler(rw, req)
+	GetGuestbookEntriesHandler(rw, req)
 }
 
-func InfoHandler(_ http.ResponseWriter, _ *http.Request) {
-}
-
+// PanicOnError panics when err != nil.
 func PanicOnError(result interface{}, err error) (r interface{}) {
 	if err != nil {
 		panic(err)
@@ -94,6 +95,7 @@ func PanicOnError(result interface{}, err error) (r interface{}) {
 
 var errorsClient *errors.Client
 
+// ErrorsMiddleware is a middleware which catches errors and sends them to Stackdriver.
 type ErrorsMiddleware struct{}
 
 func (l *ErrorsMiddleware) ServeHTTP(w http.ResponseWriter, req *http.Request, next http.HandlerFunc) {
@@ -119,9 +121,8 @@ func main() {
 	}
 
 	r := mux.NewRouter()
-	r.Path("/lrange/{key}").Methods("GET").HandlerFunc(ListRangeHandler)
-	r.Path("/rpush/{key}/{value}").Methods("GET").HandlerFunc(ListPushHandler)
-	r.Path("/info").Methods("GET").HandlerFunc(InfoHandler)
+	r.Path("/{key}").Methods("GET").HandlerFunc(GetGuestbookEntriesHandler)
+	r.Path("/{key}/{value}").Methods("PUT").HandlerFunc(PutGuestbookEntryHandler)
 
 	n := negroni.Classic()
 	n.Use(&ErrorsMiddleware{})
