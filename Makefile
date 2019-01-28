@@ -36,12 +36,18 @@ test:
 	go test -v ./...
 
 lint:
-	# Tests for output
 	# Disabling gosec for https://github.com/securego/gosec/issues/267
 	# Disabling vetshadow for https://github.com/golang/go/issues/19490
-	# Disabling maligned because it also affect the config struct. TODO(mattysweeps) re-enable maligned
-	# Disabling golint due to missing comments for now TODO(mattysweeps) fix godoc
-	$(GOPATH)/bin/gometalinter --deadline=300s --disable gosec --disable vetshadow --disable maligned --disable golint --vendor ./...
+	# Disabling maligned because it also affect the config struct. https://github.com/cloudfoundry-community/stackdriver-tools/issues/244
+	# Excluding stackdriver-nozzle's mocks directory. https://github.com/cloudfoundry-community/stackdriver-tools/issues/245
+	$(GOPATH)/bin/gometalinter \
+	--deadline=300s \
+	--disable gosec \
+	--disable vetshadow \
+	--disable maligned \
+	--vendor \
+	--exclude src/stackdriver-nozzle/mocks \
+	./...
 
 get-deps:
 	# For gometalinter linting
