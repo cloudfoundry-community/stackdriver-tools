@@ -16,20 +16,24 @@
 
 package fakes
 
+// Writer is an io.Writer which records every write and always returns success.
 type Writer struct {
 	Writes []string
 }
 
+// Write records every write and always returns success.
 func (m *Writer) Write(p []byte) (n int, err error) {
 	m.Writes = append(m.Writes, string(p))
 
 	return len(p), nil
 }
 
+// FailingWriter is an io.Writer which always fails with a configurable error.
 type FailingWriter struct {
 	Err error
 }
 
+// Write always fails.
 func (f *FailingWriter) Write(p []byte) (n int, err error) {
 	return 0, f.Err
 }

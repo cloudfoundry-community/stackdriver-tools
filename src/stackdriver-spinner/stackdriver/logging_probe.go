@@ -19,6 +19,7 @@ package stackdriver
 import (
 	"context"
 	"fmt"
+	"github.com/cloudfoundry-community/stackdriver-tools/src/stackdriver-spinner/session"
 	"time"
 
 	"cloud.google.com/go/logging"
@@ -26,11 +27,11 @@ import (
 	"google.golang.org/api/iterator"
 )
 
-type LoggingProbe struct {
+type loggingProbe struct {
 	client *logadmin.Client
 }
 
-func (lp *LoggingProbe) Find(start time.Time, needle string, count int) (int, error) {
+func (lp *loggingProbe) Find(start time.Time, needle string, count int) (int, error) {
 	timeBytes, err := start.MarshalText()
 	if err != nil {
 		return 0, fmt.Errorf("problem marshaling text: %v", err)
@@ -61,10 +62,11 @@ func (lp *LoggingProbe) Find(start time.Time, needle string, count int) (int, er
 	return len(entries), nil
 }
 
-func NewLoggingProbe(projectID string) (*LoggingProbe, error) {
+// NewLoggingProbe constructs a loggingProbe for a given GCP project.
+func NewLoggingProbe(projectID string) (session.Probe, error) {
 	client, err := logadmin.NewClient(context.Background(), projectID)
 	if err != nil {
 		return nil, fmt.Errorf("creating client: %v", err)
 	}
-	return &LoggingProbe{client}, nil
+	return &loggingProbe{client}, nil
 }
