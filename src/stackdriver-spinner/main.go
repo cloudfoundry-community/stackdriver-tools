@@ -95,6 +95,5 @@ func startSpinner(proj, foundation string, count, wait int) {
 		}
 
 		logger.Publish(msg)
-
 	}
 }

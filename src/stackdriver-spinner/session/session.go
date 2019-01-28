@@ -23,31 +23,41 @@ import (
 	"time"
 )
 
+// Emitter adds spinner logs to Stackdriver.
 type Emitter interface {
+
+	// Emit adds logs to Stackdriver which can be identified by the needle.
 	Emit(needle string) (int, error)
 }
 
+// Probe searches for spinner logs in Stackdriver.
 type Probe interface {
+
+	// Find searches Stackdriver for logs with the given needle.
 	Find(start time.Time, needle string, count int) (int, error)
 }
 
+// Session represents an instance of the Spinner.
 type Session struct {
 	emitter Emitter
 	probe   Probe
 }
 
+// Result is a summary of the log loss from a Run of a Session.
 type Result struct {
 	GUID  string
 	Found int
 	Loss  float64
 }
 
+// NewSession constructs a Session.
 func NewSession(emitter Emitter, probe Probe) Session {
 	return Session{emitter, probe}
 }
 
+// Run tests the Stackdriver Nozzle by Emitting logs and Probing for them after a given interval.
 func (s Session) Run(burstInterval time.Duration) (Result, error) {
-	needle := getNeedle()
+	needle := generateNeedle()
 	emitted, err := s.emitter.Emit(needle)
 	if err != nil {
 		return Result{}, err
@@ -63,7 +73,7 @@ func (s Session) Run(burstInterval time.Duration) (Result, error) {
 	return Result{needle, found, float64(emitted-found) / float64(emitted)}, nil
 }
 
-func getNeedle() string {
+func generateNeedle() string {
 	uuid := make([]byte, 16)
 	n, err := io.ReadFull(rand.Reader, uuid)
 	if n != len(uuid) || err != nil {

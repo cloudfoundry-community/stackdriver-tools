@@ -19,25 +19,26 @@ package cloudfoundry
 import (
 	"encoding/json"
 	"fmt"
+	"github.com/cloudfoundry-community/stackdriver-tools/src/stackdriver-spinner/session"
 	"io"
 	"time"
 )
 
-type Emitter struct {
+type emitter struct {
 	writer io.Writer
 	count  int
 	delay  time.Duration
 }
 
-type Payload struct {
+type payload struct {
 	Timestamp string `json:"timestamp"`
 	GUID      string `json:"guid"`
 	Count     int    `json:"count"`
 }
 
-func (e *Emitter) Emit(guid string) (int, error) {
+func (e *emitter) Emit(guid string) (int, error) {
 	for i := 0; i < e.count; i++ {
-		pl := Payload{
+		pl := payload{
 			Timestamp: time.Now().UTC().Format("2006-01-02T15:04:05.000-07:00"),
 			GUID:      guid,
 			Count:     i + 1,
@@ -57,6 +58,7 @@ func (e *Emitter) Emit(guid string) (int, error) {
 	return e.count, nil
 }
 
-func NewEmitter(writer io.Writer, count int, delay time.Duration) *Emitter {
-	return &Emitter{writer, count, delay}
+// NewEmitter constructs a new session.Emitter.
+func NewEmitter(writer io.Writer, count int, delay time.Duration) session.Emitter {
+	return &emitter{writer, count, delay}
 }

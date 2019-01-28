@@ -25,7 +25,7 @@ import (
 	. "github.com/onsi/gomega"
 )
 
-var _ = Describe("Emitter", func() {
+var _ = Describe("emitter", func() {
 	It("logs to stdout once", func() {
 		mockWriter := fakes.Writer{}
 

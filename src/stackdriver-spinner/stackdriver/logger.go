@@ -23,11 +23,13 @@ import (
 	"cloud.google.com/go/logging"
 )
 
+// Logger is a spinner logging client.
 type Logger struct {
 	client     *logging.Client
 	foundation string
 }
 
+// Message is the structure of a spinner log.
 type Message struct {
 	GUID             string  `json:"guid"`
 	NumberSent       int     `json:"number_sent"`
@@ -36,14 +38,16 @@ type Message struct {
 	LossPercentage   float64 `json:"loss_percentage"`
 }
 
+// Publish logs a log message to Stackdriver.
 func (lg *Logger) Publish(message Message) {
 	lg.client.Logger("stackdriver-spinner-logs").Log(logging.Entry{Payload: message, Labels: map[string]string{"foundation": lg.foundation}})
 
 	if err := lg.client.Close(); err != nil {
-		panic(fmt.Errorf("Failed to close client: %v", err))
+		panic(fmt.Errorf("failed to close client: %v", err))
 	}
 }
 
+// NewLogger constructs a new Stackdriver Logger client.
 func NewLogger(projectID, foundation string) (*Logger, error) {
 	client, err := logging.NewClient(context.Background(), projectID)
 	if err != nil {

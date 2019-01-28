@@ -18,17 +18,21 @@ package fakes
 
 import "time"
 
+// LosslessProbe never loses any logs.
 type LosslessProbe struct {
 }
 
+// Find finds all logs.
 func (m *LosslessProbe) Find(start time.Time, needle string, count int) (int, error) {
 	return count, nil
 }
 
+// ConfigurableProbe is a logging probe which can return a configurable number of logs.
 type ConfigurableProbe struct {
 	FindFunc func(time.Time, string, int) (int, error)
 }
 
+// Find returns whatever FindFunc determines.
 func (m *ConfigurableProbe) Find(start time.Time, needle string, count int) (int, error) {
 	return m.FindFunc(start, needle, count)
 }
