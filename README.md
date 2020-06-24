@@ -1,3 +1,6 @@
+# Status
+This project is no longer actively maintained and the repository has been archived.
+
 # stackdriver-tools release for BOSH
 
 This release provides Cloud Foundry and BOSH integration with Google Cloud
